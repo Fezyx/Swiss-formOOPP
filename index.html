@@ -78,6 +78,9 @@ tr.clickable:hover{background:#f1f5f9}
 .func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
 .func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#334155}
 .func-items input[type=checkbox]{width:auto;flex:0 0 auto}
+/* textové položky „má nárok“ */
+.claim-tag{display:inline-flex;align-items:center;gap:6px;background:#eef2f7;border:1px solid #cbd5e1;border-radius:999px;padding:4px 6px 4px 12px;margin:0 6px 6px 0;font-size:.9rem;color:#1f2937}
+.claim-x{border:0;background:#94a3b8;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;line-height:1;font-size:.8rem;padding:0}
 .func-items .sig-hint{flex:0 0 auto;margin:0;white-space:nowrap}
 .only-mobile{display:none}
 .issue-table th,.issue-table td{padding:8px 6px;vertical-align:top}
@@ -451,7 +454,11 @@ tr.clickable:hover{background:#f1f5f9}
           <label>Název funkce</label>
           <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
           <label>Má nárok (dle zákona)</label>
-          <div id="funcItems" class="func-items"></div>
+          <div class="row" style="margin-top:2px">
+            <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
+            <button type="button" class="btn outline" id="btnFuncAddClaim">＋ přidat</button>
+          </div>
+          <div id="funcClaims" style="margin-top:8px"></div>
           <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
             <label style="margin:0">Může nafasovat</label>
             <button type="button" class="btn outline small" id="btnFuncCopyIssue">＋ doplnit z „má nárok“</button>
@@ -632,15 +639,21 @@ function normalizeFunctionName(s){
   return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-// db.functions = [{id, name, items:[idPředmětu, …], canIssue:[idPředmětu, …]}]
-// items    = „má nárok“ (dle zákona) → tisk do evidenčního listu (PDF)
-// canIssue = „může nafasovat“ → rolovací menu ve výdeji (včetně věcí nad rámec zákona)
+// db.functions = [{id, name, claims:[text, …], canIssue:[idPředmětu, …]}]
+// claims   = „má nárok“ (dle zákona) — volný text, tisk do evidenčního listu (PDF)
+// canIssue = „může nafasovat“ — id předmětů, rolovací menu ve výdeji
 function ensureFunctions(){
   if(!Array.isArray(db.functions)) db.functions = [];
   db.functions.forEach(function(f){
     if(!f || typeof f !== 'object') return;
-    if(!Array.isArray(f.items)) f.items = [];
-    if(!Array.isArray(f.canIssue)) f.canIssue = f.items.slice();   // výchozí = to, na co má nárok
+    if(!Array.isArray(f.canIssue)) f.canIssue = Array.isArray(f.items) ? f.items.slice() : [];
+    // „má nárok“ je nově volný text — stará data měla id předmětů, převedeme je na názvy
+    if(!Array.isArray(f.claims)){
+      f.claims = (Array.isArray(f.items) ? f.items : []).map(function(id){
+        const it = db.items.find(function(x){ return x.id === id; });
+        return it ? it.name : String(id);
+      }).filter(Boolean);
+    }
     if(typeof f.name !== 'string') f.name = String(f.name || '');
   });
 }
@@ -752,9 +765,9 @@ function employeeEntitlement(e, issues){
   }
   const fn = employeeFunction(e);
   if(fn){
-    fn.items.forEach(function(id){
-      const it = db.items.find(function(x){ return x.id === id; });
-      if(it) push(it.name, lifetimeLabel(it));
+    (fn.claims || []).forEach(function(name){
+      const it = itemByName(name);
+      push(name, it ? lifetimeLabel(it) : '');
     });
   }
   if(out.length === 0){
@@ -779,7 +792,7 @@ function migrateFunctions(){
     if(!name) return;
     let fn = functionByName(name);
     if(!fn){
-      fn = {id: uid(), name: name, items: []};
+      fn = {id: uid(), name: name, claims: []};
       db.functions.push(fn);
       changed = true;
     }
@@ -1390,7 +1403,7 @@ function functionForImport(name){
   if(!label) return null;
   const existing = functionByName(label);
   if(existing) return existing;
-  const fn = touchRec({id: uid(), name: label, items: []});
+  const fn = touchRec({id: uid(), name: label, claims: []});
   db.functions.push(fn);
   return fn;
 }
@@ -1560,12 +1573,13 @@ function deleteItem(id){
   if(!confirm('Smazat předmět?')) return;
   db.items = db.items.filter(function(x){ return x.id !== id; });
   markDeleted('items', id);
-  // předmět zmizí i z nároků a „může nafasovat“ jednotlivých funkcí
+  // předmět zmizí ze seznamu „může nafasovat“ jednotlivých funkcí
+  // („má nárok“ je volný text, ten zůstává)
   (db.functions || []).forEach(function(f){
-    let changed = false;
-    if((f.items || []).indexOf(id) !== -1){ f.items = f.items.filter(function(x){ return x !== id; }); changed = true; }
-    if((f.canIssue || []).indexOf(id) !== -1){ f.canIssue = f.canIssue.filter(function(x){ return x !== id; }); changed = true; }
-    if(changed) touchRec(f);
+    if((f.canIssue || []).indexOf(id) !== -1){
+      f.canIssue = f.canIssue.filter(function(x){ return x !== id; });
+      touchRec(f);
+    }
   });
   save();
   renderItems();
@@ -1584,6 +1598,7 @@ function checkedIdsIn(boxId){
     .map(function(cb){ return cb.value; });
 }
 
+// „může nafasovat“ — zaškrtávací seznam předmětů (bez životnosti)
 function renderFunctionChecklist(boxId, checkedIds){
   const box = document.getElementById(boxId);
   if(!box) return;
@@ -1594,21 +1609,55 @@ function renderFunctionChecklist(boxId, checkedIds){
   const checked = {};
   (checkedIds || []).forEach(function(id){ checked[id] = true; });
   box.innerHTML = db.items.map(function(it){
-    const life = lifetimeLabel(it);
     return '<label><input type="checkbox" class="func-item" value="' + it.id + '"' + (checked[it.id] ? ' checked' : '') + '>' +
-      '<span>' + escapeHtml(it.name) + '</span>' +
-      (life ? '<span class="sig-hint">' + escapeHtml(life) + '</span>' : '') + '</label>';
+      '<span>' + escapeHtml(it.name) + '</span></label>';
   }).join('');
 }
 
+// „má nárok“ — volný text s přidáváním a odebíráním
+let functionClaims = [];
+
+function renderFunctionClaims(){
+  const box = document.getElementById('funcClaims');
+  if(!box) return;
+  if(functionClaims.length === 0){
+    box.innerHTML = '<div class="sig-hint">Zatím žádná položka — napište název a klikněte „＋ přidat“.</div>';
+    return;
+  }
+  box.innerHTML = functionClaims.map(function(name, i){
+    return '<span class="claim-tag">' + escapeHtml(name) +
+      '<button type="button" class="claim-x" data-claim-i="' + i + '" aria-label="Odebrat">✕</button></span>';
+  }).join('');
+}
+
+function addFunctionClaim(){
+  const input = document.getElementById('funcClaimInput');
+  const name = (input ? input.value : '').replace(/\s+/g, ' ').trim();
+  if(!name) return;
+  const key = normalizeFunctionName(name);
+  if(functionClaims.some(function(c){ return normalizeFunctionName(c) === key; })){
+    toast('Tato položka už v seznamu je.');
+    return;
+  }
+  functionClaims.push(name);
+  if(input) input.value = '';
+  renderFunctionClaims();
+}
+
+function removeFunctionClaim(i){
+  functionClaims.splice(i, 1);
+  renderFunctionClaims();
+}
+
 function copyClaimToCanIssue(){
-  const ids = checkedIdsIn('funcItems');
-  if(ids.length === 0){ toast('Nejprve zaškrtněte „má nárok“.'); return; }
-  const set = {};
-  ids.forEach(function(id){ set[id] = true; });
+  const keys = functionClaims.map(function(n){ return normalizeFunctionName(n); }).filter(Boolean);
+  if(keys.length === 0){ toast('Nejprve přidejte položky do „má nárok“.'); return; }
   const box = document.getElementById('funcCanIssue');
-  if(box) box.querySelectorAll('input.func-item').forEach(function(cb){ if(set[cb.value]) cb.checked = true; });
-  toast('Doplněno z „má nárok“ (' + ids.length + ').');
+  if(box) box.querySelectorAll('input.func-item').forEach(function(cb){
+    const it = db.items.find(function(x){ return x.id === cb.value; });
+    if(it && keys.indexOf(normalizeFunctionName(it.name)) !== -1) cb.checked = true;
+  });
+  toast('Doplněno z „má nárok“ (dle názvu).');
 }
 
 function renderFunctionList(){
@@ -1627,14 +1676,14 @@ function renderFunctionList(){
   const dash = '<span style="color:#94a3b8">—</span>';
   list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Má nárok</th><th>Může nafasovat</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
     db.functions.map(function(f){
-      const names = itemNames(f.items);
+      const claims = (f.claims || []).slice();
       const canNames = itemNames(f.canIssue);
       const count = db.employees.filter(function(e){
         const own = employeeFunction(e);
         return !!own && own.id === f.id;
       }).length;
       return '<tr><td>' + escapeHtml(f.name) + '</td>' +
-        '<td>' + (names.length ? escapeHtml(names.join(', ')) : dash) + '</td>' +
+        '<td>' + (claims.length ? escapeHtml(claims.join(', ')) : dash) + '</td>' +
         '<td>' + (canNames.length ? escapeHtml(canNames.join(', ')) : dash) + '</td>' +
         '<td class="opt">' + count + '</td>' +
         '<td style="text-align:right;white-space:nowrap">' +
@@ -1643,9 +1692,9 @@ function renderFunctionList(){
     }).join('') + '</tbody></table>';
 }
 
-// Vykreslí seznam funkcí a k tomu zaškrtávátka (stav zaškrtání se zachová).
+// Vykreslí seznam funkcí a editační formulář (stav zůstává zachován).
 function renderFunctions(){
-  renderFunctionChecklist('funcItems', checkedIdsIn('funcItems'));
+  renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', checkedIdsIn('funcCanIssue'));
   renderFunctionList();
 }
@@ -1665,8 +1714,11 @@ function refreshFunctionOptions(selectedId){
 
 function resetFunctionForm(){
   editingFunctionId = null;
+  functionClaims = [];
   document.getElementById('funcName').value = '';
-  renderFunctionChecklist('funcItems', []);
+  const input = document.getElementById('funcClaimInput');
+  if(input) input.value = '';
+  renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', []);
   document.getElementById('btnAddFunction').textContent = 'Přidat funkci';
   document.getElementById('btnCancelEditFunction').classList.add('hidden');
@@ -1676,8 +1728,11 @@ function editFunction(id){
   const f = functionById(id);
   if(!f) return;
   editingFunctionId = id;
+  functionClaims = (f.claims || []).slice();
   document.getElementById('funcName').value = f.name;
-  renderFunctionChecklist('funcItems', f.items || []);
+  const input = document.getElementById('funcClaimInput');
+  if(input) input.value = '';
+  renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', f.canIssue || []);
   document.getElementById('btnAddFunction').textContent = 'Uložit změny';
   document.getElementById('btnCancelEditFunction').classList.remove('hidden');
@@ -1686,7 +1741,7 @@ function editFunction(id){
 
 function addFunction(){
   const name = document.getElementById('funcName').value.trim();
-  const items = checkedIdsIn('funcItems');
+  const claims = functionClaims.slice();
   const canIssue = checkedIdsIn('funcCanIssue');
   if(!name){ toast('Zadejte název funkce.'); return; }
   const dup = db.functions.some(function(f){
@@ -1697,7 +1752,7 @@ function addFunction(){
     const f = functionById(editingFunctionId);
     if(f){
       f.name = name;
-      f.items = items;
+      f.claims = claims;
       f.canIssue = canIssue;
       touchRec(f);
       // název funkce se propíše i k zaměstnancům (tisk používá id, název je jen záloha)
@@ -1705,7 +1760,7 @@ function addFunction(){
       toast('Funkce upravena.');
     }
   } else {
-    db.functions.push(touchRec({id: uid(), name: name, items: items, canIssue: canIssue}));
+    db.functions.push(touchRec({id: uid(), name: name, claims: claims, canIssue: canIssue}));
     toast('Funkce přidána.');
   }
   save();
@@ -3297,12 +3352,11 @@ function cloudDropDeleted(data){
       return (r.updatedAt || r.createdAt || 0) > at;   // novější úprava mazání přebije
     });
   });
-  // smazaný předmět zmizí i z nároků a „může nafasovat“ funkcí
+  // smazaný předmět zmizí ze seznamu „může nafasovat“ funkcí
   const itemIds = {};
   (data.items || []).forEach(function(it){ if(it && it.id) itemIds[it.id] = true; });
   (data.functions || []).forEach(function(f){
     if(!f) return;
-    if(Array.isArray(f.items)) f.items = f.items.filter(function(id){ return itemIds[id]; });
     if(Array.isArray(f.canIssue)) f.canIssue = f.canIssue.filter(function(id){ return itemIds[id]; });
   });
   return data;
@@ -3912,6 +3966,14 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnAddFunction').addEventListener('click', addFunction);
   document.getElementById('btnCancelEditFunction').addEventListener('click', resetFunctionForm);
   document.getElementById('btnFuncCopyIssue').addEventListener('click', copyClaimToCanIssue);
+  document.getElementById('btnFuncAddClaim').addEventListener('click', addFunctionClaim);
+  document.getElementById('funcClaimInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addFunctionClaim(); }
+  });
+  document.getElementById('funcClaims').addEventListener('click', function(e){
+    const x = e.target.closest ? e.target.closest('.claim-x') : null;
+    if(x) removeFunctionClaim(parseInt(x.dataset.claimI, 10));
+  });
 
   installButtons().forEach(function(btn){
     btn.addEventListener('click', promptInstall);
