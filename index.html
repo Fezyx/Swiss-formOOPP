@@ -1,0 +1,3959 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Evidence OOPP</title>
+<meta name="description" content="Evidence vydávání osobních ochranných pracovních prostředků. Funguje offline, data zůstávají v zařízení.">
+<meta name="theme-color" content="#17324d">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="dependencies/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="dependencies/icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="dependencies/icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="dependencies/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OOPP">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#eef1f5;color:#1f2937;-webkit-tap-highlight-color:transparent}
+#app{max-width:960px;margin:0 auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+/* v desktopovém okně (OOPP.exe) využít šířku obrazovky */
+html.desktop-shell #app{max-width:1280px}
+header{background:#17324d;color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:1.25rem;line-height:1.2}
+header .sub{font-size:.8rem;opacity:.8;text-align:right}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-logo{height:34px;width:auto;display:block}
+.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.admin-badge{display:flex;align-items:center;gap:8px}
+.admin-badge-who{font-size:.8rem;opacity:.85;white-space:nowrap}
+.btn.light{background:#fff;color:#17324d}
+nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:10}
+nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#475569;border-bottom:3px solid transparent}
+nav button.active{color:#17324d;font-weight:700;border-bottom-color:#17324d}
+main{padding:16px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card h2{font-size:1.1rem;margin-bottom:4px}
+.card .desc{font-size:.82rem;color:#64748b;margin-bottom:14px}
+label{display:block;font-size:.82rem;font-weight:600;margin:12px 0 5px;color:#334155}
+input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
+input:focus,select:focus{outline:none;border-color:#17324d}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border:none;border-radius:8px;background:#17324d;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.secondary{background:#64748b}
+.btn.danger{background:#dc2626}
+.btn.outline{background:#fff;color:#17324d;border:1px solid #17324d}
+.btn.small{padding:7px 12px;font-size:.85rem}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row .grow{flex:1;min-width:120px}
+.item-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.item-row .row-item{flex:2;min-width:120px}
+.item-row .row-qty{flex:1;min-width:64px}
+.item-row .row-size{flex:0 0 80px;min-width:80px}
+.emp-suggest{position:relative;margin-top:2px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;max-height:300px;overflow:auto;box-shadow:0 10px 28px rgba(15,23,42,.14)}
+.emp-suggest-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.emp-suggest-item:last-child{border-bottom:none}
+.emp-suggest-item:hover,.emp-suggest-item.active{background:#eef4ff}
+.emp-suggest-item .sig-hint{margin-top:1px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
+th{background:#f8fafc;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;color:#64748b}
+tr.clickable{cursor:pointer}
+tr.clickable:hover{background:#f1f5f9}
+.sig-box{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
+#signatureCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
+.sig-hint{font-size:.76rem;color:#94a3b8;margin-top:4px}
+/* zaškrtávací seznam nároku na OOPP u funkce */
+.func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
+.func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#334155}
+.func-items input[type=checkbox]{width:auto;flex:0 0 auto}
+.func-items .sig-hint{flex:0 0 auto;margin:0;white-space:nowrap}
+.only-mobile{display:none}
+.issue-table th,.issue-table td{padding:8px 6px;vertical-align:top}
+.issue-table .nowrap{white-space:nowrap}
+.sig-thumb{height:34px;width:auto;max-width:88px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+.sig-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;z-index:60}
+.sig-overlay img{background:#fff;border-radius:10px;padding:10px;max-width:100%;max-height:62vh;object-fit:contain}
+.sig-overlay-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;color:#e2e8f0;font-size:.85rem}
+.empty{padding:20px;text-align:center;color:#94a3b8}
+.file-setup{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
+.file-setup-card{background:#fff;border-radius:14px;padding:22px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.32)}
+.file-setup-card h2{margin-bottom:8px}
+.file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#475569;line-height:1.5}
+.file-setup-card .btn{width:100%;justify-content:center;margin-top:8px}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.print-area{display:none}
+.danger-zone{border:1px dashed #fca5a5;background:#fef2f2;border-radius:10px;padding:14px}
+.print-area{padding:20px;font-family:'Segoe UI',sans-serif;color:#000}
+.print-area h1{font-size:18px;margin-bottom:4px}
+.print-area h2{font-size:14px;margin-bottom:16px}
+.print-area table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:12px}
+.print-area th,.print-area td{border:1px solid #333;padding:6px 8px;text-align:left}
+.print-area .meta{margin-bottom:4px}
+.print-area .sign{margin-top:24px}
+/* ---- Úvodní obrazovka (splash) ---- */
+#splash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:120;background:#17324d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .45s ease}
+#splash.splash-hide{opacity:0;pointer-events:none}
+.splash-logo{width:min(74vw,560px);height:auto;display:block}
+.splash-spinner{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.22);border-top-color:#7fb0e0;animation:splashSpin .9s linear infinite}
+@keyframes splashSpin{to{transform:rotate(360deg)}}
+.splash-text{color:#c7d6e6;font-size:1.05rem;letter-spacing:.02em}
+/* ---- Větší dotykový kalendář (datum výdeje) ---- */
+.date-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:14px 16px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1.1rem;color:#1f2937;cursor:pointer;text-align:left}
+.date-trigger:active{background:#f1f5f9}
+.date-trigger-icon{font-size:1.35rem;line-height:1}
+.datepicker{position:fixed;top:0;right:0;bottom:0;left:0;z-index:110;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:14px}
+.datepicker-card{background:#fff;border-radius:18px;padding:18px;width:min(94vw,470px);max-height:94vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.dp-title{font-size:1.25rem;font-weight:700;color:#17324d;text-transform:capitalize}
+.dp-nav{width:48px;height:48px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-size:1.5rem;line-height:1;color:#17324d;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dp-nav:active{background:#e2e8f0}
+.dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.dp-weekdays span{text-align:center;font-size:.82rem;font-weight:600;color:#64748b;padding:4px 0}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-day{aspect-ratio:1 / 1;border:none;background:none;border-radius:10px;font-size:1.05rem;color:#1f2937;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dp-day:active{background:#e2e8f0}
+.dp-day.dp-empty{visibility:hidden}
+.dp-day.dp-today{outline:2px solid #7fb0e0;outline-offset:-3px}
+.dp-day.dp-selected{background:#17324d;color:#fff;font-weight:700}
+.dp-foot{display:flex;gap:10px;margin-top:14px}
+.dp-foot .btn{flex:1;justify-content:center}
+/* ---- Mobilní / dotykové zobrazení ---- */
+@media (max-width:640px){
+  main{padding:12px}
+  .card{padding:14px;border-radius:10px;margin-bottom:12px}
+  .head-right .sub{display:none}
+  .admin-badge-who{display:none}
+  .brand-logo{height:28px}
+  header h1{font-size:1rem}
+  nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav button{flex:0 0 auto;padding:12px 14px;white-space:nowrap;font-size:.86rem}
+  .btn{padding:12px 16px}
+  .item-row{flex-wrap:wrap}
+  .item-row .row-item{flex:1 0 100%}
+  .item-row .row-qty{flex:1 1 70px}
+  .item-row .row-size{flex:1 1 90px}
+  table{font-size:.85rem}
+  th,td{padding:9px 6px}
+  .opt{display:none}
+  .only-mobile{display:block}
+  #signatureCanvas{height:170px}
+  .issue-table{font-size:.84rem}
+  .issue-table th,.issue-table td{padding:7px 4px}
+  .sig-thumb{height:30px;max-width:64px}
+}
+@media (max-width:400px){
+  nav button{padding:11px 10px;font-size:.8rem}
+  header h1{font-size:.95rem}
+  .brand-logo{height:24px}
+}
+/* ---- Knížka OOPP: tisková podoba evidenčního listu (předlohy ev.jpg + list.jpg) ---- */
+.print-area.booklet{padding:0}
+.bk-page{position:relative;width:210mm;min-height:296mm;padding:12mm 12mm 10mm;background:#fff;color:#000;font-family:'Segoe UI',Arial,Helvetica,sans-serif;font-size:9pt;page-break-after:always;break-after:page}
+.bk-page:last-child{page-break-after:auto;break-after:auto}
+.bk-page table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}
+.bk-page th,.bk-page td{border:1px solid #000;padding:1mm 1.5mm;background:#fff;color:#000;font-size:8.5pt;font-weight:400;text-align:left;text-transform:none;letter-spacing:normal;line-height:1.2;vertical-align:top}
+/* hlavička evidenčního listu */
+.bk-id th{font-size:8pt;height:6mm;vertical-align:middle}
+.bk-id td{height:9mm;font-size:11pt;font-weight:600;vertical-align:middle}
+/* nadpis EVIDENČNÍ LIST */
+.bk-head{text-align:center;margin:5mm 0 3mm}
+.bk-head h2{font-size:24pt;font-weight:800;font-style:italic;letter-spacing:.01em;margin:0;line-height:1.05;color:#000;background:none}
+.bk-head p{font-size:11.5pt;font-weight:700;margin:1.5mm 0 0;letter-spacing:.05em;color:#000}
+/* tabulka evidenčního listu */
+.bk-main thead th{font-size:8pt;height:8mm;vertical-align:middle;text-align:center}
+.bk-main tbody td{height:6mm}
+/* listy s výdejem */
+.bk-sheet-title{font-size:12pt;font-weight:700;text-align:center;margin:0 0 2mm;padding:0;color:#000}
+.bk-list thead th{font-size:9pt;text-align:center;vertical-align:middle;height:10mm;line-height:1.15}
+.bk-list thead th small{display:block;font-size:7pt;font-weight:400}
+.bk-list thead th.bk-oop{letter-spacing:.22em}
+.bk-list tbody td{height:7.3mm;padding:.8mm 1.2mm;font-size:7.8pt}
+.bk-list td.bk-date{text-align:center;vertical-align:middle;white-space:nowrap}
+.bk-list td.bk-sig{vertical-align:middle}
+.bk-list td.bk-sig img{max-height:5mm;max-width:100%;display:block;margin:0 auto}
+.bk-list th.bk-mid,.bk-list td.bk-mid{border-left:2px solid #000}
+.bk-foot{position:absolute;left:12mm;right:12mm;bottom:6mm;display:flex;justify-content:space-between;gap:6mm;font-size:7.5pt;color:#333;border-top:1px solid #666;padding-top:1mm}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  #app{display:none!important}
+  .print-area{display:block!important;padding:14mm}
+  .print-area.booklet{padding:0}
+  .bk-page{break-inside:avoid;page-break-inside:avoid}
+}
+</style>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div id="splash">
+  <img src="dependencies/logo-inverse.png" alt="SWISSFORM" class="splash-logo">
+  <div class="splash-spinner" aria-hidden="true"></div>
+  <div class="splash-text">Spouštím aplikaci…</div>
+</div>
+<div id="app">
+  <header>
+    <div class="brand">
+      <img src="dependencies/logo-inverse.png" alt="SWISSFORM" class="brand-logo">
+      <h1>Evidence OOPP</h1>
+    </div>
+    <div class="head-right">
+      <div class="sub">osobní ochranné pracovní prostředky</div>
+      <div class="head-actions">
+        <div class="admin-badge hidden" id="adminBadge">
+          <span class="admin-badge-who">👤 přihlášen jako admin</span>
+          <button class="btn light small" id="btnLogout" title="Odhlásit správce">Odhlásit</button>
+        </div>
+        <button class="btn light small hidden" id="btnInstall" title="Nainstalovat aplikaci do zařízení">⬇ Nainstalovat aplikaci</button>
+      </div>
+    </div>
+  </header>
+  <nav>
+    <button data-tab="issue" class="active">Výdej</button>
+    <button data-tab="employees">Zaměstnanci</button>
+    <button data-tab="items">Předměty</button>
+    <button data-tab="data">Data</button>
+  </nav>
+  <main>
+    <section id="tab-issue" class="tab-content active">
+      <div class="card">
+        <h2>Nový výdej OOPP</h2>
+        <p class="desc">Vyberte zaměstnance, přidejte předměty a nechte podepsat.</p>
+        <label>Zaměstnanec</label>
+        <div class="row">
+          <input type="search" id="issueEmployeeFilter" class="grow" placeholder="Hledat jméno nebo osobní číslo…" autocomplete="off" inputmode="search" enterkeyhint="search">
+          <button class="btn outline" id="btnNewEmployee" title="Přidat zaměstnance">＋</button>
+        </div>
+        <input type="hidden" id="issueEmployee">
+        <div id="issueEmployeeList" class="emp-suggest hidden"></div>
+        <label>Datum</label>
+        <input type="hidden" id="issueDate">
+        <button type="button" class="date-trigger" id="issueDateTrigger" aria-haspopup="dialog" aria-controls="issueDatePicker">
+          <span id="issueDateLabel">— vyberte datum —</span>
+          <span class="date-trigger-icon" aria-hidden="true">📅</span>
+        </button>
+        <div class="datepicker hidden" id="issueDatePicker" role="dialog" aria-modal="true" aria-label="Výběr data">
+          <div class="datepicker-card">
+            <div class="dp-head">
+              <button type="button" class="dp-nav" id="dpPrev" aria-label="Předchozí měsíc">‹</button>
+              <div class="dp-title" id="dpTitle"></div>
+              <button type="button" class="dp-nav" id="dpNext" aria-label="Další měsíc">›</button>
+            </div>
+            <div class="dp-weekdays">
+              <span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span>
+            </div>
+            <div class="dp-grid" id="dpGrid"></div>
+            <div class="dp-foot">
+              <button type="button" class="btn outline" id="dpToday">Dnes</button>
+              <button type="button" class="btn" id="dpClose">Zavřít</button>
+            </div>
+          </div>
+        </div>
+        <label>Položky</label>
+        <div id="itemRows"></div>
+        <button class="btn outline small" id="btnAddItem">＋ Přidat položku</button>
+        <label>Podpis příjemce</label>
+        <div class="sig-box"><canvas id="signatureCanvas"></canvas></div>
+        <div class="sig-hint">Podepište se prstem nebo stylusem.</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn secondary" id="btnClearSig">Vymazat podpis</button>
+          <button class="btn" id="btnSaveIssue">Uložit výdej</button>
+        </div>
+      </div>
+    </section>
+    <section id="tab-employees" class="tab-content">
+      <div class="card" id="empListCard">
+        <h2>Seznam zaměstnanců</h2>
+        <p class="desc">Klepněte na zaměstnance — otevře se jeho tabulka: datum, co a kolik převzal, včetně uloženého podpisu.</p>
+        <input type="text" id="empFilter" placeholder="Hledat jméno, osobní číslo nebo funkci..." inputmode="search" enterkeyhint="search">
+        <div class="sig-hint" style="margin-top:6px">Začněte psát — seznam se zobrazí podle hledání. Mazání zaměstnance je chráněné heslem správce.</div>
+        <div id="employeeList" class="hidden" style="margin-top:14px"></div>
+      </div>
+      <div class="card" id="empAddCard">
+        <h2>Přidat zaměstnance</h2>
+        <label>Jméno a příjmení</label>
+        <input type="text" id="empName" placeholder="např. Jan Novák">
+        <label>Osobní číslo (volitelné)</label>
+        <input type="text" id="empPersonalNumber" placeholder="např. 00318">
+        <label>Funkce (volitelné — určuje nárok na OOPP)</label>
+        <select id="empFunction"><option value="">— bez funkce —</option></select>
+        <div class="sig-hint">Číselník funkcí a nároky na OOPP spravujte v sekci <strong>Data → Funkce a nároky na OOPP</strong>.</div>
+        <div style="margin-top:12px"><button class="btn" id="btnAddEmployee">Přidat zaměstnance</button></div>
+      </div>
+      <div class="card" id="empImportCard">
+        <h2>Import seznamu zaměstnanců</h2>
+        <p class="desc">Načtěte JSON se seznamem (např. <strong>OOPP_zamestnanci.json</strong>). Stávající zaměstnanci zůstanou, noví se doplní a duplicity se přeskočí — rozpoznávají se podle osobního čísla, jinak podle jména.</p>
+        <div class="row">
+          <button class="btn" id="btnImportEmployees">🔒 Importovat seznam (JSON)</button>
+          <input type="file" id="importEmployeesFile" accept=".json,application/json" class="hidden">
+        </div>
+        <div class="sig-hint" style="margin-top:8px">Import je chráněný heslem správce. Formát: {"employees":[{"personalNumber":"00318","name":"Lukáš Dvořák","department":"Mechanik"}]} — nebo jen pole jmen. <strong>department</strong> = název funkce; když v číselníku funkcí není, založí se nová (bez nároku).</div>
+      </div>
+
+      <div class="card hidden" id="empDetail">
+        <button class="btn outline small" id="btnBackToList">← Zpět na seznam</button>
+        <h2 id="empDetailTitle" style="margin-top:12px"></h2>
+        <p class="desc" id="empDetailMeta"></p>
+        <p class="desc" id="empDetailEntitlement"></p>
+        <div class="row" style="margin-bottom:14px">
+          <button class="btn" id="btnExportCSV">⬇ Export CSV</button>
+          <button class="btn" id="btnExportPDF">⬇ Export PDF</button>
+          <button class="btn outline" id="btnPrintHistory">🖨 Tisk knížky</button>
+          <button class="btn outline" id="btnNewIssueFor">＋ Nový výdej</button>
+        </div>
+        <div id="empIssues"></div>
+      </div>
+    </section>
+
+    <section id="tab-items" class="tab-content">
+      <div class="card" id="itemsLogin">
+        <h2>🔒 Přihlášení k předmětům</h2>
+        <p class="desc">Tato část je chráněná heslem. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
+        <label>Uživatel</label>
+        <input type="text" id="itemsUser" placeholder="uživatel" autocomplete="off">
+        <label>Heslo</label>
+        <input type="password" id="itemsPass" placeholder="heslo">
+        <div style="margin-top:12px"><button class="btn" id="btnItemsLogin">Přihlásit</button></div>
+        <div class="sig-hint" id="itemsLoginError" style="color:#dc2626;margin-top:8px"></div>
+      </div>
+      <div id="itemsContent" class="hidden">
+        <div class="card">
+          <h2>Přidat / upravit předmět OOPP</h2>
+          <label>Název předmětu</label>
+          <input type="text" id="itemName" placeholder="např. Ochranné brýle">
+          <label>Jednotka (volitelné)</label>
+          <input type="text" id="itemUnit" placeholder="např. ks, pár, balení">
+          <label>Pořizovací cena (orientační, Kč)</label>
+          <input type="number" id="itemPrice" min="0" step="0.01" placeholder="např. 350">
+          <label>Životnost (volitelné)</label>
+          <select id="itemLifetime">
+            <option value="">— neurčeno —</option>
+            <option value="14 dní / dle potřeby">14 dní / dle potřeby (rukavice, respirátory)</option>
+            <option value="1 měsíc">1 měsíc</option>
+            <option value="3 měsíce">3 měsíce</option>
+            <option value="6 měsíců">6 měsíců</option>
+            <option value="12 měsíců">12 měsíců (1 rok)</option>
+            <option value="24 měsíců">24 měsíců (2 roky)</option>
+            <option value="36 měsíců">36 měsíců (3 roky)</option>
+            <option value="__custom">vlastní…</option>
+          </select>
+          <input type="text" id="itemLifetimeCustom" class="hidden" placeholder="vlastní životnost, např. 14 dní / dle potřeby">
+          <div class="sig-hint">Životnost se tiskne do evidenčního listu u nároku na OOPP. U rukavic a respirátorů se používá „14 dní / dle potřeby“.</div>
+          <label>Velikosti — min / max (volitelné)</label>
+          <div class="row">
+            <input type="text" id="itemSizeMin" placeholder="min (např. 34 nebo S)" class="grow">
+            <input type="text" id="itemSizeMax" placeholder="max (např. 48 nebo XXL)" class="grow">
+          </div>
+          <div class="sig-hint">Čísla = číselné velikosti, písmena = písmenkové (XS–XXXL).</div>
+          <div style="margin-top:12px" class="row">
+            <button class="btn" id="btnAddItemCat">Přidat předmět</button>
+            <button class="btn outline hidden" id="btnCancelEditItem">Zrušit</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Seznam předmětů</h2>
+          <div id="itemList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-data" class="tab-content">
+      <div class="card" id="dataLogin">
+        <h2>🔒 Přihlášení k datům</h2>
+        <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
+        <label>Uživatel</label>
+        <input type="text" id="dataUser" placeholder="uživatel" autocomplete="off">
+        <label>Heslo</label>
+        <input type="password" id="dataPass" placeholder="heslo">
+        <div style="margin-top:12px"><button class="btn" id="btnDataLogin">Přihlásit</button></div>
+        <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
+      </div>
+      <div id="dataContent" class="hidden">
+        <div class="card">
+          <h2>Úložiště (složka na SD kartě / USB)</h2>
+          <p class="desc" id="storageStatus"></p>
+          <div class="row">
+            <button class="btn" id="btnConnectFile">📁 Vybrat složku</button>
+            <button class="btn outline" id="btnReconnectFile">🔗 Znovu připojit</button>
+            <button class="btn danger hidden" id="btnDisconnectFile">Odpojit</button>
+          </div>
+          <div class="sig-hint" style="margin-top:8px">Data a podpisy se ukládají do souboru <strong>OOPP_data.json</strong> ve vybrané složce (bez limitu velikosti). Přesun na jiný počítač: použijte „Stáhnout zálohu“ / „Importovat zálohu“ níže.</div>
+        </div>
+        <div class="card" id="cloudCard">
+          <h2>☁ Cloud — společná databáze (Firebase)</h2>
+          <p class="desc">Doporučeno: <strong>Firebase</strong> (Firestore + přihlášení emailem/heslem). V cloudu jsou <strong>zaměstnanci, předměty, funkce/pozice, výdeje i obrázky podpisů</strong> — knížku s podpisy vytisknete z tabletu i z počítače. Data zůstanou soukromá (přístup jen po přihlášení). Zařízení drží i lokální kopii pro offline režim.</p>
+          <label>Poskytovatel</label>
+          <select id="cloudProvider">
+            <option value="firebase">Firebase — databáze + podpisy, heslo (doporučeno)</option>
+            <option value="supabase">Supabase — databáze + podpisy (zdarma)</option>
+            <option value="jsonbin">JSONBin.io — jen data, podpisy v dokumentu</option>
+            <option value="custom">Vlastní adresa (firemní server, Google Apps Script…)</option>
+          </select>
+          <div id="cloudUrlWrap">
+            <label id="cloudUrlLabel">ID projektu (Project ID)</label>
+            <input type="text" id="cloudUrl" placeholder="např. oopp-evidence" autocomplete="off" spellcheck="false">
+          </div>
+          <label id="cloudKeyLabel">Web API klíč</label>
+          <input type="password" id="cloudKey" placeholder="apiKey z nastavení projektu" autocomplete="off">
+          <div id="cloudDocWrap">
+            <label id="cloudDocLabel">ID dokumentu</label>
+            <input type="text" id="cloudDoc" placeholder="bin ID / doc_id" autocomplete="off" spellcheck="false">
+          </div>
+          <div id="cloudFirebaseWrap" class="hidden">
+            <label>Přihlašovací email</label>
+            <input type="email" id="cloudEmail" placeholder="firemní email" autocomplete="off" spellcheck="false">
+            <label>Heslo</label>
+            <input type="password" id="cloudPass" placeholder="heslo k Firebase účtu" autocomplete="off">
+          </div>
+          <div class="sig-hint" id="cloudHint" style="margin-top:10px"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="btnCloudSave">Uložit nastavení</button>
+            <button class="btn secondary" id="btnCloudLogin">🔑 Přihlásit</button>
+            <button class="btn secondary" id="btnCloudSync">⟳ Synchronizovat</button>
+            <button class="btn outline" id="btnCloudPush">⬆ Nahrát do cloudu</button>
+            <button class="btn outline" id="btnCloudPull">⬇ Stáhnout z cloudu</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+            <input type="checkbox" id="cloudAuto" style="width:auto"> Synchronizovat automaticky (po změně, při startu a každých 5 minut)
+          </label>
+          <p class="desc" id="cloudStatus" style="margin-top:10px"></p>
+          <div id="cloudConflict" class="hidden" style="margin-top:10px;padding:12px;border:1px solid #f59e0b;border-radius:8px;background:#fffbeb">
+            <strong>Data se změnila na obou stranách.</strong>
+            <div class="sig-hint" style="margin:6px 0 10px">Vyberte, co má platit. „Sloučit“ spojí záznamy z obou stran — u stejného záznamu vyhraje novější.</div>
+            <div class="row">
+              <button class="btn small" id="btnCloudKeepLocal">Ponechat moje</button>
+              <button class="btn small secondary" id="btnCloudTakeRemote">Vzít z cloudu</button>
+              <button class="btn small outline" id="btnCloudMerge">Sloučit</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Funkce a nároky na OOPP</h2>
+          <p class="desc">Vytvořte číselník funkcí a u každé zaškrtněte, na které OOPP má nárok. Nárok se vypisuje do evidenčního listu zaměstnance (tisk knížky) — podle funkce přiřazené zaměstnanci.</p>
+          <label>Název funkce</label>
+          <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
+          <label>Nárok na OOPP</label>
+          <div id="funcItems" class="func-items"></div>
+          <div style="margin-top:12px" class="row">
+            <button class="btn" id="btnAddFunction">Přidat funkci</button>
+            <button class="btn outline hidden" id="btnCancelEditFunction">Zrušit</button>
+          </div>
+          <div id="functionList" style="margin-top:16px"></div>
+        </div>
+        <div class="card">
+          <h2>Záloha dat</h2>
+          <p class="desc" id="dataStats"></p>
+          <div class="row">
+            <button class="btn" id="btnExportBackup">⬇ Stáhnout zálohu (JSON)</button>
+            <button class="btn outline" id="btnImportBackup">⬆ Importovat zálohu</button>
+            <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+          </div>
+        </div>
+        <div class="card" id="installCard">
+          <h2>Instalace do telefonu / tabletu</h2>
+          <p class="desc">Aplikaci lze nainstalovat přímo z prohlížeče na plochu zařízení — bez obchodu Play/App Store a bez veřejného seznamu aplikací. Po instalaci funguje i offline.</p>
+          <div class="row">
+            <button class="btn hidden" id="btnInstall2">⬇ Nainstalovat aplikaci</button>
+          </div>
+          <div class="sig-hint" id="installHint" style="margin-top:8px"></div>
+          <div class="sig-hint" style="margin-top:10px;line-height:1.6">
+            <strong>Android (Chrome):</strong> menu ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.<br>
+            <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
+            <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
+            Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.
+          </div>
+        </div>
+        <div class="card danger-zone">
+          <h2>Nebezpečná zóna</h2>
+          <p class="desc">Smazání všech dat je nevratné. Před tím si stáhněte zálohu.</p>
+          <button class="btn danger" id="btnClearAll">Smazat všechna data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="file-setup hidden" id="fileSetup">
+    <div class="file-setup-card">
+      <h2>Kde ukládat data?</h2>
+      <p>Vyberte složku na SD kartě, USB nebo přímo složku, kde je aplikace (OOPP.exe). Ukládá se do ní soubor <strong>OOPP_data.json</strong> — zaměstnanci, předměty, funkce/pozice, výdeje i podpisy. Pokud tam soubor už je, bude se do něj zapisovat; pokud ne, vytvoří se.</p>
+      <button class="btn" id="btnFileSetupPick">📁 Vybrat složku</button>
+      <button class="btn outline" id="btnFileSetupSkip">Použít vnitřní úložiště</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="sig-overlay hidden" id="sigOverlay">
+    <img id="sigOverlayImg" alt="Uložený podpis">
+    <div class="sig-overlay-bar">
+      <span id="sigOverlayLabel"></span>
+      <button class="btn light small" id="btnCloseSig">Zavřít</button>
+    </div>
+  </div>
+</div>
+<div class="print-area" id="printArea"></div>
+<script>
+const STORAGE_KEY = 'oopp_data_v1';
+
+let db = load();
+let currentEmployeeId = null;
+let dataDirHandle = null;
+let pendingDirReconnect = false;
+let writeTimer = null;
+let editingItemId = null;
+
+// úklid pomocného klíče z dřívější diagnostiky prostředí
+try{ localStorage.removeItem('oopp_caps'); }catch(e){}
+
+// jednotný tvar dat — starší zálohy nemají tombstones/functions
+function normalizeDbShape(d){
+  const out = Object.assign({employees: [], items: [], issues: [], functions: [], tombstones: []}, d || {});
+  ['employees', 'items', 'issues', 'functions', 'tombstones'].forEach(function(k){
+    if(!Array.isArray(out[k])) out[k] = [];
+  });
+  return out;
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && typeof d === 'object') return normalizeDbShape(d);
+    }
+  }catch(e){}
+  return normalizeDbShape({});
+}
+
+/* ---------- Verzování záznamů a mazání (kvůli sloučení mezi zařízeními) ---------- */
+// Každý záznam má updatedAt — při sloučení vyhraje novější. Mazání se zapisuje
+// jako „tombstone“, aby smazaný záznam z druhého zařízení znovu nevznikl.
+function touchRec(rec){
+  if(rec) rec.updatedAt = Date.now();
+  return rec;
+}
+
+function pruneTombstones(){
+  if(!Array.isArray(db.tombstones)){ db.tombstones = []; return; }
+  const keepFrom = Date.now() - 400 * 24 * 60 * 60 * 1000;   // ~rok historie mazání
+  db.tombstones = db.tombstones.filter(function(t){ return t && t.id && t.at && t.at > keepFrom; });
+}
+
+function markDeleted(kind, id){
+  if(!kind || !id) return;
+  if(!Array.isArray(db.tombstones)) db.tombstones = [];
+  const now = Date.now();
+  db.tombstones = db.tombstones.filter(function(t){ return !(t && t.kind === kind && t.id === id); });
+  db.tombstones.push({kind: kind, id: id, at: now});
+  pruneTombstones();
+}
+
+// Podpisy jako mapa idVýdeje → dataURL (drží se i po stažení z cloudu).
+function signatureMap(){
+  const map = {};
+  (db.issues || []).forEach(function(i){ if(i && i.id && i.signature) map[i.id] = i.signature; });
+  return map;
+}
+
+function applySignatureMap(map){
+  if(!map) return 0;
+  let n = 0;
+  (db.issues || []).forEach(function(i){
+    if(i && !i.signature && map[i.id]){ i.signature = map[i.id]; i.hasSignature = true; n++; }
+  });
+  return n;
+}
+
+function save(){
+  const hasFile = !!dataDirHandle;
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  }catch(e){
+    // localStorage má limit ~5 MB a podpisy ho časem zaplní.
+    // Když je připojená složka (SD karta / USB), žijí data v souboru tam — chybu lokální cache ignorujeme.
+    if(!hasFile) toast('Chyba ukládání: ' + e.message);
+  }
+  scheduleFileWrite();
+  cloudSchedulePush();
+}
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function formatDate(iso){
+  if(!iso) return '';
+  const parts = String(iso).split('-');
+  if(parts.length === 3) return parts[2] + '.' + parts[1] + '.' + parts[0];
+  return String(iso);
+}
+
+// Datum narození není potřeba — záznamy ho dřív mohly obsahovat, proto se při načtení jen ignoruje.
+
+/* ---------- Číselník funkcí a nároků na OOPP ---------- */
+function normalizeFunctionName(s){
+  return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+// db.functions = [{id, name, items:[idPředmětu, …]}] — nárok funkce na OOPP.
+function ensureFunctions(){
+  if(!Array.isArray(db.functions)) db.functions = [];
+  db.functions.forEach(function(f){
+    if(!f || typeof f !== 'object') return;
+    if(!Array.isArray(f.items)) f.items = [];
+    if(typeof f.name !== 'string') f.name = String(f.name || '');
+  });
+}
+
+function functionById(id){
+  if(!id) return null;
+  return (db.functions || []).find(function(f){ return f.id === id; }) || null;
+}
+
+function functionByName(name){
+  const key = normalizeFunctionName(name);
+  if(!key) return null;
+  return (db.functions || []).find(function(f){ return normalizeFunctionName(f.name) === key; }) || null;
+}
+
+// Funkce zaměstnance: primárně podle id, u starších dat podle volného textu „oddělení“.
+function employeeFunction(e){
+  if(!e) return null;
+  return functionById(e.functionId) || functionByName(e.department);
+}
+
+function employeeFunctionName(e){
+  const fn = employeeFunction(e);
+  if(fn) return fn.name;
+  return (e && e.department) ? String(e.department).trim() : '';
+}
+
+// Životnost předmětu → text do tabulky i tisku.
+// Nově se ukládá text (např. „14 dní / dle potřeby“ u rukavic a respirátorů),
+// starší data mají jen počet měsíců.
+function parseLifetimeMonths(text){
+  const m = String(text || '').match(/(\d+)\s*měsíc/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function lifetimeLabel(it){
+  if(!it) return '';
+  const text = String(it.lifetimeText || '').trim();
+  if(text) return text;
+  const m = parseInt(it.lifetimeMonths, 10);
+  if(!(m > 0)) return '';
+  return m + ' měs.';
+}
+
+// Volba životnosti ve formuláři → text („14 dní / dle potřeby“) i počet měsíců.
+function lifetimeFormValues(){
+  const sel = document.getElementById('itemLifetime');
+  const custom = document.getElementById('itemLifetimeCustom');
+  let text = sel ? String(sel.value || '') : '';
+  if(text === '__custom') text = custom ? String(custom.value || '').trim() : '';
+  return {text: text, months: parseLifetimeMonths(text)};
+}
+
+function setLifetimeForm(it){
+  const sel = document.getElementById('itemLifetime');
+  const custom = document.getElementById('itemLifetimeCustom');
+  if(!sel || !custom) return;
+  let text = it ? String(it.lifetimeText || '').trim() : '';
+  if(!text && it){
+    const months = parseInt(it.lifetimeMonths, 10) || 0;
+    if(months > 0){
+      const match = Array.prototype.find.call(sel.options, function(o){
+        return o.value !== '__custom' && parseLifetimeMonths(o.value) === months;
+      });
+      text = match ? match.value : months + ' měsíců';
+    }
+  }
+  const isPreset = Array.prototype.some.call(sel.options, function(o){
+    return o.value !== '__custom' && o.value === text;
+  });
+  if(!text){
+    sel.value = '';
+    custom.value = '';
+  } else if(isPreset){
+    sel.value = text;
+    custom.value = '';
+  } else {
+    sel.value = '__custom';
+    custom.value = text;
+  }
+  custom.classList.toggle('hidden', sel.value !== '__custom');
+}
+
+function syncLifetimeCustom(){
+  const sel = document.getElementById('itemLifetime');
+  const custom = document.getElementById('itemLifetimeCustom');
+  if(!sel || !custom) return;
+  const isCustom = sel.value === '__custom';
+  custom.classList.toggle('hidden', !isCustom);
+  if(isCustom && !custom.value) custom.focus();
+}
+
+function itemByName(name){
+  const key = normalizeFunctionName(name);
+  if(!key) return null;
+  return db.items.find(function(x){ return normalizeFunctionName(x.name) === key; }) || null;
+}
+
+// Nárok zaměstnance: OOPP z číselníku jeho funkce. Když funkce nárok nemá,
+// použije se to, co mu skutečně bylo vydáno (aby evidenční list nezůstal prázdný).
+function employeeEntitlement(e, issues){
+  const out = [];
+  const seen = {};
+  function push(name, lifetime){
+    const key = normalizeFunctionName(name);
+    if(!key || seen[key]) return;
+    seen[key] = true;
+    out.push({name: String(name).trim(), lifetime: lifetime || ''});
+  }
+  const fn = employeeFunction(e);
+  if(fn){
+    fn.items.forEach(function(id){
+      const it = db.items.find(function(x){ return x.id === id; });
+      if(it) push(it.name, lifetimeLabel(it));
+    });
+  }
+  if(out.length === 0){
+    (issues || []).forEach(function(issue){
+      (issue.items || []).forEach(function(row){
+        if(!row || !row.name) return;
+        const it = itemByName(row.name);
+        push(row.name, it ? lifetimeLabel(it) : '');
+      });
+    });
+  }
+  return out;
+}
+
+// Starší data znala jen volný text „oddělení“ — ten se převede na položku číselníku funkcí.
+function migrateFunctions(){
+  ensureFunctions();
+  let changed = false;
+  db.employees.forEach(function(e){
+    if(functionById(e.functionId)) return;
+    const name = (e.department || '').trim();
+    if(!name) return;
+    let fn = functionByName(name);
+    if(!fn){
+      fn = {id: uid(), name: name, items: []};
+      db.functions.push(fn);
+      changed = true;
+    }
+    e.functionId = fn.id;
+    changed = true;
+  });
+  return changed;
+}
+
+// Dnešní datum podle místního času (YYYY-MM-DD) — kvůli správnému dni i po půlnoci.
+function todayIso(){
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + m + '-' + day;
+}
+
+/* ---------- Úvodní obrazovka (logo při startu) ---------- */
+let _splashHidden = false;
+function hideSplash(){
+  if(_splashHidden) return;
+  _splashHidden = true;
+  const s = document.getElementById('splash');
+  if(!s) return;
+  try { s.classList.add('splash-hide'); } catch(e){}
+  setTimeout(function(){
+    try { if(s && s.parentNode) s.parentNode.removeChild(s); } catch(e){}
+  }, 520);
+}
+// logo se po startu chvíli ukáže a pak plynule zmizí (i kdyby něco selhalo)
+setTimeout(hideSplash, 900);
+
+/* ---------- Větší dotykový kalendář (datum výdeje) ---------- */
+const DP_MONTHS = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+let dpView = null;
+
+function dpParse(iso){
+  if(iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)){
+    return { y: parseInt(iso.slice(0, 4), 10), m: parseInt(iso.slice(5, 7), 10) - 1 };
+  }
+  const t = todayIso();
+  return { y: parseInt(t.slice(0, 4), 10), m: parseInt(t.slice(5, 7), 10) - 1 };
+}
+
+function updateIssueDateLabel(){
+  const label = document.getElementById('issueDateLabel');
+  const hidden = document.getElementById('issueDate');
+  if(!label || !hidden) return;
+  label.textContent = hidden.value ? formatDate(hidden.value) : '— vyberte datum —';
+}
+
+function openDatePicker(){
+  const cur = document.getElementById('issueDate').value;
+  const p = dpParse(cur);
+  dpView = { year: p.y, month: p.m };
+  renderDatePicker();
+  const picker = document.getElementById('issueDatePicker');
+  if(picker) picker.classList.remove('hidden');
+}
+
+function closeDatePicker(){
+  const picker = document.getElementById('issueDatePicker');
+  if(picker) picker.classList.add('hidden');
+}
+
+function dpChangeMonth(delta){
+  if(!dpView) return;
+  let m = dpView.month + delta;
+  let y = dpView.year;
+  while(m < 0){ m += 12; y -= 1; }
+  while(m > 11){ m -= 12; y += 1; }
+  dpView.month = m; dpView.year = y;
+  renderDatePicker();
+}
+
+function renderDatePicker(){
+  const title = document.getElementById('dpTitle');
+  const grid = document.getElementById('dpGrid');
+  if(!dpView || !title || !grid) return;
+  title.textContent = DP_MONTHS[dpView.month] + ' ' + dpView.year;
+  const selected = document.getElementById('issueDate').value;
+  const today = todayIso();
+  const first = new Date(dpView.year, dpView.month, 1);
+  const startCol = (first.getDay() + 6) % 7;          // 0 = pondělí
+  const daysInMonth = new Date(dpView.year, dpView.month + 1, 0).getDate();
+  const cells = [];
+  for(let i = 0; i < startCol; i++){ cells.push('<button type="button" class="dp-day dp-empty" tabindex="-1"></button>'); }
+  for(let day = 1; day <= daysInMonth; day++){
+    const iso = dpView.year + '-' + String(dpView.month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    let cls = 'dp-day';
+    if(iso === selected) cls += ' dp-selected';
+    if(iso === today) cls += ' dp-today';
+    cells.push('<button type="button" class="' + cls + '" data-date="' + iso + '">' + day + '</button>');
+  }
+  grid.innerHTML = cells.join('');
+}
+
+function initDatePicker(){
+  const trigger = document.getElementById('issueDateTrigger');
+  if(trigger) trigger.addEventListener('click', openDatePicker);
+  const prev = document.getElementById('dpPrev');
+  if(prev) prev.addEventListener('click', function(){ dpChangeMonth(-1); });
+  const next = document.getElementById('dpNext');
+  if(next) next.addEventListener('click', function(){ dpChangeMonth(1); });
+  const grid = document.getElementById('dpGrid');
+  if(grid) grid.addEventListener('click', function(e){
+    const b = (e.target && e.target.closest) ? e.target.closest('button[data-date]') : null;
+    if(!b) return;
+    document.getElementById('issueDate').value = b.getAttribute('data-date');
+    updateIssueDateLabel();
+    closeDatePicker();
+  });
+  const todayBtn = document.getElementById('dpToday');
+  if(todayBtn) todayBtn.addEventListener('click', function(){
+    document.getElementById('issueDate').value = todayIso();
+    updateIssueDateLabel();
+    closeDatePicker();
+  });
+  const closeBtn = document.getElementById('dpClose');
+  if(closeBtn) closeBtn.addEventListener('click', closeDatePicker);
+  const picker = document.getElementById('issueDatePicker');
+  if(picker) picker.addEventListener('click', function(e){ if(e.target === picker) closeDatePicker(); });
+  updateIssueDateLabel();
+}
+
+/* ---------- Klávesnice na tabletu ---------- */
+// Po klepnutí do pole se obrazovka posune tak, aby pole zůstalo nad klávesnicí.
+// Samotnou klávesnici zobrazuje systém automaticky při zaměření textového pole.
+function initKeyboardHelpers(){
+  document.addEventListener('focusin', function(e){
+    const el = e.target;
+    if(!el || !el.tagName) return;
+    const tag = el.tagName.toLowerCase();
+    if(tag !== 'input' && tag !== 'textarea' && tag !== 'select') return;
+    const t = String(el.type || '').toLowerCase();
+    if(t === 'hidden' || t === 'checkbox' || t === 'radio' || t === 'file' || t === 'date') return;
+    setTimeout(function(){
+      try { el.scrollIntoView({block: 'center', behavior: 'smooth'}); }
+      catch(err){ try { el.scrollIntoView(); } catch(e2){} }
+    }, 260);
+  }, true);
+}
+
+function safeName(s){
+  return (s || 'export').replace(/[^a-z0-9\u00e1\u00e9\u011b\u00ed\u00fd\u00f3\u00fa\u016f\u017e\u0161\u010d\u0159\u010f\u0165\u0148\u00c1\u00c9\u011a\u00cd\u00dd\u00d3\u00da\u016e\u017d\u0160\u010c\u0158\u010e\u0164\u0147]+/gi, '_');
+}
+
+function downloadBlob(content, filename, type){
+  const blob = new Blob([content], {type: type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+/* ---------- Podpis ---------- */
+const sigCanvas = document.getElementById('signatureCanvas');
+const sigCtx = sigCanvas.getContext('2d');
+let sigDrawing = false;
+let sigHasContent = false;
+
+function resizeSignature(){
+  const rect = sigCanvas.getBoundingClientRect();
+  if(rect.width === 0) return;
+  const dpr = window.devicePixelRatio || 1;
+  const saved = sigHasContent ? sigCanvas.toDataURL() : null;
+  sigCanvas.width = Math.round(rect.width * dpr);
+  sigCanvas.height = Math.round(rect.height * dpr);
+  sigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  sigCtx.strokeStyle = '#1f2937';
+  if(saved){
+    const img = new Image();
+    img.onload = function(){ sigCtx.drawImage(img, 0, 0, rect.width, rect.height); };
+    img.src = saved;
+  }
+}
+
+function sigPos(e){
+  const rect = sigCanvas.getBoundingClientRect();
+  return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+}
+
+sigCanvas.addEventListener('pointerdown', function(e){
+  sigDrawing = true;
+  sigHasContent = true;
+  try{ sigCanvas.setPointerCapture(e.pointerId); }catch(_){}
+  const p = sigPos(e);
+  sigCtx.beginPath();
+  sigCtx.moveTo(p.x, p.y);
+  sigCtx.lineTo(p.x, p.y);
+  sigCtx.stroke();
+});
+sigCanvas.addEventListener('pointermove', function(e){
+  if(!sigDrawing) return;
+  const p = sigPos(e);
+  sigCtx.lineTo(p.x, p.y);
+  sigCtx.stroke();
+});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+  sigCanvas.addEventListener(ev, function(){ sigDrawing = false; });
+});
+window.addEventListener('resize', resizeSignature);
+
+function clearSignature(){
+  sigCtx.save();
+  sigCtx.setTransform(1, 0, 0, 1, 0, 0);
+  sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  sigCtx.restore();
+  sigHasContent = false;
+}
+
+function getSignatureData(){
+  if(!sigHasContent) return '';
+  const scale = Math.min(1, 800 / sigCanvas.width);
+  const w = Math.max(1, Math.round(sigCanvas.width * scale));
+  const h = Math.max(1, Math.round(sigCanvas.height * scale));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const cc = c.getContext('2d');
+  cc.fillStyle = '#ffffff';
+  cc.fillRect(0, 0, w, h);
+  cc.drawImage(sigCanvas, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.8);
+}
+
+/* ---------- Záložky ---------- */
+function showTab(name){
+  document.querySelectorAll('nav button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(s){
+    s.classList.toggle('active', s.id === 'tab-' + name);
+  });
+  if(name === 'issue'){ populateIssueForm(); resizeSignature(); }
+  if(name === 'employees'){
+    renderEmployees();
+    if(currentEmployeeId) refreshEmployeeDetail();
+  }
+  if(name === 'items') showItemsLogin();
+  if(name === 'data') showDataLogin();
+}
+
+/* ---------- Přihlášení administrátora ---------- */
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'admin';
+const ADMIN_KEY = 'oopp_admin_session';   // '1' = správce je přihlášený (drží do odhlášení)
+
+function isAdmin(){
+  try{ return localStorage.getItem(ADMIN_KEY) === '1'; }catch(e){ return false; }
+}
+
+function setAdminSession(on){
+  try{
+    if(on) localStorage.setItem(ADMIN_KEY, '1');
+    else localStorage.removeItem(ADMIN_KEY);
+  }catch(e){}
+  updateAdminUI();
+}
+
+// Vpravo nahoře v hlavičce ukázat, že je správce přihlášený, a nabídnout odhlášení.
+function updateAdminUI(){
+  const badge = document.getElementById('adminBadge');
+  if(badge) badge.classList.toggle('hidden', !isAdmin());
+}
+
+function logoutAdmin(){
+  const was = isAdmin();
+  setAdminSession(false);
+  showDataLogin();
+  showItemsLogin();
+  toast(was ? 'Odhlášeno.' : 'Není co odhlašovat.');
+}
+
+// Ochrana citlivých akcí (např. mazání zaměstnance) heslem správce.
+// Přihlášený správce heslo znovu nezadává; po úspěšném zadání zůstává přihlášený.
+function askAdminPassword(action){
+  if(isAdmin()) return true;
+  const pass = prompt('Akce je chráněná heslem: ' + action + '\n\nZadejte heslo:');
+  if(pass === null) return false;
+  if(pass !== ADMIN_PASS){ toast('Nesprávné heslo — akce zrušena.'); return false; }
+  setAdminSession(true);
+  toast('Přihlášeno jako správce.');
+  return true;
+}
+
+function unlockData(){
+  document.getElementById('dataLogin').classList.add('hidden');
+  document.getElementById('dataContent').classList.remove('hidden');
+  document.getElementById('dataLoginError').textContent = '';
+  renderDataInfo();
+  renderFunctions();
+  updateStorageUI();
+}
+
+function showDataLogin(){
+  if(isAdmin()){ unlockData(); return; }
+  document.getElementById('dataLogin').classList.remove('hidden');
+  document.getElementById('dataContent').classList.add('hidden');
+  document.getElementById('dataUser').value = '';
+  document.getElementById('dataPass').value = '';
+  document.getElementById('dataLoginError').textContent = '';
+}
+
+function tryDataLogin(){
+  const u = document.getElementById('dataUser').value.trim();
+  const p = document.getElementById('dataPass').value;
+  if(u === ADMIN_USER && p === ADMIN_PASS){
+    setAdminSession(true);
+    document.getElementById('dataUser').value = '';
+    document.getElementById('dataPass').value = '';
+    unlockData();
+    toast('Přihlášeno.');
+  } else {
+    document.getElementById('dataLoginError').textContent = 'Nesprávné přihlašovací údaje.';
+  }
+}
+
+function unlockItems(){
+  document.getElementById('itemsLogin').classList.add('hidden');
+  document.getElementById('itemsContent').classList.remove('hidden');
+  document.getElementById('itemsLoginError').textContent = '';
+  renderItems();
+  renderFunctions();
+}
+
+function showItemsLogin(){
+  if(isAdmin()){ unlockItems(); return; }
+  document.getElementById('itemsLogin').classList.remove('hidden');
+  document.getElementById('itemsContent').classList.add('hidden');
+  document.getElementById('itemsUser').value = '';
+  document.getElementById('itemsPass').value = '';
+  document.getElementById('itemsLoginError').textContent = '';
+}
+
+function tryItemsLogin(){
+  const u = document.getElementById('itemsUser').value.trim();
+  const p = document.getElementById('itemsPass').value;
+  if(u === ADMIN_USER && p === ADMIN_PASS){
+    setAdminSession(true);
+    document.getElementById('itemsUser').value = '';
+    document.getElementById('itemsPass').value = '';
+    unlockItems();
+    toast('Přihlášeno.');
+  } else {
+    document.getElementById('itemsLoginError').textContent = 'Nesprávné přihlašovací údaje.';
+  }
+}
+
+/* ---------- Zaměstnanci ---------- */
+function makeCollator(){
+  try{
+    if(typeof Intl !== 'undefined' && Intl.Collator){
+      return new Intl.Collator('cs', { sensitivity: 'base' });
+    }
+  }catch(e){}
+  return {
+    compare: function(a, b){
+      a = String(a == null ? '' : a);
+      b = String(b == null ? '' : b);
+      try{ return a.localeCompare(b, 'cs', { sensitivity: 'base' }); }catch(e2){}
+      return a < b ? -1 : (a > b ? 1 : 0);
+    }
+  };
+}
+const CS_COLLATOR = makeCollator();
+const NAME_TITLES = ['ing.', 'bc.', 'mgr.', 'mudr.', 'judr.', 'phdr.', 'rndr.', 'mvdr.', 'paeddr.', 'pharmdr.',
+  'thdr.', 'doc.', 'prof.', 'dis.', 'dip.', 'mba', 'bsc.', 'msc.', 'ph.d.'];
+
+function splitPersonName(name){
+  const tokens = String(name == null ? '' : name).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  const titles = [];
+  while(tokens.length > 1 && NAME_TITLES.indexOf(tokens[0].toLowerCase()) !== -1){
+    titles.push(tokens.shift());
+  }
+  const surname = tokens.length ? tokens[tokens.length - 1] : '';
+  const first = tokens.slice(0, Math.max(tokens.length - 1, 0)).join(' ');
+  return {titles: titles.join(' '), first: first, surname: surname};
+}
+
+// "Příjmení Jméno" (tituly vynechané) — pro výběr ve výdeji i řazení
+function surnameFirstName(name){
+  const p = splitPersonName(name);
+  const out = (p.surname + ' ' + p.first).trim();
+  return out || String(name || '').trim();
+}
+
+function employeeSortKey(e){
+  return surnameFirstName(e.name);
+}
+
+function sortedEmployees(){
+  return db.employees.slice().sort(function(a, b){
+    return CS_COLLATOR.compare(employeeSortKey(a), employeeSortKey(b)) ||
+      CS_COLLATOR.compare(a.name, b.name);
+  });
+}
+
+// filtrování zaměstnanců podle jména (celé jméno i „Příjmení Jméno“), os. čísla a oddělení
+function filterEmployees(filter){
+  const f = (filter || '').trim().toLowerCase();
+  if(!f) return sortedEmployees();
+  return sortedEmployees().filter(function(e){
+    return e.name.toLowerCase().indexOf(f) !== -1 ||
+      surnameFirstName(e.name).toLowerCase().indexOf(f) !== -1 ||
+      (e.department || '').toLowerCase().indexOf(f) !== -1 ||
+      employeeFunctionName(e).toLowerCase().indexOf(f) !== -1 ||
+      (e.personalNumber || '').toLowerCase().indexOf(f) !== -1;
+  });
+}
+
+// --- výběr zaměstnance na výdeji: vyhledávací pole + návrhy (bez oddělení) ---
+function issueEmployeeMatches(q){
+  const f = (q || '').trim().toLowerCase();
+  if(!f) return sortedEmployees();
+  return sortedEmployees().filter(function(e){
+    return e.name.toLowerCase().indexOf(f) !== -1 ||
+      surnameFirstName(e.name).toLowerCase().indexOf(f) !== -1 ||
+      (e.personalNumber || '').toLowerCase().indexOf(f) !== -1;
+  });
+}
+
+function issueEmployeeLabel(e){
+  return surnameFirstName(e.name);
+}
+
+function renderIssueEmployeeSuggestions(){
+  const input = document.getElementById('issueEmployeeFilter');
+  const box = document.getElementById('issueEmployeeList');
+  const q = (input && input.value ? input.value : '').trim();
+  const matches = issueEmployeeMatches(q);
+  if(!q || matches.length === 0){
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+  const shown = matches.slice(0, 60);
+  box.innerHTML = shown.map(function(e){
+    return '<div class="emp-suggest-item" data-id="' + e.id + '">' +
+      escapeHtml(issueEmployeeLabel(e)) +
+      (e.personalNumber ? '<div class="sig-hint">os. č. ' + escapeHtml(e.personalNumber) + '</div>' : '') +
+      '</div>';
+  }).join('');
+  box.classList.remove('hidden');
+}
+
+function closeIssueEmployeeSuggestions(){
+  const box = document.getElementById('issueEmployeeList');
+  if(box){ box.classList.add('hidden'); box.innerHTML = ''; }
+}
+
+function selectIssueEmployee(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  document.getElementById('issueEmployee').value = id;
+  document.getElementById('issueEmployeeFilter').value = issueEmployeeLabel(e);
+  closeIssueEmployeeSuggestions();
+}
+
+function renderEmployees(){
+  const list = document.getElementById('employeeList');
+  const filterEl = document.getElementById('empFilter');
+  const filter = (filterEl && filterEl.value ? filterEl.value : '').trim();
+
+  if(db.employees.length === 0){
+    list.classList.remove('hidden');
+    list.innerHTML = '<div class="empty">Žádní zaměstnanci. Přidejte prvního níže.</div>';
+    return;
+  }
+  if(!filter){
+    // seznam je schovaný, dokud se nezačne psát do hledání
+    list.classList.add('hidden');
+    list.innerHTML = '';
+    return;
+  }
+  const rows = filterEmployees(filter);
+  list.classList.remove('hidden');
+  if(rows.length === 0){
+    list.innerHTML = '<div class="empty">Nic nenalezeno.</div>';
+    return;
+  }
+  list.innerHTML = '<table><thead><tr><th>Jméno</th><th class="opt">Funkce</th><th class="opt">Výdejů</th><th class="opt"></th><th></th></tr></thead><tbody>' +
+    rows.map(function(e){
+      const count = db.issues.filter(function(i){ return i.employeeId === e.id; }).length;
+      return '<tr class="clickable" data-open="' + e.id + '" title="Zobrazit výdeje">' +
+        '<td>' + escapeHtml(e.name) +
+        (e.personalNumber ? '<div class="sig-hint">os. č. ' + escapeHtml(e.personalNumber) + '</div>' : '') +
+        '<div class="sig-hint only-mobile">▸ ' + count + ' ' + czPlural(count, 'výdej', 'výdeje', 'výdejů') + '</div>' +
+        '</td><td class="opt">' + escapeHtml(employeeFunctionName(e) || '—') + '</td><td class="opt">' + count + '</td>' +
+        '<td class="opt" style="text-align:right;white-space:nowrap;color:#64748b">▸</td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+        '<button class="btn outline small" data-edit="' + e.id + '">Upravit</button> ' +
+        '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function addEmployee(){
+  const name = document.getElementById('empName').value.trim();
+  const personalNumber = document.getElementById('empPersonalNumber').value.trim();
+  const fn = functionById(document.getElementById('empFunction').value);
+  if(!name){ toast('Zadejte jméno.'); return; }
+  if(personalNumber && db.employees.some(function(e){ return e.personalNumber === personalNumber; })){
+    toast('Zaměstnanec s osobním číslem ' + personalNumber + ' už existuje.');
+    return;
+  }
+  db.employees.push(touchRec({id: uid(), name: name, personalNumber: personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
+  save();
+  document.getElementById('empName').value = '';
+  document.getElementById('empPersonalNumber').value = '';
+  document.getElementById('empFunction').value = '';
+  renderEmployees();
+  populateIssueForm();
+  toast('Zaměstnanec přidán.');
+}
+
+// Volba funkce v dialogu úpravy: číslo ze seznamu nebo (přesný) název funkce.
+function resolveFunctionInput(value){
+  const s = String(value == null ? '' : value).trim();
+  if(!s) return null;
+  if(/^\d+$/.test(s)){
+    const idx = parseInt(s, 10) - 1;
+    if(db.functions[idx]) return db.functions[idx];
+  }
+  return functionByName(s);
+}
+
+function editEmployee(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  const name = prompt('Jméno:', e.name);
+  if(name === null) return;
+  const personalNumber = prompt('Osobní číslo (volitelné):', e.personalNumber || '');
+  if(personalNumber === null) return;
+  const options = db.functions.map(function(f, i){ return (i + 1) + ') ' + f.name; }).join('\n');
+  const typed = prompt(
+    'Funkce — napište číslo volby nebo název (prázdné = bez funkce):' +
+    (options ? '\n\n' + options : '\n\n(číselník funkcí je prázdný — přidejte funkci v sekci Data)'),
+    employeeFunctionName(e)
+  );
+  if(typed === null) return;
+  let fn = null;
+  if(String(typed).trim()){
+    fn = resolveFunctionInput(typed);
+    if(!fn){
+      toast('Funkce „' + String(typed).trim() + '“ není v číselníku — vyberte ze seznamu nebo ji nejdřív přidejte v sekci Data.');
+      return;
+    }
+  }
+  e.name = name.trim() || e.name;
+  e.personalNumber = personalNumber.trim();
+  e.functionId = fn ? fn.id : '';
+  e.department = fn ? fn.name : '';
+  delete e.birthDate;
+  touchRec(e);
+  save();
+  renderEmployees();
+  populateIssueForm();
+  if(currentEmployeeId === id) refreshEmployeeDetail();
+  toast('Uloženo.');
+}
+
+function deleteEmployee(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  const has = db.issues.some(function(i){ return i.employeeId === id; });
+  if(has){ toast('Nelze smazat: zaměstnanec má záznamy výdejů.'); return; }
+  if(!askAdminPassword('smazání zaměstnance „' + e.name + '“')) return;
+  if(!confirm('Opravdu smazat zaměstnance "' + e.name + '"?')) return;
+  db.employees = db.employees.filter(function(x){ return x.id !== id; });
+  markDeleted('employees', id);
+  save();
+  renderEmployees();
+  populateIssueForm();
+  toast('Zaměstnanec smazán.');
+}
+
+/* ---------- Import seznamu zaměstnanců ---------- */
+function normalizeEmployeeName(s){
+  return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function employeeFromImport(raw){
+  if(raw == null) return null;
+  if(typeof raw === 'string'){
+    const name = raw.replace(/\s+/g, ' ').trim();
+    return name ? {name: name, personalNumber: '', department: ''} : null;
+  }
+  const name = String(raw.name || raw.jmeno || '').replace(/\s+/g, ' ').trim();
+  if(!name) return null;
+  return {
+    name: name,
+    personalNumber: String(raw.personalNumber || raw.osCislo || raw.oscislo || '').trim(),
+    department: String(raw.department || raw.funkce || raw.oddeleni || '').trim()
+  };
+}
+
+// Název funkce z importu → položka číselníku (když tam není, založí se nová bez nároku).
+function functionForImport(name){
+  const label = String(name || '').trim();
+  if(!label) return null;
+  const existing = functionByName(label);
+  if(existing) return existing;
+  const fn = touchRec({id: uid(), name: label, items: []});
+  db.functions.push(fn);
+  return fn;
+}
+
+function findEmployeeForImport(entry){
+  const wanted = normalizeEmployeeName(entry.name);
+  return db.employees.find(function(e){
+    if(entry.personalNumber && e.personalNumber) return e.personalNumber === entry.personalNumber;
+    if(normalizeEmployeeName(e.name) !== wanted) return false;
+    if(e.department && entry.department) return e.department === entry.department;
+    return true;
+  });
+}
+
+function importEmployeesFromData(data){
+  let list = null;
+  if(Array.isArray(data)) list = data;
+  else if(data && Array.isArray(data.employees)) list = data.employees;
+  if(!list) return null;
+  let added = 0, updated = 0, skipped = 0, invalid = 0;
+  list.forEach(function(raw){
+    const entry = employeeFromImport(raw);
+    if(!entry){ invalid++; return; }
+    const existing = findEmployeeForImport(entry);
+    if(existing){
+      let changed = false;
+      if(entry.personalNumber && !existing.personalNumber){
+        existing.personalNumber = entry.personalNumber;
+        changed = true;
+      }
+      if(entry.department && !employeeFunction(existing)){
+        const fn = functionForImport(entry.department);
+        if(fn){
+          existing.functionId = fn.id;
+          existing.department = fn.name;
+          changed = true;
+        }
+      }
+      if(changed){ touchRec(existing); updated++; } else skipped++;
+      return;
+    }
+    const fn = functionForImport(entry.department);
+    db.employees.push(touchRec({id: uid(), name: entry.name, personalNumber: entry.personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
+    added++;
+  });
+  return {added: added, updated: updated, skipped: skipped, invalid: invalid};
+}
+
+function importEmployeeList(file){
+  const reader = new FileReader();
+  reader.onload = function(){
+    let data = null;
+    try{ data = JSON.parse(reader.result); }catch(e){ toast('Soubor není platný JSON.'); return; }
+    const res = importEmployeesFromData(data);
+    if(!res){ toast('Soubor neobsahuje seznam zaměstnanců.'); return; }
+    if(res.added === 0 && res.updated === 0){
+      toast('Nic k importu: ' + res.skipped + ' zaměstnanců už v evidenci je.');
+      return;
+    }
+    save();
+    renderAll();
+    let msg = 'Import: ' + res.added + ' nových';
+    if(res.updated) msg += ', ' + res.updated + ' doplněno';
+    if(res.skipped) msg += ', ' + res.skipped + ' přeskočeno';
+    if(res.invalid) msg += ', ' + res.invalid + ' neplatných';
+    toast(msg + '.');
+  };
+  reader.onerror = function(){ toast('Soubor se nepodařilo přečíst.'); };
+  reader.readAsText(file);
+}
+
+/* ---------- Předměty ---------- */
+function itemOptions(selectedId){
+  if(db.items.length === 0){
+    return '<option value="">— žádné předměty —</option>';
+  }
+  return db.items.map(function(it){
+    return '<option value="' + it.id + '"' + (it.id === selectedId ? ' selected' : '') + '>' + escapeHtml(it.name) + '</option>';
+  }).join('');
+}
+
+function renderItems(){
+  const list = document.getElementById('itemList');
+  if(db.items.length === 0){
+    list.innerHTML = '<div class="empty">Žádné předměty. Přidejte první výše.</div>';
+    return;
+  }
+  list.innerHTML = '<table><thead><tr><th>Předmět</th><th>Jednotka</th><th>Velikosti</th><th>Životnost</th><th></th></tr></thead><tbody>' +
+    db.items.map(function(it){
+      return '<tr><td>' + escapeHtml(it.name) + '</td><td>' + escapeHtml(it.unit || 'ks') + '</td><td>' + escapeHtml(sizeRangeLabel(it)) + '</td>' +
+        '<td>' + escapeHtml(lifetimeLabel(it) || '—') + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+        '<button class="btn outline small" data-edititem="' + it.id + '">Upravit</button> ' +
+        '<button class="btn danger small" data-delitem="' + it.id + '">Smazat</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function resetItemForm(){
+  editingItemId = null;
+  document.getElementById('itemName').value = '';
+  document.getElementById('itemUnit').value = '';
+  document.getElementById('itemPrice').value = '';
+  setLifetimeForm(null);
+  document.getElementById('itemSizeMin').value = '';
+  document.getElementById('itemSizeMax').value = '';
+  document.getElementById('btnAddItemCat').textContent = 'Přidat předmět';
+  document.getElementById('btnCancelEditItem').classList.add('hidden');
+}
+
+function addItem(){
+  const name = document.getElementById('itemName').value.trim();
+  const unit = document.getElementById('itemUnit').value.trim();
+  const price = document.getElementById('itemPrice').value.trim();
+  const lifetime = lifetimeFormValues();
+  const sizeMin = document.getElementById('itemSizeMin').value.trim();
+  const sizeMax = document.getElementById('itemSizeMax').value.trim();
+  if(!name){ toast('Zadejte název předmětu.'); return; }
+  if(editingItemId){
+    const it = db.items.find(function(x){ return x.id === editingItemId; });
+    if(it){
+      it.name = name;
+      it.unit = unit || 'ks';
+      it.price = price;
+      it.lifetimeText = lifetime.text;
+      it.lifetimeMonths = lifetime.months;
+      it.sizeMin = sizeMin;
+      it.sizeMax = sizeMax;
+      touchRec(it);
+      toast('Předmět upraven.');
+    }
+  } else {
+    db.items.push(touchRec({id: uid(), name: name, unit: unit || 'ks', price: price, lifetimeText: lifetime.text, lifetimeMonths: lifetime.months, sizeMin: sizeMin, sizeMax: sizeMax}));
+    toast('Předmět přidán.');
+  }
+  save();
+  resetItemForm();
+  renderItems();
+  renderFunctions();
+  populateIssueForm();
+}
+
+function editItem(id){
+  const it = db.items.find(function(x){ return x.id === id; });
+  if(!it) return;
+  editingItemId = id;
+  document.getElementById('itemName').value = it.name;
+  document.getElementById('itemUnit').value = it.unit || '';
+  document.getElementById('itemPrice').value = it.price || '';
+  setLifetimeForm(it);
+  document.getElementById('itemSizeMin').value = it.sizeMin || '';
+  document.getElementById('itemSizeMax').value = it.sizeMax || '';
+  document.getElementById('btnAddItemCat').textContent = 'Uložit změny';
+  document.getElementById('btnCancelEditItem').classList.remove('hidden');
+  document.getElementById('itemName').focus();
+}
+
+function deleteItem(id){
+  if(!confirm('Smazat předmět?')) return;
+  db.items = db.items.filter(function(x){ return x.id !== id; });
+  markDeleted('items', id);
+  // předmět zmizí i z nároků jednotlivých funkcí
+  (db.functions || []).forEach(function(f){
+    if((f.items || []).indexOf(id) === -1) return;
+    f.items = f.items.filter(function(x){ return x !== id; });
+    touchRec(f);
+  });
+  save();
+  renderItems();
+  renderFunctions();
+  populateIssueForm();
+  toast('Předmět smazán.');
+}
+
+/* ---------- Funkce a nároky na OOPP (sekce Data) ---------- */
+let editingFunctionId = null;
+
+function currentFunctionChecks(){
+  return Array.prototype.slice.call(document.querySelectorAll('#funcItems input.func-item:checked'))
+    .map(function(cb){ return cb.value; });
+}
+
+function renderFunctionItems(checkedIds){
+  const box = document.getElementById('funcItems');
+  if(!box) return;
+  if(db.items.length === 0){
+    box.innerHTML = '<div class="sig-hint">Zatím žádné předměty — přidejte je v sekci Předměty.</div>';
+    return;
+  }
+  const checked = {};
+  (checkedIds || []).forEach(function(id){ checked[id] = true; });
+  box.innerHTML = db.items.map(function(it){
+    const life = lifetimeLabel(it);
+    return '<label><input type="checkbox" class="func-item" value="' + it.id + '"' + (checked[it.id] ? ' checked' : '') + '>' +
+      '<span>' + escapeHtml(it.name) + '</span>' +
+      (life ? '<span class="sig-hint">' + escapeHtml(life) + '</span>' : '') + '</label>';
+  }).join('');
+}
+
+function renderFunctionList(){
+  const list = document.getElementById('functionList');
+  if(!list) return;
+  if(db.functions.length === 0){
+    list.innerHTML = '<div class="empty">Žádné funkce. Přidejte první výše.</div>';
+    return;
+  }
+  list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Nárok na OOPP</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
+    db.functions.map(function(f){
+      const names = (f.items || []).map(function(id){
+        const it = db.items.find(function(x){ return x.id === id; });
+        return it ? it.name : null;
+      }).filter(Boolean);
+      const count = db.employees.filter(function(e){
+        const own = employeeFunction(e);
+        return !!own && own.id === f.id;
+      }).length;
+      return '<tr><td>' + escapeHtml(f.name) + '</td>' +
+        '<td>' + (names.length ? escapeHtml(names.join(', ')) : '<span style="color:#94a3b8">—</span>') + '</td>' +
+        '<td class="opt">' + count + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+        '<button class="btn outline small" data-editfunc="' + f.id + '">Upravit</button> ' +
+        '<button class="btn danger small" data-delfunc="' + f.id + '">Smazat</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+// Vykreslí seznam funkcí a k tomu zaškrtávátka (stav zaškrtání se zachová).
+function renderFunctions(){
+  const checked = currentFunctionChecks();
+  renderFunctionItems(checked);
+  renderFunctionList();
+}
+
+// Naplní rolovací okno funkcí ve formuláři zaměstnance.
+function refreshFunctionOptions(selectedId){
+  const sel = document.getElementById('empFunction');
+  if(!sel) return;
+  const keep = (selectedId === undefined) ? sel.value : selectedId;
+  const opts = ['<option value="">— bez funkce —</option>'];
+  db.functions.forEach(function(f){
+    opts.push('<option value="' + f.id + '"' + (f.id === keep ? ' selected' : '') + '>' + escapeHtml(f.name) + '</option>');
+  });
+  sel.innerHTML = opts.join('');
+  sel.value = functionById(keep) ? keep : '';
+}
+
+function resetFunctionForm(){
+  editingFunctionId = null;
+  document.getElementById('funcName').value = '';
+  renderFunctionItems([]);
+  document.getElementById('btnAddFunction').textContent = 'Přidat funkci';
+  document.getElementById('btnCancelEditFunction').classList.add('hidden');
+}
+
+function editFunction(id){
+  const f = functionById(id);
+  if(!f) return;
+  editingFunctionId = id;
+  document.getElementById('funcName').value = f.name;
+  renderFunctionItems(f.items || []);
+  document.getElementById('btnAddFunction').textContent = 'Uložit změny';
+  document.getElementById('btnCancelEditFunction').classList.remove('hidden');
+  document.getElementById('funcName').focus();
+}
+
+function addFunction(){
+  const name = document.getElementById('funcName').value.trim();
+  const items = currentFunctionChecks();
+  if(!name){ toast('Zadejte název funkce.'); return; }
+  const dup = db.functions.some(function(f){
+    return f.id !== editingFunctionId && normalizeFunctionName(f.name) === normalizeFunctionName(name);
+  });
+  if(dup){ toast('Funkce „' + name + '“ už v číselníku je.'); return; }
+  if(editingFunctionId){
+    const f = functionById(editingFunctionId);
+    if(f){
+      f.name = name;
+      f.items = items;
+      touchRec(f);
+      // název funkce se propíše i k zaměstnancům (tisk používá id, název je jen záloha)
+      db.employees.forEach(function(e){ if(e.functionId === f.id){ e.department = f.name; touchRec(e); } });
+      toast('Funkce upravena.');
+    }
+  } else {
+    db.functions.push(touchRec({id: uid(), name: name, items: items}));
+    toast('Funkce přidána.');
+  }
+  save();
+  const keepId = editingFunctionId;
+  resetFunctionForm();
+  renderFunctionList();
+  refreshFunctionOptions();
+  renderEmployees();
+  renderDataInfo();
+  if(keepId && currentEmployeeId) refreshEmployeeDetail();
+}
+
+function deleteFunction(id){
+  const f = functionById(id);
+  if(!f) return;
+  const used = db.employees.filter(function(e){ return e.functionId === id; }).length;
+  const note = used
+    ? 'Funkci „' + f.name + '“ má přiřazenou ' + used + ' ' + czPlural(used, 'zaměstnanec', 'zaměstnanci', 'zaměstnanců') + '. Smazat funkci a odebrat ji jim?'
+    : 'Smazat funkci „' + f.name + '“?';
+  if(!confirm(note)) return;
+  db.employees.forEach(function(e){
+    if(e.functionId === id){ e.functionId = ''; e.department = ''; touchRec(e); }
+  });
+  db.functions = db.functions.filter(function(x){ return x.id !== id; });
+  markDeleted('functions', id);
+  save();
+  if(editingFunctionId === id) resetFunctionForm();
+  renderFunctionList();
+  refreshFunctionOptions();
+  renderEmployees();
+  renderDataInfo();
+  toast('Funkce smazána.');
+}
+
+/* ---------- Formulář výdeje ---------- */
+const LETTER_SIZES = ['XS','S','M','L','XL','XXL','XXXL'];
+
+function sizesForItem(it){
+  if(!it) return [];
+  const min = String(it.sizeMin == null ? '' : it.sizeMin).trim();
+  const max = String(it.sizeMax == null ? '' : it.sizeMax).trim();
+  if(!min || !max) return [];
+  const numeric = /^\d+$/.test(min) && /^\d+$/.test(max);
+  if(numeric){
+    const a = parseInt(min, 10), b = parseInt(max, 10);
+    if(isNaN(a) || isNaN(b) || a > b) return [];
+    const r = [];
+    for(let i = a; i <= b; i++) r.push(String(i));
+    return r;
+  }
+  const li = LETTER_SIZES.indexOf(min.toUpperCase());
+  const hi = LETTER_SIZES.indexOf(max.toUpperCase());
+  if(li === -1 || hi === -1 || li > hi) return [];
+  return LETTER_SIZES.slice(li, hi + 1);
+}
+
+function sizeRangeLabel(it){
+  const sizes = sizesForItem(it);
+  if(sizes.length === 0) return '—';
+  return sizes[0] + '–' + sizes[sizes.length - 1];
+}
+
+function sizeOptions(sizes, selected){
+  return '<option value="">vel.</option>' + sizes.map(function(s){
+    return '<option value="' + s + '"' + (s === selected ? ' selected' : '') + '>' + s + '</option>';
+  }).join('');
+}
+
+function updateRowSizeOptions(row, selectedSize){
+  const itemSel = row.querySelector('.row-item');
+  const sizeSel = row.querySelector('.row-size');
+  const itemId = itemSel.value;
+  const it = db.items.find(function(x){ return x.id === itemId; });
+  const sizes = sizesForItem(it);
+  if(sizes.length === 0){
+    sizeSel.innerHTML = '<option value="">—</option>';
+    sizeSel.disabled = true;
+  } else {
+    sizeSel.innerHTML = sizeOptions(sizes, selectedSize || '');
+    sizeSel.disabled = false;
+  }
+}
+
+function inferSizeRange(name){
+  const n = (name || '').toLowerCase();
+  if(/obuv|bot|holink|pantof/.test(n)) return ['34','48'];
+  if(/rukavic/.test(n)) return ['6','12'];
+  if(/trič|tricko|triko/.test(n)) return ['S','XXXL'];
+  if(/kalhot/.test(n)) return ['38','64'];
+  return null;
+}
+
+function migrateItemSizes(){
+  const map = {
+    'boty': ['34','48'],
+    'tricko': ['S','XXXL'],
+    'kalhoty': ['38','64'],
+    'rukavice': ['6','12']
+  };
+  let changed = false;
+  db.items.forEach(function(it){
+    if(it.sizeMin === undefined && it.sizeMax === undefined){
+      let r = map[it.category] || null;
+      if(!r) r = inferSizeRange(it.name);
+      it.sizeMin = r ? r[0] : '';
+      it.sizeMax = r ? r[1] : '';
+      if(it.category !== undefined) delete it.category;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function addItemRow(itemId, qty, size){
+  const container = document.getElementById('itemRows');
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.innerHTML = '<select class="row-item" title="Předmět">' + itemOptions(itemId) + '</select>' +
+    '<input type="number" class="row-qty" min="1" step="1" value="' + (qty || 1) + '" placeholder="množství">' +
+    '<select class="row-size" title="Velikost"></select>' +
+    '<button type="button" class="btn danger small row-del">✕</button>';
+  container.appendChild(div);
+  div.querySelector('.row-item').addEventListener('change', function(){ updateRowSizeOptions(div, ''); });
+  div.querySelector('.row-del').addEventListener('click', function(){ div.remove(); });
+  updateRowSizeOptions(div, size || '');
+}
+
+function populateIssueForm(){
+  const sel = document.getElementById('issueEmployee');
+  const input = document.getElementById('issueEmployeeFilter');
+  if(sel.value){
+    const e = db.employees.find(function(x){ return x.id === sel.value; });
+    if(e){ input.value = issueEmployeeLabel(e); }
+    else { sel.value = ''; input.value = ''; }
+  }
+  closeIssueEmployeeSuggestions();
+  document.querySelectorAll('.item-row').forEach(function(row){
+    const itemSel = row.querySelector('.row-item');
+    const prevItem = itemSel.value;
+    itemSel.innerHTML = itemOptions(prevItem);
+    const sizeSel = row.querySelector('.row-size');
+    updateRowSizeOptions(row, sizeSel ? sizeSel.value : '');
+  });
+  const rows = document.getElementById('itemRows');
+  if(rows.children.length === 0) addItemRow();
+  const dateInput = document.getElementById('issueDate');
+  if(!dateInput.value) dateInput.value = todayIso();
+  updateIssueDateLabel();
+}
+
+function saveIssue(){
+  const empId = document.getElementById('issueEmployee').value;
+  if(!empId){ toast('Vyberte zaměstnance.'); return; }
+  const employee = db.employees.find(function(e){ return e.id === empId; });
+  if(!employee){ toast('Zaměstnanec nenalezen.'); return; }
+  const date = document.getElementById('issueDate').value || todayIso();
+  const rows = Array.from(document.querySelectorAll('.item-row'));
+  const items = [];
+  for(const row of rows){
+    const itemId = row.querySelector('.row-item').value;
+    const qty = parseInt(row.querySelector('.row-qty').value, 10);
+    const size = row.querySelector('.row-size').value;
+    if(!itemId){ toast('Vyberte předmět.'); return; }
+    if(!qty || qty < 1){ toast('Zadejte množství.'); return; }
+    const it = db.items.find(function(x){ return x.id === itemId; });
+    items.push({itemId: itemId, name: it ? it.name : itemId, qty: qty, unit: it ? (it.unit || 'ks') : 'ks', size: size});
+  }
+  if(items.length === 0){ toast('Přidejte alespoň jednu položku.'); return; }
+  const signature = getSignatureData();
+  const issue = touchRec({
+    id: uid(),
+    employeeId: employee.id,
+    employeeName: employee.name,
+    department: employeeFunctionName(employee),
+    date: date,
+    items: items,
+    note: '',
+    signature: signature,
+    hasSignature: !!signature,
+    createdAt: Date.now()
+  });
+  db.issues.push(issue);
+  save();
+  clearSignature();
+  document.getElementById('itemRows').innerHTML = '';
+  addItemRow();
+  populateIssueForm();
+  toast('Výdej uložen.');
+}
+
+/* ---------- Výdeje zaměstnance (tabulka v seznamu zaměstnanců) ---------- */
+// české skloňování podle počtu: 1 výdej / 3 výdeje / 8 výdejů
+function czPlural(n, one, few, many){
+  n = Math.abs(n);
+  if(n === 1) return one;
+  if(n >= 2 && n <= 4) return few;
+  return many;
+}
+
+function issuesForEmployee(id){
+  return db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){
+    const da = a.date || '', dbb = b.date || '';
+    if(da !== dbb) return da < dbb ? 1 : -1;          // nejnovější nahoře
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+
+function openEmployeeDetail(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  currentEmployeeId = id;
+  ['empAddCard', 'empImportCard', 'empListCard'].forEach(function(cid){
+    const card = document.getElementById(cid);
+    if(card) card.classList.add('hidden');
+  });
+  const detail = document.getElementById('empDetail');
+  if(detail) detail.classList.remove('hidden');
+  refreshEmployeeDetail();
+  if(detail && detail.scrollIntoView) detail.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function closeEmployeeDetail(){
+  currentEmployeeId = null;
+  const detail = document.getElementById('empDetail');
+  if(detail) detail.classList.add('hidden');
+  ['empAddCard', 'empImportCard', 'empListCard'].forEach(function(cid){
+    const card = document.getElementById(cid);
+    if(card) card.classList.remove('hidden');
+  });
+}
+
+function refreshEmployeeDetail(){
+  const e = db.employees.find(function(x){ return x.id === currentEmployeeId; });
+  if(!e){ closeEmployeeDetail(); return; }
+  const issues = issuesForEmployee(e.id);
+  const itemCount = issues.reduce(function(n, i){ return n + ((i.items && i.items.length) || 0); }, 0);
+  const meta = [];
+  if(e.personalNumber) meta.push('os. č. ' + e.personalNumber);
+  if(employeeFunctionName(e)) meta.push(employeeFunctionName(e));
+  if(issues.length === 0){
+    meta.push('žádný výdej');
+  } else {
+    meta.push(issues.length + ' ' + czPlural(issues.length, 'výdej', 'výdeje', 'výdejů') +
+      ', ' + itemCount + ' ' + czPlural(itemCount, 'položka', 'položky', 'položek'));
+  }
+  document.getElementById('empDetailTitle').textContent = e.name;
+  document.getElementById('empDetailMeta').textContent = meta.join(' • ');
+  const ent = employeeEntitlement(e, issues);
+  const entLine = ent.length
+    ? 'Nárok na OOPP: ' + ent.map(function(x){ return x.name + (x.lifetime ? ' (' + x.lifetime + ')' : ''); }).join(', ')
+    : 'Nárok na OOPP: — (funkce nemá v číselníku nastavený žádný nárok)';
+  const entEl = document.getElementById('empDetailEntitlement');
+  if(entEl) entEl.textContent = entLine;
+  renderEmployeeIssues(e.id, issues);
+  ensureSignaturesForEmployee(e.id);
+}
+
+// Podpisy se v Supabase drží zvlášť — při otevření zaměstnance se chybějící dotáhnou.
+let sigFetchTimer = null;
+const sigFetchTried = {};
+function ensureSignaturesForEmployee(employeeId){
+  const cfg = cloudConfig();
+  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)) return;
+  const missing = (db.issues || []).filter(function(i){
+    return i.employeeId === employeeId && i.hasSignature && !i.signature && !sigFetchTried[i.id];
+  });
+  if(!missing.length) return;
+  missing.forEach(function(i){ sigFetchTried[i.id] = true; });
+  clearTimeout(sigFetchTimer);
+  sigFetchTimer = setTimeout(async function(){
+    try{
+      const got = await sigDownload(cfg, missing.map(function(i){ return i.id; }));
+      let n = 0;
+      Object.keys(got).forEach(function(id){
+        delete sigFetchTried[id];
+        const issue = db.issues.find(function(i){ return i.id === id; });
+        if(issue && !issue.signature){ issue.signature = got[id]; issue.hasSignature = true; n++; }
+      });
+      if(n){
+        cloudApplying = true;
+        try{ save(); }finally{ cloudApplying = false; }
+        if(currentEmployeeId === employeeId) refreshEmployeeDetail();
+      }
+    }catch(e){}
+  }, 400);
+}
+
+// Řádková tabulka: datum | co | kolik | uložený podpis
+function renderEmployeeIssues(id, issues){
+  const box = document.getElementById('empIssues');
+  if(!box) return;
+  issues = issues || issuesForEmployee(id);
+  if(issues.length === 0){
+    box.innerHTML = '<div class="empty">Zatím žádný výdej — zaměstnanec nic nepřevzal.</div>';
+    return;
+  }
+  let rows = '';
+  issues.forEach(function(issue){
+    const items = (issue.items && issue.items.length) ? issue.items : [{name: '—', qty: '', unit: '', size: ''}];
+    const span = items.length > 1 ? ' rowspan="' + items.length + '"' : '';
+    const sigCell = issue.signature
+      ? '<img class="sig-thumb" src="' + issue.signature + '" alt="Podpis" title="Zobrazit podpis" data-sig="' + issue.id + '">'
+      : (issue.hasSignature
+          ? '<button class="btn outline small" data-fetchsig="' + issue.id + '">⬇ stáhnout podpis</button>'
+          : '<span class="sig-hint">bez podpisu</span>');
+    items.forEach(function(it, idx){
+      rows += '<tr>';
+      if(idx === 0){
+        rows += '<td class="nowrap"' + span + '>' + formatDate(issue.date) + '</td>';
+      }
+      rows += '<td>' + escapeHtml(it.name) +
+        (it.size ? '<div class="sig-hint">vel. ' + escapeHtml(it.size) + '</div>' : '') + '</td>' +
+        '<td class="nowrap">' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
+      if(idx === 0){
+        rows += '<td' + span + '>' + sigCell + '</td>';
+      }
+      rows += '</tr>';
+    });
+  });
+  box.innerHTML = '<table class="issue-table"><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>' +
+    rows + '</tbody></table>' +
+    '<div class="sig-hint">Seřazeno od nejnovějšího. Klepnutím na podpis se zvětší.</div>';
+}
+
+function showSignature(issueId){
+  const issue = db.issues.find(function(i){ return i.id === issueId; });
+  if(!issue || !issue.signature) return;
+  const overlay = document.getElementById('sigOverlay');
+  if(!overlay) return;
+  document.getElementById('sigOverlayImg').src = issue.signature;
+  document.getElementById('sigOverlayLabel').textContent =
+    (issue.employeeName || '') + ' • ' + formatDate(issue.date);
+  overlay.classList.remove('hidden');
+}
+
+function hideSignature(){
+  const overlay = document.getElementById('sigOverlay');
+  if(overlay) overlay.classList.add('hidden');
+}
+
+function csvCell(v){
+  v = String(v == null ? '' : v);
+  if(/[";\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+
+function exportCSV(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  const issues = db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){ return a.createdAt - b.createdAt; });
+  if(issues.length === 0){ toast('Žádné záznamy k exportu.'); return; }
+  const lines = ['Datum;Předmět;Velikost;Množství;Jednotka;Podepsáno;Poznámka'];
+  for(const issue of issues){
+    for(const it of issue.items){
+      lines.push([
+        issue.date,
+        it.name,
+        it.size || '',
+        it.qty,
+        it.unit || '',
+        issue.signature ? 'ano' : 'ne',
+        issue.note || ''
+      ].map(csvCell).join(';'));
+    }
+  }
+  const csv = '\uFEFF' + lines.join('\r\n');
+  downloadBlob(csv, 'OOPP_' + safeName(e.name) + '.csv', 'text/csv;charset=utf-8');
+}
+
+/* ---------- Tisk ---------- */
+function printDocHeader(title){
+  return '<h1>🦺 Evidence OOPP</h1><h2>' + title + '</h2>';
+}
+
+function doPrint(){
+  window.print();
+}
+
+// Po zavření tisku vrátit tiskovou plochu do výchozího stavu (knížka má vlastní sazbu stránek).
+function resetPrintArea(){
+  const area = document.getElementById('printArea');
+  if(area) area.className = 'print-area';
+}
+window.addEventListener('afterprint', resetPrintArea);
+
+// Počkat, až se v tiskové ploše načtou obrázky (podpisy) — jinak se na papíře neobjeví.
+function printWhenReady(area){
+  const imgs = Array.prototype.slice.call(area.querySelectorAll('img'));
+  const pending = imgs.filter(function(img){ return !img.complete; });
+  if(pending.length === 0){ doPrint(); return; }
+  let printed = false;
+  const go = function(){
+    if(printed) return;
+    printed = true;
+    doPrint();
+  };
+  Promise.all(pending.map(function(img){
+    return new Promise(function(resolve){
+      img.addEventListener('load', resolve, {once: true});
+      img.addEventListener('error', resolve, {once: true});
+    });
+  })).then(go);
+  setTimeout(go, 1500);   // pojistka, kdyby se obrázek vůbec nenačetl
+}
+
+function printIssue(id){
+  const issue = db.issues.find(function(i){ return i.id === id; });
+  if(!issue) return;
+  const area = document.getElementById('printArea');
+  let rows = issue.items.map(function(it){
+    return '<tr><td>' + escapeHtml(it.name) + (it.size ? ' (vel. ' + escapeHtml(it.size) + ')' : '') + '</td><td>' + it.qty + ' ' + escapeHtml(it.unit || '') + '</td></tr>';
+  }).join('');
+  area.className = 'print-area';
+  area.innerHTML = printDocHeader('Potvrzení o výdeji OOPP') +
+    '<p class="meta"><strong>Zaměstnanec:</strong> ' + escapeHtml(issue.employeeName) + (issue.department ? ' (' + escapeHtml(issue.department) + ')' : '') + '</p>' +
+    '<p class="meta"><strong>Datum:</strong> ' + formatDate(issue.date) + '</p>' +
+    '<table><thead><tr><th>Předmět</th><th>Množství</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    (issue.note ? '<p class="meta"><strong>Poznámka:</strong> ' + escapeHtml(issue.note) + '</p>' : '') +
+    (issue.signature
+      ? '<div class="sign"><strong>Podpis příjemce:</strong><br><img src="' + issue.signature + '" style="width:240px;height:auto;border-bottom:1px solid #000"></div>'
+      : '<p class="meta">Podpis: bez podpisu</p>');
+  doPrint();
+}
+
+function printEmployeeHistory(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  const issues = db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){
+    const da = a.date || '', dbb = b.date || '';
+    if(da !== dbb) return da < dbb ? -1 : 1;          // tisk chronologicky
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
+  const area = document.getElementById('printArea');
+  area.className = 'print-area';
+  let html = printDocHeader('Výdeje OOPP — zaměstnanec') +
+    '<p class="meta"><strong>Zaměstnanec:</strong> ' + escapeHtml(e.name) +
+    (e.personalNumber ? ' (os. č. ' + escapeHtml(e.personalNumber) + ')' : '') +
+    (employeeFunctionName(e) ? ' — ' + escapeHtml(employeeFunctionName(e)) : '') + '</p>' +
+    '<p class="meta"><strong>Vygenerováno:</strong> ' + formatDate(new Date().toISOString().slice(0, 10)) + '</p>';
+  if(issues.length === 0){
+    html += '<p>Žádné záznamy.</p>';
+  } else {
+    html += '<table><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>';
+    for(const issue of issues){
+      const items = (issue.items && issue.items.length) ? issue.items : [{name: '—', qty: '', unit: '', size: ''}];
+      items.forEach(function(it, idx){
+        html += '<tr>';
+        if(idx === 0) html += '<td rowspan="' + items.length + '">' + formatDate(issue.date) + '</td>';
+        html += '<td>' + escapeHtml(it.name) + (it.size ? ' (vel. ' + escapeHtml(it.size) + ')' : '') + '</td>' +
+          '<td>' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
+        if(idx === 0){
+          html += '<td rowspan="' + items.length + '">' +
+            (issue.signature ? '<img src="' + issue.signature + '" style="width:110px;height:auto">' : '—') + '</td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table>';
+  }
+  area.innerHTML = html;
+  doPrint();
+}
+
+/* ---------- Tisk knížky OOPP ----------
+   Formát vychází z předloh v dependencies: ev.jpg (přední stránka — Evidenční list)
+   a list.jpg (listy s výdejem — dva sloupce Datum | OOPP | Podpis zaměstnance).
+   Předlohy jsou jen fotky papíru, proto je sazba překreslená do ostré tiskové podoby. */
+const BK_ROW_MM = 7.3;      // výška jednoho řádku tabulky výdejů
+const BK_BLOCK_MM = 241;    // použitelná výška jednoho sloupce na stránce
+const BK_CHARS_LINE = 30;   // záložní odhad znaků na řádek, než se změří skutečnost
+const BK_COLGROUP = '<colgroup>' +
+  '<col style="width:10%"><col style="width:30%"><col style="width:10%">' +
+  '<col style="width:10%"><col style="width:30%"><col style="width:10%">' +
+  '</colgroup>';
+
+// Jeden řádek knížky = jeden výdej: datum, co bylo vydáno a uložený podpis.
+function bookletEntry(issue){
+  const items = (issue.items && issue.items.length) ? issue.items : [];
+  const oop = items.map(function(it){
+    let s = String(it.name || '');
+    if(it.size) s += ' (vel. ' + it.size + ')';
+    const qty = (it.qty == null || it.qty === '') ? '' : String(it.qty);
+    if(qty) s += ' ' + qty + ' ' + (it.unit || '');
+    return s;
+  }).join(', ');
+  return {
+    date: issue.date ? formatDate(issue.date) : '',
+    oop: oop,
+    signature: issue.signature || '',
+    height: Math.max(1, Math.ceil(oop.length / BK_CHARS_LINE)) * BK_ROW_MM
+  };
+}
+
+// Buňky jednoho výdeje (tři sloupce); prázdný záznam = prázdný řádek do tabulky.
+function bookletCellsHtml(entry, mid){
+  const cls = mid ? ' bk-mid' : '';
+  if(!entry) return '<td class="bk-date' + cls + '"></td><td></td><td class="bk-sig"></td>';
+  return '<td class="bk-date' + cls + '">' + escapeHtml(entry.date) + '</td>' +
+    '<td>' + escapeHtml(entry.oop) + '</td>' +
+    '<td class="bk-sig">' + (entry.signature ? '<img src="' + entry.signature + '" alt="podpis">' : '') + '</td>';
+}
+
+// Změří skutečnou výšku každého řádku (mm) — text se láme podle šířky sloupce,
+// takže odhad podle počtu znaků by na papíře neseděl.
+function bookletMeasureHeights(entries){
+  if(entries.length === 0) return;
+  const probe = document.createElement('div');
+  probe.className = 'bk-page';
+  probe.style.cssText = 'position:absolute;left:-10000px;top:0;width:210mm;min-height:0;page-break-after:auto';
+  probe.innerHTML = '<table class="bk-list">' + BK_COLGROUP + '<tbody>' +
+    entries.map(function(en){
+      return '<tr>' + bookletCellsHtml(en, false) + bookletCellsHtml(null, true) + '</tr>';
+    }).join('') +
+    '</tbody></table>';
+  document.body.appendChild(probe);
+  const pxPerMM = 96 / 25.4;
+  const trs = probe.querySelectorAll('tbody tr');
+  for(let i = 0; i < entries.length && i < trs.length; i++){
+    entries[i].height = trs[i].getBoundingClientRect().height / pxPerMM;
+  }
+  document.body.removeChild(probe);
+}
+
+// Rozdělení výdejů do sloupců — na stránce jsou vždy dva vedle sebe.
+function bookletBlocks(issues){
+  const entries = issues.map(bookletEntry);
+  bookletMeasureHeights(entries);
+  const blocks = [];
+  let block = {entries: [], used: 0};
+  entries.forEach(function(entry){
+    if(block.entries.length > 0 && block.used + entry.height > BK_BLOCK_MM){
+      blocks.push(block);
+      block = {entries: [], used: 0};
+    }
+    block.entries.push(entry);
+    block.used += entry.height;
+  });
+  blocks.push(block);
+  if(blocks.length % 2 !== 0) blocks.push({entries: [], used: 0});
+  return blocks;
+}
+
+function bookletPadRows(block){
+  // Prázdné řádky se dopočítají podle skutečné výšky řádků v tomto sloupci.
+  const rowMM = block.entries.length ? Math.max(BK_ROW_MM, block.used / block.entries.length) : BK_ROW_MM;
+  return Math.max(0, Math.floor((BK_BLOCK_MM - block.used) / rowMM));
+}
+
+function bookletFooter(e, pageNo, pageCount){
+  const left = [e.name, (e.personalNumber ? 'os. č. ' + e.personalNumber : '')]
+    .filter(Boolean).join(' • ');
+  return '<div class="bk-foot"><span>' + escapeHtml(left) +
+    '</span><span>strana ' + pageNo + ' / ' + pageCount + '</span></div>';
+}
+
+// Přední stránka — evidenční list (předloha ev.jpg)
+function bookletFrontHtml(e, issues, pageCount){
+  const firstIssue = issues.length ? issues[0] : null;
+  const entitlement = employeeEntitlement(e, issues);
+  // Řádky evidenčního listu: první nese datum a funkci, pak jeden řádek na každý OOPP z nároku.
+  // Předloha má 15 řádků; kdyby měl nárok víc položek, řádky se přidají, aby se nic neztratilo.
+  const totalRows = Math.max(15, entitlement.length);
+  const rows = [];
+  for(let r = 0; r < totalRows; r++) rows.push(['', '', '', '']);
+  if(firstIssue) rows[0][0] = formatDate(firstIssue.date);
+  rows[0][1] = employeeFunctionName(e);
+  entitlement.forEach(function(en, i){
+    if(i < rows.length){
+      rows[i][2] = en.name;
+      rows[i][3] = en.lifetime || '';
+    }
+  });
+  let body = '';
+  rows.forEach(function(row){
+    body += '<tr><td>' + escapeHtml(row[0]) + '</td><td>' + escapeHtml(row[1]) + '</td>' +
+      '<td>' + escapeHtml(row[2]) + '</td><td>' + escapeHtml(row[3]) + '</td></tr>';
+  });
+  return '<div class="bk-page">' +
+    '<table class="bk-id">' +
+      '<colgroup><col style="width:68%"><col style="width:32%"></colgroup>' +
+      '<thead><tr><th>Jméno a příjmení</th><th>Osobní číslo zn.</th></tr></thead>' +
+      '<tbody><tr>' +
+        '<td>' + escapeHtml(e.name) + '</td>' +
+        '<td>' + escapeHtml(e.personalNumber || '') + '</td>' +
+      '</tr></tbody>' +
+    '</table>' +
+    '<div class="bk-head"><h2>EVIDENČNÍ LIST</h2><p>OSOBNÍCH OCHRANNÝCH PRACOVNÍCH POMŮCEK</p></div>' +
+    '<table class="bk-main">' +
+      '<colgroup>' +
+        '<col style="width:15%"><col style="width:23%">' +
+        '<col style="width:42%"><col style="width:20%">' +
+      '</colgroup>' +
+      '<thead><tr><th>Datum</th><th>Funkce</th>' +
+        '<th>Nárok na přidělení OOPP</th><th>Životnost</th></tr></thead>' +
+      '<tbody>' + body + '</tbody>' +
+    '</table>' +
+    bookletFooter(e, 1, pageCount) +
+  '</div>';
+}
+
+// List s výdejem (předloha list.jpg) — dva sloupce vedle sebe
+function bookletSheetHtml(left, right, e, pageNo, pageCount){
+  // Počet řádků = plná kapacita sloupce (prázdné řádky tabulku doplní do spodku stránky).
+  const rows = Math.max(left.entries.length + bookletPadRows(left),
+                        right.entries.length + bookletPadRows(right));
+  let body = '';
+  for(let i = 0; i < rows; i++){
+    body += '<tr>' + bookletCellsHtml(left.entries[i], false) + bookletCellsHtml(right.entries[i], true) + '</tr>';
+  }
+  return '<div class="bk-page">' +
+    '<h3 class="bk-sheet-title">' + (pageNo - 1) + '. Výdej osobních ochranných prostředků</h3>' +
+    '<table class="bk-list">' + BK_COLGROUP +
+      '<thead><tr>' +
+        '<th>Datum</th><th class="bk-oop">OOPP</th><th>Podpis<small>zaměstnance</small></th>' +
+        '<th class="bk-mid">Datum</th><th class="bk-oop">OOPP</th><th>Podpis<small>zaměstnance</small></th>' +
+      '</tr></thead>' +
+      '<tbody>' + body + '</tbody>' +
+    '</table>' +
+    bookletFooter(e, pageNo, pageCount) +
+  '</div>';
+}
+
+// Pojistka: kdyby obsah přesáhl spodek stránky (patička začíná ~283 mm), odeberou se zdola prázdné řádky.
+function bookletFitPages(stage){
+  const pxPerMM = 96 / 25.4;
+  const MAX_MM = 283;
+  Array.prototype.forEach.call(stage.querySelectorAll('.bk-page'), function(page){
+    let guard = 0;
+    while(guard < 200){
+      const pageTop = page.getBoundingClientRect().top;
+      let bottom = 0;
+      Array.prototype.forEach.call(page.children, function(k){
+        if(k.classList.contains('bk-foot')) return;
+        const b = k.getBoundingClientRect().bottom - pageTop;
+        if(b > bottom) bottom = b;
+      });
+      if(bottom / pxPerMM <= MAX_MM) break;
+      const rows = page.querySelectorAll('tbody tr');
+      let removed = false;
+      for(let i = rows.length - 1; i >= 0; i--){
+        const tr = rows[i];
+        if(!tr.textContent.trim() && tr.querySelectorAll('img').length === 0){
+          tr.parentNode.removeChild(tr);
+          removed = true;
+          break;
+        }
+      }
+      if(!removed) break;   // samé plné řádky — dál nemá smysl ubírat
+      guard++;
+    }
+  });
+}
+
+// Přední strana se dopočítá do spodku stránky — řádky evidenčního listu se roztáhnou
+// tak, aby tabulka končila u patičky (v předloze je tabulka po celé stránce).
+function bookletFillFront(stage){
+  const pxPerMM = 96 / 25.4;
+  const MAX_MM = 281;   // 1 mm rezerva před patičkou
+  Array.prototype.forEach.call(stage.querySelectorAll('.bk-page'), function(page){
+    const table = page.querySelector('table.bk-main');
+    if(!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    if(!rows.length) return;
+    // Výšky se čtou po řádcích a zapisují do všech buněk řádku najednou,
+    // jinak se do jednoho řádku připočítá rozdíl několikrát.
+    for(let pass = 0; pass < 6; pass++){
+      const pageTop = page.getBoundingClientRect().top;
+      const gap = MAX_MM - (table.getBoundingClientRect().bottom - pageTop) / pxPerMM;
+      if(Math.abs(gap) < 0.3) break;
+      const add = gap / rows.length;
+      Array.prototype.forEach.call(rows, function(tr){
+        const h = tr.getBoundingClientRect().height / pxPerMM;
+        Array.prototype.forEach.call(tr.children, function(cell){
+          cell.style.height = (h + add).toFixed(2) + 'mm';
+        });
+      });
+    }
+  });
+}
+
+// Vysází knížku zaměstnance mimo obraz (změřenou, s vyplněnými stránkami).
+// Používá ji tisk i export do PDF, aby obě podoby vypadaly stejně.
+function buildBookletStage(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return null;
+  const issues = issuesForEmployee(id).slice().reverse();   // chronologicky od nejstaršího
+  const blocks = bookletBlocks(issues);
+  const pageCount = Math.max(1, Math.ceil(blocks.length / 2)) + 1;
+  let html = bookletFrontHtml(e, issues, pageCount);
+  for(let i = 0; i < blocks.length; i += 2){
+    html += bookletSheetHtml(blocks[i], blocks[i + 1], e, (i / 2) + 2, pageCount);
+  }
+  const stage = document.createElement('div');
+  stage.style.cssText = 'position:absolute;left:-10000px;top:0;width:210mm;background:#fff';
+  stage.innerHTML = html;
+  document.body.appendChild(stage);
+  bookletFitPages(stage);
+  bookletFillFront(stage);
+  return stage;
+}
+
+// Vytiskne celou knížku zaměstnance: přední strana (evidenční list) + listy s výdeji.
+function printEmployeeBooklet(id){
+  const stage = buildBookletStage(id);
+  if(!stage){ toast('Zaměstnanec nenalezen.'); return; }
+  const area = document.getElementById('printArea');
+  area.className = 'print-area booklet';
+  area.innerHTML = stage.innerHTML;
+  document.body.removeChild(stage);
+  printWhenReady(area);
+}
+
+/* ---------- Export knížky do PDF ----------
+   Aplikace je offline, proto si PDF skládá sama: každá stránka knížky se vykreslí do canvasu
+   (přes SVG foreignObject — písmo zůstane ostré i s diakritikou, podpisy obrázky)
+   a výsledné JPEG obrázky se zabalí do minimálního PDF (filtr DCTDecode). */
+const PDF_PAGE_W = 595.28;   // A4 portrait v bodech (pt)
+const PDF_PAGE_H = 841.89;
+const PDF_SCALE = 2;         // 794 px × 2 ≈ 192 DPI
+
+// Jen pravidla knížky — vloží se do SVG, aby stránka vypadala stejně jako v aplikaci.
+// (spolu s resetem `*{box-sizing:border-box}`, bez kterého by stránka přetekla okraj)
+function bookletPdfCss(){
+  const out = [];
+  Array.prototype.forEach.call(document.styleSheets, function(ss){
+    let rules = null;
+    try{ rules = ss.cssRules; }catch(err){ return; }   // cizí (cross-origin) styly přeskočit
+    if(!rules) return;
+    Array.prototype.forEach.call(rules, function(r){
+      if(!r.selectorText || !/^(\*|\.bk-)/.test(r.selectorText)) return;
+      out.push(r.cssText);
+    });
+  });
+  return out.join('\n');
+}
+
+// Klon stránky musí být platné XML — prázdné HTML tagy se musí v SVG samo-uzavřít.
+function bookletSvgHtml(el){
+  let html = el.outerHTML;
+  html = html.replace(/<(img|br|col|hr|input|meta|link|source|area|base|wbr)(\s[^<>]*?)?\/?>/gi,
+    function(m, tag, attrs){ return '<' + tag + (attrs || '') + '/>'; });
+  return html;
+}
+
+function base64ToBytes(b64){
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// Vykreslí jednu stránku knížky do JPEG (vrací i velikost obrázku pro PDF).
+function rasterizeBookletPage(pageEl){
+  return new Promise(function(resolve, reject){
+    const rect = pageEl.getBoundingClientRect();
+    const w = Math.round(rect.width) || 794;      // 210 mm při 96 DPI
+    const h = Math.round(rect.height) || 1123;    // A4
+    const clone = pageEl.cloneNode(true);
+    clone.style.margin = '0';
+    clone.style.background = '#fff';
+    const css = bookletPdfCss().replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const inner = '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + w + 'px;height:' + h + 'px;background:#fff">' +
+      '<style>' + css + '</style>' + bookletSvgHtml(clone) + '</div>';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (w * PDF_SCALE) + '" height="' + (h * PDF_SCALE) +
+      '" viewBox="0 0 ' + w + ' ' + h + '"><foreignObject width="' + w + '" height="' + h + '">' + inner +
+      '</foreignObject></svg>';
+    const img = new Image();
+    img.onload = function(){
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = w * PDF_SCALE;
+        canvas.height = h * PDF_SCALE;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve({
+          bytes: base64ToBytes(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]),
+          width: canvas.width,
+          height: canvas.height
+        });
+      }catch(err){ reject(err); }
+    };
+    img.onerror = function(){ reject(new Error('stránku nelze vykreslit')); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+
+
+
+/* ---------- Úložiště složky (SD karta / USB) ---------- */
+const DATA_FILE = 'OOPP_data.json';
+const DATA_TMP = 'OOPP_data.json.tmp';
+// Minimální PDF: na každé stránce A4 jeden obrázek (JPEG) přes celou plochu.
+function pdfFromJpegPages(pages){
+  const parts = [];
+  const offsets = [];
+  let length = 0;
+  const put = function(bytes){ parts.push(bytes); length += bytes.length; };
+  const ascii = function(str){
+    const arr = new Uint8Array(str.length);
+    for(let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i) & 0xFF;
+    put(arr);
+  };
+  const beginObj = function(num){ offsets[num] = length; ascii(num + ' 0 obj\n'); };
+  const endObj = function(){ ascii('endobj\n'); };
+  const pageNum = function(i){ return 3 + i * 3; };
+  const contentNum = function(i){ return 4 + i * 3; };
+  const imageNum = function(i){ return 5 + i * 3; };
+
+  ascii('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  beginObj(1); ascii('<< /Type /Catalog /Pages 2 0 R >>\n'); endObj();
+  const kids = pages.map(function(_, i){ return pageNum(i) + ' 0 R'; }).join(' ');
+  beginObj(2); ascii('<< /Type /Pages /Count ' + pages.length + ' /Kids [' + kids + '] >>\n'); endObj();
+
+  pages.forEach(function(page, i){
+    beginObj(pageNum(i));
+    ascii('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PDF_PAGE_W + ' ' + PDF_PAGE_H + '] ' +
+      '/Resources << /XObject << /Im0 ' + imageNum(i) + ' 0 R >> /ProcSet [/PDF /ImageC] >> ' +
+      '/Contents ' + contentNum(i) + ' 0 R >>\n');
+    endObj();
+
+    const content = 'q\n' + PDF_PAGE_W + ' 0 0 ' + PDF_PAGE_H + ' 0 0 cm\n/Im0 Do\nQ\n';
+    beginObj(contentNum(i));
+    ascii('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream\n');
+    endObj();
+
+    beginObj(imageNum(i));
+    ascii('<< /Type /XObject /Subtype /Image /Width ' + page.width + ' /Height ' + page.height +
+      ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + page.bytes.length + ' >>\nstream\n');
+    put(page.bytes);
+    ascii('\nendstream\n');
+    endObj();
+  });
+
+  const maxObj = 2 + pages.length * 3;
+  const xrefStart = length;
+  ascii('xref\n0 ' + (maxObj + 1) + '\n0000000000 65535 f \n');
+  for(let n = 1; n <= maxObj; n++){
+    ascii(String(offsets[n] || 0).padStart(10, '0') + ' 00000 n \n');
+  }
+  ascii('trailer\n<< /Size ' + (maxObj + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefStart + '\n%%EOF\n');
+
+  const out = new Uint8Array(length);
+  let pos = 0;
+  parts.forEach(function(part){ out.set(part, pos); pos += part.length; });
+  return out;
+}
+
+// Export knížky zaměstnance (evidenční list + listy výdejů) do souboru PDF.
+let pdfExportBusy = false;
+
+async function exportEmployeePdf(id){
+  if(pdfExportBusy){ toast('PDF se už vytváří…'); return; }
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e){ toast('Zaměstnanec nenalezen.'); return; }
+  const btn = document.getElementById('btnExportPDF');
+  pdfExportBusy = true;
+  if(btn) btn.disabled = true;
+  toast('Generuji PDF…');
+  let stage = null;
+  try{
+    stage = buildBookletStage(id);
+    if(!stage) throw new Error('knížku nelze sestavit');
+    const pageEls = Array.prototype.slice.call(stage.querySelectorAll('.bk-page'));
+    if(pageEls.length === 0) throw new Error('knížka nemá žádnou stránku');
+    const pages = [];
+    for(const el of pageEls) pages.push(await rasterizeBookletPage(el));
+    document.body.removeChild(stage);
+    stage = null;
+    downloadBlob(pdfFromJpegPages(pages), 'OOPP_' + safeName(e.name) + '.pdf', 'application/pdf');
+    toast('PDF uloženo (' + pages.length + ' str.).');
+  }catch(err){
+    if(stage && stage.parentNode) document.body.removeChild(stage);
+    toast('PDF se nepodařilo vytvořit — použijte Tisk knížky a uložení do PDF.');
+  }finally{
+    pdfExportBusy = false;
+    if(btn) btn.disabled = false;
+  }
+}
+
+
+
+function supportsFS(){
+  return ('showDirectoryPicker' in window);
+}
+
+function idbOpen(){
+  return new Promise(function(resolve, reject){
+    const req = indexedDB.open('oopp_db', 1);
+    req.onupgradeneeded = function(){ req.result.createObjectStore('meta'); };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+
+function idbGet(key){
+  return idbOpen().then(function(database){
+    return new Promise(function(resolve, reject){
+      const tx = database.transaction('meta', 'readonly');
+      const r = tx.objectStore('meta').get(key);
+      r.onsuccess = function(){ resolve(r.result); };
+      r.onerror = function(){ reject(r.error); };
+    });
+  });
+}
+
+function idbSet(key, val){
+  return idbOpen().then(function(database){
+    return new Promise(function(resolve, reject){
+      const tx = database.transaction('meta', 'readwrite');
+      tx.objectStore('meta').put(val, key);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+
+function idbDel(key){
+  return idbOpen().then(function(database){
+    return new Promise(function(resolve, reject){
+      const tx = database.transaction('meta', 'readwrite');
+      tx.objectStore('meta').delete(key);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+
+function scheduleFileWrite(){
+  if(!dataDirHandle) return;
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(function(){ persistToFileNow(); }, 400);
+}
+
+async function persistToFileNow(){
+  if(!dataDirHandle) return;
+  try{
+    const json = JSON.stringify(db, null, 2);
+    // 1) nejdřív do dočasného souboru, aby výpadek proudu nepoškodil hlavní soubor
+    const tmp = await dataDirHandle.getFileHandle(DATA_TMP, {create: true});
+    let w = await tmp.createWritable();
+    await w.write(json);
+    await w.close();
+    // 2) teprve pak do hlavního souboru
+    const main = await dataDirHandle.getFileHandle(DATA_FILE, {create: true});
+    w = await main.createWritable();
+    await w.write(json);
+    await w.close();
+  }catch(e){
+    // Přístup ke složce mohl vypršet (restart prohlížeče) — zkusíme ho obnovit
+    // při nejbližším klepnutí uživatele, aby se data znovu ukládala do souboru.
+    pendingDirReconnect = true;
+    updateStorageUI();
+    toast('Nepodařilo se zapsat do složky: ' + e.message);
+  }
+}
+
+// přečte data ze složky; když je hlavní soubor poškozený, obnoví z .tmp (výpadek proudu)
+async function readDataFromDir(){
+  if(!dataDirHandle) return null;
+  const parseValid = function(text){
+    try{
+      const d = JSON.parse(text);
+      return (d && Array.isArray(d.employees) && Array.isArray(d.items) && Array.isArray(d.issues)) ? d : null;
+    }catch(e){ return null; }
+  };
+
+  let mainHandle = null;
+  try{ mainHandle = await dataDirHandle.getFileHandle(DATA_FILE, {create: false}); }catch(e){}
+
+  let mainData = null;
+  let mainTime = 0;
+  if(mainHandle){
+    const f = await mainHandle.getFile();
+    mainTime = f.lastModified;
+    if(f.size > 0) mainData = parseValid(await f.text());
+  }
+
+  let tmpHandle = null;
+  try{ tmpHandle = await dataDirHandle.getFileHandle(DATA_TMP, {create: false}); }catch(e){}
+  let tmpData = null;
+  let tmpTime = 0;
+  if(tmpHandle){
+    const tf = await tmpHandle.getFile();
+    tmpTime = tf.lastModified;
+    if(tf.size > 0) tmpData = parseValid(await tf.text());
+  }
+
+  // .tmp je platný a hlavní soubor chybí/je poškozený, nebo .tmp je novější (hlavní zápis se nestihl)
+  if(tmpData && (!mainData || tmpTime > mainTime)){
+    return tmpData;
+  }
+  return mainData;
+}
+
+// nastaví složku jako úložiště: existující JSON načte, jinak založí nový z aktuálních dat
+async function connectDataDir(dir){
+  try{
+    dataDirHandle = dir;
+    try{ await idbSet('dataDir', dir); }catch(e){}
+    const existing = await readDataFromDir();
+    if(existing){
+      // Data ze souboru jsou hlavní, ale když soubor vznikl starší verzí aplikace
+      // a nějaký číselník v něm úplně chybí (např. funkce/pozice), ponechá se
+      // to, co je v zařízení — nic se tím neztratí a hned se to dopíše do souboru.
+      const merged = Object.assign({employees: [], items: [], issues: [], functions: []}, existing);
+      ['employees', 'items', 'issues', 'functions'].forEach(function(key){
+        if(!Array.isArray(existing[key])) merged[key] = Array.isArray(db[key]) ? db[key] : [];
+      });
+      db = merged;
+      migrateItemSizes();
+      migrateFunctions();
+      closeEmployeeDetail();
+      renderAll();
+      save();   // sladí lokální cache i cloud s načteným souborem
+    } else {
+      await persistToFileNow();   // založí OOPP_data.json
+    }
+    pendingDirReconnect = false;
+    updateStorageUI();
+    return true;
+  }catch(e){
+    dataDirHandle = null;
+    return false;
+  }
+}
+
+async function pickDataDir(){
+  if(!supportsFS()){ toast('Výběr složky tady není dostupný — použijte OOPP.exe nebo Chrome/Edge na počítači.'); return; }
+  try{
+    const dir = await window.showDirectoryPicker({mode: 'readwrite'});
+    const ok = await connectDataDir(dir);
+    if(ok){
+      const overlay = document.getElementById('fileSetup');
+      if(overlay) overlay.classList.add('hidden');
+      toast('Úložiště připojeno: složka „' + (dir.name || 'složka') + '“');
+    } else {
+      toast('Nepodařilo se připojit složku.');
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return;
+    toast('Nepodařilo se vybrat složku: ' + e.message);
+  }
+}
+
+async function reconnectDataDir(){
+  if(!supportsFS()){ toast('Výběr složky tady není dostupný — použijte OOPP.exe nebo Chrome/Edge na počítači.'); return; }
+  let dir = null;
+  try{ dir = await idbGet('dataDir'); }catch(e){}
+  if(!dir){ toast('Žádná naposledy použitá složka.'); return; }
+  try{
+    let perm = await dir.queryPermission({mode: 'readwrite'});
+    if(perm !== 'granted'){ perm = await dir.requestPermission({mode: 'readwrite'}); }
+    if(perm !== 'granted'){ toast('Přístup ke složce nebyl povolen.'); return; }
+    const ok = await connectDataDir(dir);
+    if(ok) toast('Úložiště znovu připojeno: složka „' + (dir.name || 'složka') + '“');
+    else toast('Nepodařilo se znovu připojit složku.');
+  }catch(e){
+    toast('Nepodařilo se znovu připojit: ' + e.message);
+  }
+}
+
+// při startu tiše obnoví složku, pokud je oprávnění už udělené
+async function autoReconnectDataDir(){
+  if(!supportsFS()) return;
+  let dir = null;
+  try{ dir = await idbGet('dataDir'); }catch(e){}
+  if(!dir) return;
+  try{
+    let perm = null;
+    try{ perm = await dir.queryPermission({mode: 'readwrite'}); }catch(e){}
+    if(perm !== 'granted'){
+      // Prohlížeč povolí přístup jen po klepnutí uživatele — připravíme obnovení
+      // na první klepnutí, aby se data zase ukládala do souboru ve složce.
+      pendingDirReconnect = true;
+      updateStorageUI();
+      toast('Klepněte kamkoli do aplikace — obnoví se ukládání do složky.');
+      bindDirPermissionGesture();
+      return;
+    }
+    const ok = await connectDataDir(dir);
+    if(ok) toast('Úložiště připojeno: složka „' + (dir.name || 'složka') + '“');
+  }catch(e){}
+}
+
+// Po prvním klepnutí / stisku klávesy znovu povolí přístup ke složce.
+function bindDirPermissionGesture(){
+  if(!supportsFS() || bindDirPermissionGesture.bound) return;
+  bindDirPermissionGesture.bound = true;
+  const handler = async function(){
+    if(!pendingDirReconnect){
+      document.removeEventListener('pointerdown', handler, true);
+      document.removeEventListener('keydown', handler, true);
+      bindDirPermissionGesture.bound = false;
+      return;
+    }
+    document.removeEventListener('pointerdown', handler, true);
+    document.removeEventListener('keydown', handler, true);
+    bindDirPermissionGesture.bound = false;
+    let dir = null;
+    try{ dir = await idbGet('dataDir'); }catch(e){}
+    if(!dir){ pendingDirReconnect = false; updateStorageUI(); return; }
+    try{
+      let perm = await dir.queryPermission({mode: 'readwrite'});
+      if(perm !== 'granted') perm = await dir.requestPermission({mode: 'readwrite'});
+      if(perm !== 'granted'){
+        updateStorageUI();
+        toast('Přístup ke složce nebyl obnoven — v záložce Data klikněte na „Znovu připojit“.');
+        return;
+      }
+      const ok = await connectDataDir(dir);
+      if(ok) toast('Data se ukládají do složky „' + (dir.name || 'složka') + '“');
+    }catch(e){
+      toast('Nepodařilo se obnovit přístup ke složce.');
+    }
+  };
+  document.addEventListener('pointerdown', handler, true);
+  document.addEventListener('keydown', handler, true);
+}
+
+async function disconnectDataDir(){
+  dataDirHandle = null;
+  pendingDirReconnect = false;
+  clearTimeout(writeTimer);
+  try{ await idbDel('dataDir'); }catch(e){}
+  // bez složky se data vrací zpět do úložiště prohlížeče
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  }catch(e){
+    toast('Pozor: data se nevejdou do úložiště prohlížeče — nechte složku připojenou.');
+  }
+  updateStorageUI();
+  toast('Složka odpojena. Data zůstávají v prohlížeči.');
+}
+
+function updateStorageUI(){
+  const status = document.getElementById('storageStatus');
+  const disconnectBtn = document.getElementById('btnDisconnectFile');
+  const reconnectBtn = document.getElementById('btnReconnectFile');
+  const connectBtn = document.getElementById('btnConnectFile');
+  const fsOk = supportsFS();
+  if(connectBtn) connectBtn.classList.toggle('hidden', !fsOk);
+  if(!fsOk){
+    status.innerHTML = 'Interní úložiště zařízení.<br><span class="sig-hint">Připojení složky na SD kartu / USB je dostupné jen v Chrome nebo Edge na počítači. Na mobilu používejte zálohu (JSON) níže.</span>';
+    disconnectBtn.classList.add('hidden');
+    reconnectBtn.classList.add('hidden');
+    return;
+  }
+  if(dataDirHandle){
+    status.innerHTML = 'Připojená složka: <strong>' + escapeHtml(dataDirHandle.name || 'složka') + '</strong><br><span class="sig-hint">Všechno (zaměstnanci, předměty, funkce/pozice, výdeje i podpisy) se ukládá do souboru OOPP_data.json v této složce — bez limitu velikosti. Při startu se složka připojí automaticky.</span>';
+    disconnectBtn.classList.remove('hidden');
+    reconnectBtn.classList.add('hidden');
+  } else if(pendingDirReconnect){
+    status.innerHTML = 'Složka s daty je zapamatovaná, jen je potřeba obnovit přístup.<br><span class="sig-hint">Klepněte kamkoli do aplikace nebo na „Znovu připojit“ — data se pak znovu ukládají do souboru OOPP_data.json ve složce.</span>';
+    disconnectBtn.classList.add('hidden');
+    reconnectBtn.classList.remove('hidden');
+  } else {
+    status.innerHTML = 'Interní úložiště prohlížeče.<br><span class="sig-hint">Aby se všechna data (zaměstnanci, předměty, funkce/pozice, výdeje) ukládala do složky, klikněte na „Vybrat složku“.</span>';
+    disconnectBtn.classList.add('hidden');
+    reconnectBtn.classList.remove('hidden');
+  }
+}
+
+/* ---------- Data / záloha ---------- */
+function renderDataInfo(){
+  ensureFunctions();
+  document.getElementById('dataStats').textContent =
+    'Zaměstnanců: ' + db.employees.length + '  •  Předmětů: ' + db.items.length +
+    '  •  Funkcí: ' + db.functions.length + '  •  Výdejů: ' + db.issues.length;
+}
+
+function exportBackup(){
+  const json = JSON.stringify(db, null, 2);
+  downloadBlob(json, 'OOPP_zaloha_' + new Date().toISOString().slice(0, 10) + '.json', 'application/json');
+  toast('Záloha stažena.');
+}
+
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || typeof data !== 'object' || !Array.isArray(data.employees) || !Array.isArray(data.items) || !Array.isArray(data.issues)){
+        toast('Neplatný soubor zálohy.');
+        return;
+      }
+      if(!confirm('Import přepíše všechna aktuální data. Pokračovat?')) return;
+      db = normalizeDbShape(data);
+      migrateItemSizes();
+      migrateFunctions();
+      save();
+      closeEmployeeDetail();
+      renderAll();
+      toast('Záloha načtena.');
+    }catch(e){
+      toast('Chyba čtení souboru.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAll(){
+  if(!confirm('Opravdu smazat VŠECHNA data? Tuto akci nelze vrátit.')) return;
+  if(!confirm('Jste si jistí? Data budou nenávratně smazána.')) return;
+  // mazání se musí do cloudu propsat jako „smazáno“, jinak by se data z jiného zařízení vrátila
+  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+    (db[kind] || []).forEach(function(r){ if(r && r.id) markDeleted(kind, r.id); });
+  });
+  db = normalizeDbShape({tombstones: db.tombstones, initialized: true});
+  save();
+  closeEmployeeDetail();
+  renderAll();
+  toast('Data smazána.');
+}
+
+/* ---------- Cloud (společné seznamy na více zařízeních) ---------- */
+const CLOUD_KEY = 'oopp_cloud_v1';
+const CLOUD_PUSH_DELAY = 4000;
+let cloudBusy = false;
+let cloudPushTimer = null;
+let cloudApplying = false;
+let cloudStatusMsg = '';
+
+function cloudDefaults(){
+  return {provider: 'firebase', url: '', key: '', docId: 'main', auto: false,
+    firebaseEmail: '', firebasePass: '',
+    baseHash: '', lastRev: 0, lastSyncAt: 0, lastSigAt: 0, deviceId: ''};
+}
+
+function cloudConfig(){
+  const cfg = cloudDefaults();
+  try{
+    const raw = localStorage.getItem(CLOUD_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && typeof d === 'object'){
+        Object.keys(cfg).forEach(function(k){ if(d[k] !== undefined) cfg[k] = d[k]; });
+      }
+    }
+  }catch(e){}
+  if(!cfg.deviceId){ cfg.deviceId = uid(); saveCloudConfig(cfg); }
+  return cfg;
+}
+
+function saveCloudConfig(cfg){
+  try{ localStorage.setItem(CLOUD_KEY, JSON.stringify(cfg)); }catch(e){}
+}
+
+// Data pro cloud. Podpisy jsou obrázky (jednotky kB na výdej), proto se u Supabase
+// posílají zvlášť do tabulky oopp_sig a sem se dává jen příznak hasSignature.
+function cloudDataOnly(d, opts){
+  const keepSignatures = !!(opts && opts.signatures);
+  const src = d || {};
+  return {
+    employees: src.employees || [],
+    items: src.items || [],
+    issues: (src.issues || []).map(function(i){
+      const has = !!(i && (i.signature || i.hasSignature));
+      if(keepSignatures){
+        if(i && !i.hasSignature) return Object.assign({}, i, {hasSignature: has});
+        return i;
+      }
+      const copy = Object.assign({}, i, {hasSignature: has});
+      delete copy.signature;
+      return copy;
+    }),
+    functions: src.functions || [],
+    tombstones: src.tombstones || [],
+    initialized: true
+  };
+}
+
+// Supabase a Firebase mají podpisy v samostatné tabulce/kolekci, ostatní je vezou v dokumentu.
+function cloudSeparatesSignatures(cfg){
+  return !!cfg && (cfg.provider === 'supabase' || cfg.provider === 'firebase');
+}
+
+// FNV-1a – stačí na zjištění, jestli se data od posledního srovnání změnila
+function hashText(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  return ('00000000' + h.toString(16)).slice(-8) + '-' + s.length.toString(16);
+}
+
+function cloudHashOf(d){ return hashText(JSON.stringify(cloudDataOnly(d))); }
+function cloudLocalHash(){ return cloudHashOf(db); }
+
+function cloudReady(cfg){
+  if(!cfg) return false;
+  if(cfg.provider === 'custom') return !!cfg.url;
+  if(cfg.provider === 'jsonbin') return !!(cfg.key && cfg.docId);
+  if(cfg.provider === 'supabase') return !!(cfg.url && cfg.key && cfg.docId);
+  if(cfg.provider === 'firebase') return !!(cfg.url && cfg.key && cfg.firebaseEmail && cfg.firebasePass);
+  return false;
+}
+
+function cloudUrlFor(cfg){
+  const base = String(cfg.url || '').replace(/\/+$/, '');
+  if(cfg.provider === 'jsonbin'){
+    return cfg.docId ? 'https://api.jsonbin.io/v3/b/' + encodeURIComponent(cfg.docId) : '';
+  }
+  if(cfg.provider === 'supabase'){
+    return (base && cfg.docId)
+      ? base + '/rest/v1/oopp?doc_id=eq.' + encodeURIComponent(cfg.docId) + '&select=data'
+      : '';
+  }
+  return base;
+}
+
+function cloudHeadersFor(cfg){
+  const h = {'Accept': 'application/json'};
+  if(cfg.provider === 'jsonbin'){
+    if(cfg.key) h['X-Master-Key'] = cfg.key;
+    h['X-Bin-Meta'] = 'false';
+    h['X-Bin-Versioning'] = 'false';
+  } else if(cfg.provider === 'supabase'){
+    h['apikey'] = cfg.key;
+    h['Authorization'] = 'Bearer ' + cfg.key;
+  } else if(cfg.key){
+    h['Authorization'] = 'Bearer ' + cfg.key;
+  }
+  return h;
+}
+
+/* ---------- Firebase (Firestore + Auth) ---------- */
+let firebaseApp = null;
+let firebaseAppKey = '';
+
+function fbReset(){
+  if(firebaseApp){ try{ firebaseApp.delete(); }catch(e){} }
+  firebaseApp = null;
+  firebaseAppKey = '';
+}
+
+function fb(){
+  const cfg = cloudConfig();
+  if(typeof firebase === 'undefined'){
+    throw new Error('Firebase SDK se nenačetlo (bez internetu?). Po připojení obnovte stránku.');
+  }
+  const key = (cfg.url || '') + '|' + (cfg.key || '');
+  if(!firebaseApp || firebaseAppKey !== key){
+    if(firebaseApp){ try{ firebaseApp.delete(); }catch(e){} }
+    firebaseApp = firebase.initializeApp({
+      apiKey: cfg.key,
+      projectId: cfg.url,
+      authDomain: (cfg.url || '') + '.firebaseapp.com'
+    });
+    firebaseAppKey = key;
+  }
+  return firebaseApp;
+}
+
+async function fbEnsureAuth(){
+  const cfg = cloudConfig();
+  const app = fb();
+  const auth = firebase.auth(app);
+  if(auth.currentUser) return auth.currentUser;
+  if(!cfg.firebaseEmail || !cfg.firebasePass){
+    throw new Error('Nejste přihlášení do Firebase — vyplňte email a heslo a klikněte „Přihlásit“.');
+  }
+  try{
+    const cred = await auth.signInWithEmailAndPassword(cfg.firebaseEmail, cfg.firebasePass);
+    return cred.user;
+  }catch(e){
+    throw new Error('Přihlášení do Firebase se nezdařilo (' + (e && e.code ? e.code : e.message) + ').');
+  }
+}
+
+// Ruční přihlášení tlačítkem „Přihlásit“ (použije aktuálně vyplněné údaje).
+async function fbLogin(){
+  const cfg = cloudConfig();
+  if(cfg.provider !== 'firebase'){ toast('Přihlášení je jen pro Firebase.'); return; }
+  if(!cfg.url || !cfg.key){ toast('Nejprve vyplňte Project ID a Web API klíč a klikněte „Uložit nastavení“.'); return; }
+  const email = (document.getElementById('cloudEmail') || {}).value || '';
+  const pass = (document.getElementById('cloudPass') || {}).value || '';
+  if(email && pass){ cfg.firebaseEmail = email.trim(); cfg.firebasePass = pass; saveCloudConfig(cfg); }
+  cloudSetStatus('Přihlašuji…', 'warn');
+  try{
+    const user = await fbEnsureAuth();
+    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : '?') + '.', 'ok');
+    toast('Přihlášeno.');
+  }catch(e){
+    cloudSetStatus('Chyba přihlášení: ' + e.message, 'err');
+    toast('Přihlášení se nezdařilo.');
+  }
+}
+
+function fbFs(){
+  return firebase.firestore(fb());
+}
+
+async function cloudHttp(cfg, method, payload){
+  if(cfg.provider === 'firebase'){
+    await fbEnsureAuth();
+    const ref = fbFs().doc('oopp/main');
+    if(method === 'GET'){
+      const snap = await ref.get();
+      return (snap && snap.exists) ? snap.data() : null;
+    }
+    await ref.set(payload);
+    return null;
+  }
+  const write = method !== 'GET';
+  let url;
+  let body = payload;
+  const headers = cloudHeadersFor(cfg);
+
+  if(cfg.provider === 'supabase' && write){
+    url = String(cfg.url || '').replace(/\/+$/, '') + '/rest/v1/oopp?on_conflict=doc_id';
+    body = {doc_id: cfg.docId, data: payload, updated_at: new Date().toISOString()};
+    headers['Prefer'] = 'resolution=merge-duplicates,return=minimal';
+  } else {
+    url = cloudUrlFor(cfg);
+  }
+  if(!url) throw new Error('Chybí adresa nebo ID dokumentu.');
+
+  const opt = {method: method, headers: headers, cache: 'no-store'};
+  if(body !== null && body !== undefined){
+    headers['Content-Type'] = 'application/json';
+    opt.body = JSON.stringify(body);
+  }
+
+  let res;
+  try{
+    res = await fetch(url, opt);
+  }catch(e){
+    throw new Error('Cloud není dostupný (' + (e && e.message ? e.message : e) + ').');
+  }
+  let text = '';
+  try{ text = await res.text(); }catch(e){}
+  if(!res.ok){
+    throw new Error('HTTP ' + res.status + (text ? ' – ' + text.slice(0, 140) : ''));
+  }
+  if(!text) return null;
+  try{ return JSON.parse(text); }catch(e){ return null; }
+}
+
+// odpověď různých poskytovatelů převést na jednotný tvar {rev, updatedAt, data}
+// podporuje: raw {employees,...}, obálku {rev,updatedAt,data:{...}}, JSONBin {record:{...}},
+// Supabase [{data: obálka}], případné další vnoření (max. 5 úrovní)
+function cloudUnwrap(cfg, json){
+  let node = json;
+  let rev = 0, updatedAt = 0, device = '';
+  for(let depth = 0; depth < 5; depth++){
+    if(node === null || node === undefined) return null;
+    if(Array.isArray(node)){ node = node.length ? node[0] : null; continue; }
+    if(typeof node !== 'object') return null;
+    if(Array.isArray(node.employees)){
+      return {rev: rev || 0, updatedAt: updatedAt || 0, device: device || '', data: node};
+    }
+    if(!rev && node.rev !== undefined) rev = node.rev;
+    if(!updatedAt && node.updatedAt !== undefined) updatedAt = node.updatedAt;
+    if(!device && node.device !== undefined) device = node.device;
+    if(node.record !== undefined){ node = node.record; continue; }   // JSONBin s metadaty
+    if(node.data !== undefined){ node = node.data; continue; }       // obálka / sloupec data
+    return null;
+  }
+  return null;
+}
+
+function cloudEnvelope(cfg, rev){
+  const withSignatures = !cloudSeparatesSignatures(cfg);
+  return {
+    app: 'oopp', schema: 2,
+    rev: rev || ((cfg.lastRev || 0) + 1),
+    device: cfg.deviceId,
+    updatedAt: Date.now(),
+    data: cloudDataOnly(db, {signatures: withSignatures})
+  };
+}
+
+function cloudMarkSynced(cfg, hash, env){
+  cfg.baseHash = hash || '';
+  cfg.lastRev = (env && env.rev) || cfg.lastRev || 0;
+  cfg.lastSyncAt = Date.now();
+  saveCloudConfig(cfg);
+}
+
+async function cloudPush(cfg){
+  let remote = null;
+  try{ remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET')); }catch(e){}
+  const env = cloudEnvelope(cfg, ((remote && remote.rev) || cfg.lastRev || 0) + 1);
+  await cloudHttp(cfg, cfg.provider === 'supabase' ? 'POST' : 'PUT', env);
+  cloudMarkSynced(cfg, cloudLocalHash(), env);
+  return env;
+}
+
+function cloudApplyData(data, incomingSignatures){
+  cloudApplying = true;
+  try{
+    // podpisy, které už jsou v tomto zařízení, nesmí stažení dat smazat
+    const sigs = signatureMap();
+    if(incomingSignatures){
+      Object.keys(incomingSignatures).forEach(function(id){
+        if(incomingSignatures[id]) sigs[id] = incomingSignatures[id];
+      });
+    }
+    db = normalizeDbShape(data);
+    applySignatureMap(sigs);
+    db.initialized = true;
+    pruneTombstones();
+    migrateItemSizes();
+    migrateFunctions();
+    save();
+    closeEmployeeDetail();
+    renderAll();
+  }finally{
+    cloudApplying = false;
+  }
+}
+
+/* ---------- Sloučení dat z více zařízení ---------- */
+// u stejného id vyhraje novější (updatedAt), mazání (tombstones) má přednost
+function mergeCloudList(localList, remoteList){
+  const out = [];
+  const index = {};
+  (localList || []).forEach(function(r){
+    if(!r || !r.id) return;
+    index[r.id] = out.push(r) - 1;
+  });
+  (remoteList || []).forEach(function(r){
+    if(!r || !r.id) return;
+    const at = index[r.id];
+    if(at === undefined){ index[r.id] = out.push(r) - 1; return; }
+    const mine = out[at];
+    const mineAt = mine.updatedAt || mine.createdAt || 0;
+    const recAt = r.updatedAt || r.createdAt || 0;
+    // Object.assign zachová pole, která má jen jedna strana (typicky obrázek podpisu)
+    out[at] = recAt > mineAt ? Object.assign({}, mine, r) : Object.assign({}, r, mine);
+  });
+  return out;
+}
+
+function mergeCloudTombstones(a, b){
+  const out = [];
+  const index = {};
+  (a || []).concat(b || []).forEach(function(t){
+    if(!t || !t.id || !t.kind) return;
+    const key = t.kind + '|' + t.id;
+    if(index[key] === undefined){ index[key] = out.push(t) - 1; return; }
+    if((t.at || 0) > (out[index[key]].at || 0)) out[index[key]] = t;
+  });
+  return out;
+}
+
+function cloudDropDeleted(data){
+  data.tombstones = mergeCloudTombstones(data.tombstones, []);
+  const dead = {};
+  data.tombstones.forEach(function(t){ dead[t.kind + '|' + t.id] = t.at || 0; });
+  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+    data[kind] = (data[kind] || []).filter(function(r){
+      if(!r || !r.id) return false;
+      const at = dead[kind + '|' + r.id];
+      if(at === undefined) return true;
+      return (r.updatedAt || r.createdAt || 0) > at;   // novější úprava mazání přebije
+    });
+  });
+  // smazaný předmět zmizí i z nároků funkcí
+  const itemIds = {};
+  (data.items || []).forEach(function(it){ if(it && it.id) itemIds[it.id] = true; });
+  (data.functions || []).forEach(function(f){
+    if(!f || !Array.isArray(f.items)) return;
+    f.items = f.items.filter(function(id){ return itemIds[id]; });
+  });
+  return data;
+}
+
+function cloudMergeData(local, remote){
+  const mine = local || {};
+  const theirs = remote || {};
+  return cloudDropDeleted({
+    employees: mergeCloudList(mine.employees, theirs.employees),
+    items: mergeCloudList(mine.items, theirs.items),
+    issues: mergeCloudList(mine.issues, theirs.issues),
+    functions: mergeCloudList(mine.functions, theirs.functions),
+    tombstones: mergeCloudTombstones(mine.tombstones, theirs.tombstones),
+    initialized: true
+  });
+}
+
+function cloudDataIsEmpty(d){
+  if(!d) return true;
+  return !(d.employees || []).length && !(d.items || []).length &&
+    !(d.issues || []).length && !(d.functions || []).length;
+}
+
+function cloudFormatTime(ts){
+  try{ return new Date(ts).toLocaleString('cs-CZ'); }catch(e){ return String(ts); }
+}
+
+function cloudSetStatus(msg, kind){
+  cloudStatusMsg = msg || '';
+  const el = document.getElementById('cloudStatus');
+  if(!el) return;
+  el.textContent = cloudStatusMsg;
+  el.style.color = kind === 'err' ? '#dc2626' : (kind === 'warn' ? '#b45309' : '#166534');
+}
+
+function cloudShowConflict(show){
+  const box = document.getElementById('cloudConflict');
+  if(box) box.classList.toggle('hidden', !show);
+}
+
+/* ---------- Podpisy: samostatné uložiště (Supabase tabulka / Firebase kolekce oopp_sig) ---------- */
+// Jeden řádek = jeden podpis, takže se posílají/stahují jen chybějící obrázky
+// a hlavní dokument zůstává malý (desítky kB).
+function sigUrlFor(cfg, query){
+  return String(cfg.url || '').replace(/\/+$/, '') + '/rest/v1/oopp_sig' + (query || '');
+}
+
+async function sigHttp(cfg, method, query, payload){
+  const headers = cloudHeadersFor(cfg);
+  if(method !== 'GET') headers['Prefer'] = 'resolution=merge-duplicates,return=minimal';
+  const opt = {method: method, headers: headers, cache: 'no-store'};
+  if(payload !== null && payload !== undefined){
+    headers['Content-Type'] = 'application/json';
+    opt.body = JSON.stringify(payload);
+  }
+  let res;
+  try{ res = await fetch(sigUrlFor(cfg, query), opt); }
+  catch(e){ throw new Error('cloud není dostupný (' + (e && e.message ? e.message : e) + ')'); }
+  let text = '';
+  try{ text = await res.text(); }catch(e){}
+  if(!res.ok) throw new Error('HTTP ' + res.status + (text ? ' – ' + text.slice(0, 120) : ''));
+  if(!text) return null;
+  try{ return JSON.parse(text); }catch(e){ return null; }
+}
+
+async function sigRemoteIds(cfg){
+  if(cfg.provider === 'firebase'){
+    await fbEnsureAuth();
+    const snap = await fbFs().collection('oopp_sig').get();
+    const ids = {};
+    snap.forEach(function(d){ ids[d.id] = true; });
+    return ids;
+  }
+  const rows = await sigHttp(cfg, 'GET', '?select=issue_id', null);
+  const ids = {};
+  (Array.isArray(rows) ? rows : []).forEach(function(r){ if(r && r.issue_id) ids[r.issue_id] = true; });
+  return ids;
+}
+
+async function sigDownload(cfg, ids){
+  if(cfg.provider === 'firebase'){
+    await fbEnsureAuth();
+    const fs = fbFs();
+    const out = {};
+    for(let i = 0; i < ids.length; i++){
+      const id = ids[i];
+      const snap = await fs.doc('oopp_sig/' + id).get();
+      if(snap && snap.exists){
+        const d = snap.data();
+        if(d && typeof d.data === 'string' && d.data) out[id] = d.data;
+      }
+    }
+    return out;
+  }
+  const out = {};
+  for(let i = 0; i < ids.length; i += 20){
+    const batch = ids.slice(i, i + 20);
+    const q = '?select=issue_id,data&issue_id=in.(' + batch.map(encodeURIComponent).join(',') + ')';
+    const rows = await sigHttp(cfg, 'GET', q, null);
+    (Array.isArray(rows) ? rows : []).forEach(function(r){
+      if(r && r.issue_id && typeof r.data === 'string' && r.data) out[r.issue_id] = r.data;
+    });
+  }
+  return out;
+}
+
+async function sigUpload(cfg, map){
+  if(cfg.provider === 'firebase'){
+    await fbEnsureAuth();
+    const fs = fbFs();
+    const ids = Object.keys(map || {});
+    for(let i = 0; i < ids.length; i++){
+      await fs.doc('oopp_sig/' + ids[i]).set({data: map[ids[i]], updated_at: new Date().toISOString()});
+    }
+    return ids.length;
+  }
+  const ids = Object.keys(map || {});
+  if(!ids.length) return 0;
+  const rows = ids.map(function(id){
+    return {issue_id: id, data: map[id], updated_at: new Date().toISOString()};
+  });
+  for(let i = 0; i < rows.length; i += 10){
+    await sigHttp(cfg, 'POST', '?on_conflict=issue_id', rows.slice(i, i + 10));
+  }
+  return rows.length;
+}
+
+// Stáhne chybějící podpisy k výdejům a nahraje nové. Volá se po každém sloučení dat.
+async function cloudSyncSignatures(cfg, opts){
+  if(!cloudSeparatesSignatures(cfg)) return {skipped: true};
+  const o = opts || {};
+  const local = signatureMap();
+  const remoteIds = await sigRemoteIds(cfg);
+  const result = {downloaded: 0, uploaded: 0, remote: Object.keys(remoteIds).length};
+
+  const missing = Object.keys(remoteIds).filter(function(id){ return !local[id]; });
+  if(missing.length){
+    const got = await sigDownload(cfg, missing);
+    result.downloaded = applySignatureMap(got);
+    if(result.downloaded){
+      cloudApplying = true;
+      try{ save(); }finally{ cloudApplying = false; }
+      if(currentEmployeeId) refreshEmployeeDetail();
+    }
+  }
+
+  if(o.upload !== false){
+    const push = {};
+    Object.keys(local).forEach(function(id){
+      if(o.force || !remoteIds[id]) push[id] = local[id];
+    });
+    if(Object.keys(push).length) result.uploaded = await sigUpload(cfg, push);
+  }
+
+  if(result.downloaded || result.uploaded) cfg.lastSigAt = Date.now();
+  saveCloudConfig(cfg);
+  return result;
+}
+
+async function cloudTrySyncSignatures(cfg, opts){
+  try{ return await cloudSyncSignatures(cfg, opts); }
+  catch(e){ return {error: e.message}; }
+}
+
+function cloudSigNote(sig){
+  if(!sig || sig.skipped) return '';
+  if(sig.error) return ' — podpisy se nepodařilo synchronizovat: ' + sig.error;
+  const parts = [];
+  if(sig.downloaded) parts.push('podpisy staženy: ' + sig.downloaded);
+  if(sig.uploaded) parts.push('podpisy nahrány: ' + sig.uploaded);
+  return parts.length ? ' — ' + parts.join(', ') : '';
+}
+
+function cloudSigKind(sig){
+  return (sig && sig.error) ? 'warn' : 'ok';
+}
+
+// Ruční stažení jednoho podpisu (tlačítko v tabulce výdejů).
+async function fetchSignatureFor(issueId){
+  const cfg = cloudConfig();
+  const issue = db.issues.find(function(i){ return i.id === issueId; });
+  if(!issue) return;
+  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)){
+    toast('Podpis tady není a cloud není nastavený.');
+    return;
+  }
+  toast('Stahuji podpis z cloudu…');
+  try{
+    const got = await sigDownload(cfg, [issueId]);
+    if(!got[issueId]){ toast('V cloudu tento podpis není.'); return; }
+    issue.signature = got[issueId];
+    issue.hasSignature = true;
+    delete sigFetchTried[issueId];
+    cloudApplying = true;
+    try{ save(); }finally{ cloudApplying = false; }
+    if(currentEmployeeId) refreshEmployeeDetail();
+    toast('Podpis stažen.');
+  }catch(e){
+    toast('Podpis se nepodařilo stáhnout: ' + e.message);
+  }
+}
+
+async function cloudSync(mode){
+  const cfg = cloudConfig();
+  if(!cloudReady(cfg)){
+    cloudSetStatus('Cloud zatím není nastavený — vyplňte údaje a klikněte na „Uložit nastavení“.', 'warn');
+    return;
+  }
+  if(cloudBusy) return;
+  cloudBusy = true;
+  cloudShowConflict(false);
+  try{
+    const remote = mode === 'push' ? null : cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
+
+    if(mode === 'push'){
+      await cloudPush(cfg);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
+      cloudSetStatus('Nahráno do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+    if(!remote){
+      await cloudPush(cfg);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
+      cloudSetStatus('V cloudu ještě nic nebylo — data i podpisy nahrány (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+
+    const lh = cloudLocalHash();
+    const rh = cloudHashOf(remote.data);
+    const base = cfg.baseHash || '';
+
+    // první synchronizace z tohoto zařízení: neptat se na konflikt, ale sloučit
+    if(!base){
+      if(cloudDataIsEmpty(db)){
+        cloudApplyData(remote.data);
+        const sig = await cloudTrySyncSignatures(cfg, {upload: false});
+        // baseHash = otisk cloudu (lokální migrace dat ho nemají rozbít)
+        cloudMarkSynced(cfg, rh, remote);
+        cloudSetStatus('Data načtena z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+        toast('Data načtena z cloudu.');
+        return;
+      }
+      cloudApplyData(cloudMergeData(db, remote.data));
+      await cloudPush(cfg);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+      cloudSetStatus('Data z tohoto zařízení sloučena s cloudem (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+
+    if(mode === 'pull'){
+      cloudApplyData(remote.data);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: false});
+      cloudMarkSynced(cfg, rh, remote);
+      cloudSetStatus('Staženo z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      toast('Data stažena z cloudu.');
+      return;
+    }
+
+    if(lh === rh){
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+      cloudMarkSynced(cfg, lh, remote);
+      cloudSetStatus('Synchronizováno — data jsou na všech zařízeních stejná (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+    if(lh === base){
+      cloudApplyData(remote.data);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+      cloudMarkSynced(cfg, rh, remote);
+      cloudSetStatus('Data aktualizována z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      toast('Data aktualizována z cloudu.');
+      return;
+    }
+    if(rh === base){
+      await cloudPush(cfg);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+      cloudSetStatus('Změny nahrány do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+
+    cloudShowConflict(true);
+    cloudSetStatus('Data se změnila tady i v cloudu — vyberte prosím, co má platit.', 'warn');
+  }catch(e){
+    cloudSetStatus('Chyba cloudu: ' + e.message, 'err');
+  }finally{
+    cloudBusy = false;
+    renderCloudUI();
+  }
+}
+
+async function cloudResolve(choice){
+  const cfg = cloudConfig();
+  if(!cloudReady(cfg) || cloudBusy) return;
+  cloudBusy = true;
+  cloudShowConflict(false);
+  try{
+    if(choice === 'local'){
+      await cloudPush(cfg);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
+      cloudSetStatus('Vaše data ponechána a nahrána do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+    const remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
+    if(!remote){ cloudSetStatus('V cloudu nejsou žádná data.', 'warn'); return; }
+    if(choice === 'remote'){
+      cloudApplyData(remote.data);
+      const sig = await cloudTrySyncSignatures(cfg, {upload: false});
+      cloudMarkSynced(cfg, cloudHashOf(remote.data), remote);
+      cloudSetStatus('Použita data z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      return;
+    }
+    cloudApplyData(cloudMergeData(db, remote.data));
+    await cloudPush(cfg);
+    const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+    cloudSetStatus('Data z obou zařízení sloučena a nahrána do cloudu' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+    toast('Data sloučena.');
+  }catch(e){
+    cloudSetStatus('Chyba cloudu: ' + e.message, 'err');
+  }finally{
+    cloudBusy = false;
+    renderCloudUI();
+  }
+}
+
+function cloudSchedulePush(){
+  if(cloudApplying) return;
+  const cfg = cloudConfig();
+  if(!cfg.auto || !cloudReady(cfg)) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(function(){ cloudSync('auto'); }, CLOUD_PUSH_DELAY);
+}
+
+const CLOUD_HINTS = {
+  firebase: 'V <strong>Firebase</strong> (zdarma) založte projekt, zapněte <strong>Authentication → Sign-in method → Email/heslo</strong>, vytvořte <strong>Firestore Database</strong> a jednoho uživatele (Authentication → Users). Pravidla a postup jsou v souboru <strong>FIREBASE.md</strong>. Vyplňte Project ID, Web API klíč (Project Settings → General → Web API Key) a email+heslo uživatele. ID dokumentu nechte <em>main</em>.',
+  supabase: 'V <strong>Supabase</strong> (zdarma) spusťte SQL ze souboru <strong>CLOUD.md</strong> — vytvoří tabulku <em>oopp</em> (zaměstnanci, předměty, funkce, výdeje) a <em>oopp_sig</em> (obrázky podpisů). Do adresy dejte <em>https://vaše-id.supabase.co</em>, do klíče „anon public“ klíč z <em>Project Settings → API</em>. ID dokumentu nechte <em>main</em>.',
+  jsonbin: 'Na <strong>jsonbin.io</strong> si založte účet (zdarma), v sekci <em>API Keys</em> zkopírujte <em>X-Master-Key</em> do pole „Klíč“ a z adresy nového záznamu (…/b/6f8a…) opište část za lomítkem do pole „ID dokumentu“. Adresa se doplní sama. U JSONBin se podpisy vezou uvnitř dokumentu (větší přenosy).',
+  custom: 'Adresa musí umět <strong>GET</strong> (vrátí uložený JSON) a <strong>PUT</strong> (uloží JSON). Pokud vyžaduje token, vložte ho do klíče — posílá se jako <em>Authorization: Bearer</em>. Server musí povolit CORS (<em>Access-Control-Allow-Origin</em>). Podpisy jsou uvnitř dokumentu.'
+};
+
+function cloudCountsNote(){
+  const parts = [
+    (db.employees || []).length + ' zaměstnanců',
+    (db.items || []).length + ' předmětů',
+    (db.functions || []).length + ' funkcí',
+    (db.issues || []).length + ' výdejů'
+  ];
+  const sigs = Object.keys(signatureMap()).length;
+  if(sigs) parts.push(sigs + ' podpisů');
+  return parts.join(' • ');
+}
+
+function renderCloudUI(){
+  if(!document.getElementById('cloudProvider')) return;
+  const cfg = cloudConfig();
+  document.getElementById('cloudProvider').value = cfg.provider;
+  document.getElementById('cloudUrl').value = cfg.url || '';
+  document.getElementById('cloudKey').value = cfg.key || '';
+  document.getElementById('cloudDoc').value = cfg.docId || '';
+  document.getElementById('cloudAuto').checked = !!cfg.auto;
+  const emailEl = document.getElementById('cloudEmail');
+  if(emailEl) emailEl.value = cfg.firebaseEmail || '';
+  const passEl = document.getElementById('cloudPass');
+  if(passEl) passEl.value = cfg.firebasePass || '';
+  updateCloudProviderUI();
+  if(!cloudStatusMsg){
+    if(!cloudReady(cfg)){
+      cloudSetStatus('Cloud není nastavený — data se ukládají jen do tohoto zařízení.', 'warn');
+    } else if(cfg.lastSyncAt){
+      cloudSetStatus('Poslední synchronizace: ' + cloudFormatTime(cfg.lastSyncAt) + ' — ' + cloudCountsNote() + '.', 'ok');
+    } else {
+      cloudSetStatus('Cloud je nastavený, ale synchronizace ještě neproběhla.', 'warn');
+    }
+  }
+}
+
+function updateCloudProviderUI(){
+  const sel = document.getElementById('cloudProvider');
+  if(!sel) return;
+  const provider = sel.value;
+  const isFb = provider === 'firebase';
+  const urlWrap = document.getElementById('cloudUrlWrap');
+  const docWrap = document.getElementById('cloudDocWrap');
+  const fbWrap = document.getElementById('cloudFirebaseWrap');
+  if(urlWrap) urlWrap.classList.toggle('hidden', provider === 'jsonbin');
+  if(docWrap) docWrap.classList.toggle('hidden', provider === 'custom' || isFb);
+  if(fbWrap) fbWrap.classList.toggle('hidden', !isFb);
+
+  const urlLabel = document.getElementById('cloudUrlLabel');
+  if(urlLabel) urlLabel.textContent = isFb ? 'ID projektu (Project ID)' : 'Adresa (URL)';
+  const keyLabel = document.getElementById('cloudKeyLabel');
+  if(keyLabel) keyLabel.textContent = isFb ? 'Web API klíč' : 'Klíč / token';
+  const hint = document.getElementById('cloudHint');
+  if(hint) hint.innerHTML = CLOUD_HINTS[provider] || '';
+  const urlField = document.getElementById('cloudUrl');
+  if(urlField) urlField.placeholder = isFb ? 'např. oopp-evidence' : (provider === 'supabase' ? 'https://vaše-id.supabase.co' : 'https://…');
+  const docField = document.getElementById('cloudDoc');
+  if(docField) docField.placeholder = provider === 'supabase' ? 'main' : 'bin ID';
+}
+
+function cloudSaveConfig(){
+  const cfg = cloudConfig();
+  const provider = document.getElementById('cloudProvider').value;
+  const url = document.getElementById('cloudUrl').value.trim();
+  const key = document.getElementById('cloudKey').value.trim();
+  const docId = document.getElementById('cloudDoc').value.trim();
+  const email = (document.getElementById('cloudEmail') || {}).value || '';
+  const pass = (document.getElementById('cloudPass') || {}).value || '';
+  const changed = (provider !== cfg.provider) || (url !== (cfg.url || '')) || (docId !== (cfg.docId || ''));
+  cfg.provider = provider;
+  cfg.url = url;
+  cfg.key = key;
+  cfg.docId = docId;
+  cfg.firebaseEmail = email.trim();
+  cfg.firebasePass = pass;
+  cfg.auto = !!document.getElementById('cloudAuto').checked;
+  if(changed){ cfg.baseHash = ''; cfg.lastRev = 0; cfg.lastSyncAt = 0; cfg.lastSigAt = 0; fbReset(); }
+  saveCloudConfig(cfg);
+  cloudStatusMsg = '';
+  renderCloudUI();
+  const ready = cloudReady(cfg);
+  cloudSetStatus(ready
+    ? 'Nastavení uloženo. Klikněte na „Přihlásit“ a pak na „Synchronizovat“.'
+    : (provider === 'firebase'
+        ? 'Nastavení uloženo, ale chybí Project ID / Web API klíč / email / heslo.'
+        : 'Nastavení uloženo, ale chybí některý údaj (klíč / adresa / ID dokumentu).'),
+    ready ? 'ok' : 'warn');
+}
+
+/* ---------- Inicializace ---------- */
+function renderAll(){
+  ensureFunctions();
+  populateIssueForm();
+  renderEmployees();
+  renderItems();
+  renderFunctions();
+  refreshFunctionOptions();
+  renderDataInfo();
+  updateAdminUI();
+  if(currentEmployeeId) refreshEmployeeDetail();
+}
+
+/* ---------- Instalace aplikace (PWA) ---------- */
+let installPromptEvent = null;
+
+function isAppStandalone(){
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    (window.navigator && window.navigator.standalone === true);
+}
+
+function pageProtocol(){
+  return (typeof location !== 'undefined' && location.protocol) ? location.protocol : '';
+}
+
+// Běží appka v desktopovém okně (OOPP.exe / WebView2)? Tam nemá smysl nabízet instalaci z prohlížeče.
+function isDesktopShell(){
+  return !!(window.__OOPP_DESKTOP__ || (window.chrome && window.chrome.webview));
+}
+
+function installButtons(){
+  return ['btnInstall', 'btnInstall2'].map(function(id){
+    return document.getElementById(id);
+  }).filter(Boolean);
+}
+
+function refreshInstallUI(){
+  const standalone = isAppStandalone();
+  const canPrompt = !!installPromptEvent;
+  const desktop = isDesktopShell();
+  const card = document.getElementById('installCard');
+  if(card) card.classList.toggle('hidden', desktop);
+  installButtons().forEach(function(btn){
+    btn.classList.toggle('hidden', standalone || !canPrompt || desktop);
+  });
+  if(desktop) return;
+  const hint = document.getElementById('installHint');
+  if(!hint) return;
+  if(standalone){
+    hint.textContent = 'Aplikace je nainstalovaná — spouští se z plochy zařízení a funguje i bez internetu.';
+  } else if(pageProtocol() === 'file:'){
+    hint.textContent = 'Aplikaci otevíráte přímo ze souboru na disku. Instalace je možná až po otevření přes webovou adresu (http/https).';
+  } else if(canPrompt){
+    hint.textContent = 'Klikněte na „Nainstalovat aplikaci“ — přidá se na plochu a poběží i bez internetu.';
+  } else {
+    hint.textContent = 'Prohlížeč teď nenabídl instalaci automaticky — postupujte podle menu prohlížeče níže.';
+  }
+}
+
+function promptInstall(){
+  if(!installPromptEvent){
+    toast('Instalace teď není dostupná — použijte menu prohlížeče.');
+    return;
+  }
+  const evt = installPromptEvent;
+  installPromptEvent = null;
+  evt.prompt();
+  if(evt.userChoice && evt.userChoice.then){
+    evt.userChoice.then(function(choice){
+      if(choice && choice.outcome === 'accepted') toast('Aplikace se instaluje…');
+      refreshInstallUI();
+    });
+  } else {
+    refreshInstallUI();
+  }
+}
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  installPromptEvent = e;
+  refreshInstallUI();
+});
+
+window.addEventListener('appinstalled', function(){
+  installPromptEvent = null;
+  refreshInstallUI();
+  toast('Aplikace nainstalována.');
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+  if(isDesktopShell()) document.documentElement.classList.add('desktop-shell');
+  if(!db.initialized){
+    db.initialized = true;
+    if(db.items.length === 0){
+      db.items = [
+        {id: uid(), name: 'Pracovní rukavice', unit: 'pár', sizeMin: '6', sizeMax: '12'},
+        {id: uid(), name: 'Ochranné brýle', unit: 'ks', sizeMin: '', sizeMax: ''},
+        {id: uid(), name: 'Ochranná přilba', unit: 'ks', sizeMin: '', sizeMax: ''},
+        {id: uid(), name: 'Reflexní vesta', unit: 'ks', sizeMin: '', sizeMax: ''},
+        {id: uid(), name: 'Respirátor / maska', unit: 'ks', sizeMin: '', sizeMax: ''},
+        {id: uid(), name: 'Ochranná obuv', unit: 'pár', sizeMin: '34', sizeMax: '48'},
+        {id: uid(), name: 'Chrániče sluchu', unit: 'ks', sizeMin: '', sizeMax: ''}
+      ];
+    }
+    save();
+  }
+
+  if(migrateItemSizes()) save();
+  ensureFunctions();
+  if(migrateFunctions()) save();
+
+  renderAll();
+  resizeSignature();
+  updateStorageUI();
+  idbGet('dataDir').then(function(dir){
+    if(dir){
+      autoReconnectDataDir();
+    } else if(supportsFS() && !localStorage.getItem('oopp_fs_dismissed')){
+      document.getElementById('fileSetup').classList.remove('hidden');
+    }
+  }).catch(function(){});
+
+  document.querySelectorAll('nav button').forEach(function(b){
+    b.addEventListener('click', function(){ showTab(b.dataset.tab); });
+  });
+
+  document.getElementById('btnAddItem').addEventListener('click', function(){ addItemRow(); });
+  document.getElementById('btnNewEmployee').addEventListener('click', function(){
+    closeEmployeeDetail();
+    showTab('employees');
+    document.getElementById('empName').focus();
+  });
+  document.getElementById('btnClearSig').addEventListener('click', clearSignature);
+  document.getElementById('btnSaveIssue').addEventListener('click', saveIssue);
+  document.getElementById('btnAddEmployee').addEventListener('click', addEmployee);
+  document.getElementById('empFilter').addEventListener('input', renderEmployees);
+  const issueFilter = document.getElementById('issueEmployeeFilter');
+  const issueList = document.getElementById('issueEmployeeList');
+  issueFilter.addEventListener('input', function(){
+    document.getElementById('issueEmployee').value = '';
+    renderIssueEmployeeSuggestions();
+  });
+  issueFilter.addEventListener('focus', renderIssueEmployeeSuggestions);
+  issueFilter.addEventListener('keydown', function(ev){
+    if(issueList.classList.contains('hidden')) return;
+    const items = Array.from(issueList.querySelectorAll('.emp-suggest-item'));
+    if(!items.length) return;
+    let idx = items.findIndex(function(el){ return el.classList.contains('active'); });
+    if(ev.key === 'ArrowDown'){ ev.preventDefault(); idx = (idx + 1) % items.length; }
+    else if(ev.key === 'ArrowUp'){ ev.preventDefault(); idx = (idx <= 0 ? items.length - 1 : idx - 1); }
+    else if(ev.key === 'Enter'){ ev.preventDefault(); if(idx >= 0) selectIssueEmployee(items[idx].dataset.id); return; }
+    else if(ev.key === 'Escape'){ closeIssueEmployeeSuggestions(); return; }
+    else return;
+    items.forEach(function(el){ el.classList.remove('active'); });
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({block: 'nearest'});
+  });
+  issueList.addEventListener('click', function(ev){
+    const item = ev.target.closest ? ev.target.closest('.emp-suggest-item') : null;
+    if(item) selectIssueEmployee(item.dataset.id);
+  });
+  document.addEventListener('click', function(ev){
+    if(!ev.target || !ev.target.closest) return;
+    if(ev.target.closest('#issueEmployeeFilter') || ev.target.closest('#issueEmployeeList')) return;
+    closeIssueEmployeeSuggestions();
+  });
+  document.getElementById('btnImportEmployees').addEventListener('click', function(){
+    if(!askAdminPassword('import seznamu zaměstnanců')) return;
+    document.getElementById('importEmployeesFile').click();
+  });
+  document.getElementById('importEmployeesFile').addEventListener('change', function(e){
+    if(e.target.files[0]) importEmployeeList(e.target.files[0]);
+    e.target.value = '';
+  });
+  document.getElementById('btnAddItemCat').addEventListener('click', addItem);
+  document.getElementById('btnCancelEditItem').addEventListener('click', resetItemForm);
+  document.getElementById('itemLifetime').addEventListener('change', syncLifetimeCustom);
+  document.getElementById('btnAddFunction').addEventListener('click', addFunction);
+  document.getElementById('btnCancelEditFunction').addEventListener('click', resetFunctionForm);
+
+  installButtons().forEach(function(btn){
+    btn.addEventListener('click', promptInstall);
+  });
+  refreshInstallUI();
+
+  // V desktopovém okně (OOPP.exe) jsou soubory lokální, service worker není potřeba.
+  if('serviceWorker' in navigator && !isDesktopShell() && (pageProtocol() === 'http:' || pageProtocol() === 'https:')){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+
+  document.getElementById('btnBackToList').addEventListener('click', function(){
+    closeEmployeeDetail();
+    showTab('employees');
+  });
+  document.getElementById('btnExportCSV').addEventListener('click', function(){
+    if(currentEmployeeId) exportCSV(currentEmployeeId);
+  });
+  document.getElementById('btnExportPDF').addEventListener('click', function(){
+    if(currentEmployeeId) exportEmployeePdf(currentEmployeeId);
+  });
+  document.getElementById('btnPrintHistory').addEventListener('click', function(){
+    if(currentEmployeeId) printEmployeeBooklet(currentEmployeeId);
+  });
+  document.getElementById('btnNewIssueFor').addEventListener('click', function(){
+    if(!currentEmployeeId) return;
+    const id = currentEmployeeId;
+    closeEmployeeDetail();
+    showTab('issue');
+    selectIssueEmployee(id);
+  });
+  const sigOverlay = document.getElementById('sigOverlay');
+  if(sigOverlay){
+    sigOverlay.addEventListener('click', function(e){
+      if(e.target === sigOverlay) hideSignature();
+    });
+  }
+  document.getElementById('btnCloseSig').addEventListener('click', hideSignature);
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') hideSignature();
+  });
+
+  document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
+  document.getElementById('btnImportBackup').addEventListener('click', function(){
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', function(e){
+    if(e.target.files[0]) importBackup(e.target.files[0]);
+    e.target.value = '';
+  });
+  document.getElementById('btnClearAll').addEventListener('click', clearAll);
+
+  // cloud
+  document.getElementById('cloudProvider').addEventListener('change', function(){
+    updateCloudProviderUI();
+  });
+  document.getElementById('btnCloudSave').addEventListener('click', cloudSaveConfig);
+  document.getElementById('btnCloudLogin').addEventListener('click', fbLogin);
+  document.getElementById('btnCloudSync').addEventListener('click', function(){ cloudSync('auto'); });
+  document.getElementById('btnCloudPush').addEventListener('click', function(){ cloudSync('push'); });
+  document.getElementById('btnCloudPull').addEventListener('click', function(){ cloudSync('pull'); });
+  document.getElementById('cloudAuto').addEventListener('change', cloudSaveConfig);
+  document.getElementById('btnCloudKeepLocal').addEventListener('click', function(){ cloudResolve('local'); });
+  document.getElementById('btnCloudTakeRemote').addEventListener('click', function(){ cloudResolve('remote'); });
+  document.getElementById('btnCloudMerge').addEventListener('click', function(){ cloudResolve('merge'); });
+  renderCloudUI();
+  if(cloudReady(cloudConfig()) && cloudConfig().auto){
+    setTimeout(function(){ cloudSync('auto'); }, 1500);
+  }
+
+  // průběžné dotahování změn z cloudu (i když se tady nic nezměnilo)
+  let lastAutoSync = 0;
+  function cloudAutoTick(force){
+    const cfg = cloudConfig();
+    if(!cfg.auto || !cloudReady(cfg) || cloudBusy) return;
+    if(!force && Date.now() - lastAutoSync < 20000) return;
+    lastAutoSync = Date.now();
+    cloudSync('auto');
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') cloudAutoTick(false);
+  });
+  window.addEventListener('focus', function(){ cloudAutoTick(false); });
+  setInterval(function(){ cloudAutoTick(true); }, 5 * 60 * 1000);
+
+  document.getElementById('btnConnectFile').addEventListener('click', pickDataDir);
+  document.getElementById('btnReconnectFile').addEventListener('click', reconnectDataDir);
+  document.getElementById('btnDisconnectFile').addEventListener('click', disconnectDataDir);
+  document.getElementById('btnFileSetupPick').addEventListener('click', pickDataDir);
+  document.getElementById('btnFileSetupSkip').addEventListener('click', function(){
+    document.getElementById('fileSetup').classList.add('hidden');
+    try{ localStorage.setItem('oopp_fs_dismissed', '1'); }catch(e){}
+  });
+  document.getElementById('btnDataLogin').addEventListener('click', tryDataLogin);
+  document.getElementById('btnLogout').addEventListener('click', logoutAdmin);
+  document.getElementById('dataPass').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryDataLogin();
+  });
+  document.getElementById('btnItemsLogin').addEventListener('click', tryItemsLogin);
+  document.getElementById('itemsPass').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryItemsLogin();
+  });
+
+  document.addEventListener('click', function(e){
+    const editBtn = e.target.closest('button[data-edit]');
+    if(editBtn){ editEmployee(editBtn.dataset.edit); return; }
+    const delBtn = e.target.closest('button[data-del]');
+    if(delBtn){ deleteEmployee(delBtn.dataset.del); return; }
+    const sigImg = e.target.closest('img[data-sig]');
+    if(sigImg){ showSignature(sigImg.dataset.sig); return; }
+    const fetchSigBtn = e.target.closest('button[data-fetchsig]');
+    if(fetchSigBtn){ fetchSignatureFor(fetchSigBtn.dataset.fetchsig); return; }
+    const empRow = e.target.closest('tr[data-open]');
+    if(empRow){ openEmployeeDetail(empRow.dataset.open); return; }
+    const editItemBtn = e.target.closest('button[data-edititem]');
+    if(editItemBtn){ editItem(editItemBtn.dataset.edititem); return; }
+    const delItemBtn = e.target.closest('button[data-delitem]');
+    if(delItemBtn){ deleteItem(delItemBtn.dataset.delitem); return; }
+    const editFuncBtn = e.target.closest('button[data-editfunc]');
+    if(editFuncBtn){ editFunction(editFuncBtn.dataset.editfunc); return; }
+    const delFuncBtn = e.target.closest('button[data-delfunc]');
+    if(delFuncBtn){ deleteFunction(delFuncBtn.dataset.delfunc); return; }
+  });
+
+  initDatePicker();
+  initKeyboardHelpers();
+});
+</script>
+</body>
+</html>

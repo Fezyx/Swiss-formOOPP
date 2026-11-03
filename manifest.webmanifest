@@ -1,0 +1,35 @@
+{
+  "name": "Evidence OOPP",
+  "short_name": "OOPP",
+  "description": "Evidence vydávání osobních ochranných pracovních prostředků. Funguje offline, data zůstávají v zařízení.",
+  "lang": "cs",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#17324d",
+  "theme_color": "#17324d",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "dependencies/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "dependencies/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "dependencies/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

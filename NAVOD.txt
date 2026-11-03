@@ -1,0 +1,62 @@
+SWISSFORM — Evidence OOPP
+=========================
+
+Co je v této složce
+- OOPP.exe ................ samotná aplikace (Windows)
+- Pridat-na-plochu.bat .... přidá zástupce „Evidence OOPP" na plochu
+- index.html, manifest.webmanifest, sw.js, dependencies\ ... podklady aplikace (nemažte)
+- *.dll ................... knihovny WebView2 (nemažte, musí zůstat vedle OOPP.exe)
+
+Jak spustit
+1. Poklepejte na Pridat-na-plochu.bat (vytvoří zástupce na ploše), nebo
+   spusťte přímo OOPP.exe.
+2. Aplikace se otevře v okně. F11 = celá obrazovka, Esc = zpět z celé obrazovky.
+
+První spuštění
+- Aplikace se zeptá, kam ukládat data. Vyberte složku na SD kartě / USB,
+  nebo přímo složku, kde je OOPP.exe (data pak cestují spolu s aplikací).
+  Do složky se ukládá soubor OOPP_data.json — zaměstnanci, předměty,
+  funkce/pozice, výdeje i podpisy. Když tam soubor už je, zapisuje se do něj,
+  když ne, vytvoří se.
+- Volbu lze kdykoli změnit v záložce Data → „Připojit složku".
+- Po restartu se složka připojí sama. Když prohlížeč přístup zablokuje,
+  stačí do aplikace jednou klepnout — přístup se obnoví a ukládání do
+  souboru pokračuje.
+
+Záloha / přenos dat
+- Záložka Data (heslo admin) → „Stáhnout zálohu" / „Importovat zálohu".
+- Přihlášení správce: uživatel „admin", heslo „admin".
+- Po přihlášení zůstáváte přihlášeni i po zavření aplikace, takže se heslo
+  u dalších úprav (předměty, funkce, mazání, import) neopakuje.
+  Odhlásíte se tlačítkem „Odhlásit" vpravo nahoře v hlavičce.
+
+Cloud — společná databáze (Firebase) a hosting na GitHubu
+- Záložka Data → „☁ Cloud": vyberte Firebase, vyplňte ID projektu (Project ID),
+  Web API klíč, email a heslo uživatele, klikněte „Uložit nastavení" →
+  „🔑 Přihlásit" → „⟳ Synchronizovat".
+- V cloudu jsou zaměstnanci, předměty, funkce/pozice, výdeje i obrázky
+  podpisů — tablet v dílně a počítač v kanceláři tak vidí totéž a knížku
+  s podpisy vytisknete z obou zařízení. Data jsou soukromá (přístup jen
+  po přihlášení emailem a heslem).
+- Data se ukládají i do zařízení, takže aplikace funguje i bez internetu;
+  změny se odešlou, až se připojení obnoví (po změně, při startu,
+  po návratu do aplikace a každých 5 minut).
+- Postup založení Firebase krok za krokem je v souboru FIREBASE.md.
+- Aplikaci lze hostovat na GitHub Pages — návod v FIREBASE.md (bod 4).
+- Alternativy bez Firebase: Supabase (CLOUD.md), JSONBin.io, vlastní adresa.
+- Pozor: údaje do cloudu jsou přístupové údaje — neposílejte je mimo firmu.
+  Bez cloudu aplikace funguje stejně jako dřív (jen lokálně).
+
+Knížka OOPP zaměstnance
+- Záložka Zaměstnanci → otevřete zaměstnance:
+  • „Export PDF" uloží knížku (evidenční list + listy výdejů s podpisy) do PDF,
+  • „Tisk knížky" vytiskne stejnou podobu na tiskárně,
+  • „Export CSV" uloží výdeje pro Excel.
+- První strana (evidenční list) má 15 řádků se sloupci Datum, Funkce,
+  Nárok na přidělení OOPP a Životnost.
+- Životnost předmětu se vybírá v záložce Předměty: „14 dní / dle potřeby"
+  (rukavice, respirátory), 1/3/6/12/24/36 měsíců, nebo „vlastní…".
+
+Poznámka
+- Neodstraňujte ani nepřejmenovávejte soubory vedle OOPP.exe — jsou potřeba
+  ke spuštění. Při kopírování na jiný počítač přeneste celou tuto složku.

@@ -1,0 +1,8 @@
+# Evidence OOPP — co se na GitHub nedává
+# (lokální data, desktopová aplikace a knihovny)
+OOPP_data.json
+OOPP_data.json.tmp
+OOPP.exe
+*.dll
+OOPP.ico
+Pridat-na-plochu.bat
