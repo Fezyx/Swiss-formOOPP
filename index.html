@@ -433,6 +433,7 @@ tr.clickable:hover{background:#f1f5f9}
           <div class="sig-hint" id="cloudHint" style="margin-top:10px"></div>
           <div class="row" style="margin-top:12px">
             <button class="btn" id="btnCloudSave">Uložit nastavení</button>
+            <button class="btn secondary" id="btnCloudTest" title="Ověří přihlášení a spojení s databází">🧪 Otestovat připojení</button>
             <button class="btn secondary" id="btnCloudLogin">🔑 Přihlásit</button>
             <button class="btn secondary" id="btnCloudSync">⟳ Synchronizovat</button>
             <button class="btn outline" id="btnCloudPush">⬆ Nahrát do cloudu</button>
@@ -3277,7 +3278,7 @@ function fbFs(){
 async function cloudHttp(cfg, method, payload){
   if(cfg.provider === 'firebase'){
     await fbEnsureAuth();
-    const ref = fbFs().doc('oopp/main');
+    const ref = fbFs().doc('oopp/' + (cfg.docId || 'main'));
     if(method === 'GET'){
       const snap = await ref.get();
       return (snap && snap.exists) ? snap.data() : null;
@@ -3796,6 +3797,71 @@ function cloudCountsNote(){
   return parts.join(' • ');
 }
 
+// Kolik záznamů je v datech z cloudu (bez ohledu na to, co je zrovna v tomto zařízení).
+function cloudCountsOf(d){
+  const src = d || {};
+  return [
+    (src.employees || []).length + ' zaměstnanců',
+    (src.items || []).length + ' předmětů',
+    (src.functions || []).length + ' funkcí',
+    (src.issues || []).length + ' výdejů'
+  ].join(' • ');
+}
+
+// Ověří, že se aplikace opravdu připojí ke cloudu — a srozumitelně napíše, co chybí.
+async function cloudTestConnection(){
+  const cfg = cloudConfig();
+  if(cloudBusy){ toast('Probíhá synchronizace — zkuste to za chvíli.'); return; }
+  const missing = [];
+  if(cfg.provider === 'custom' && !cfg.url) missing.push('adresa serveru');
+  if(cfg.provider === 'jsonbin'){
+    if(!cfg.key) missing.push('klíč (X-Master-Key)');
+    if(!cfg.docId) missing.push('ID dokumentu (bin ID)');
+  }
+  if(cfg.provider === 'supabase'){
+    if(!cfg.url) missing.push('adresa projektu (https://…)');
+    if(!cfg.key) missing.push('„anon public“ klíč');
+    if(!cfg.docId) missing.push('ID dokumentu');
+  }
+  if(cfg.provider === 'firebase'){
+    if(!cfg.url) missing.push('Project ID');
+    if(!cfg.key) missing.push('Web API klíč');
+    if(!cfg.firebaseEmail) missing.push('přihlašovací email');
+    if(!cfg.firebasePass) missing.push('heslo');
+  }
+  if(missing.length){
+    cloudSetStatus('Připojení nejde vyzkoušet — chybí: ' + missing.join(', ') + '.', 'err');
+    return;
+  }
+  cloudSetStatus('Zkouším připojení ke cloudu…', 'warn');
+  const where = cfg.provider === 'firebase' ? 'Firebase'
+    : (cfg.provider === 'supabase' ? 'Supabase' : (cfg.provider === 'jsonbin' ? 'JSONBin' : 'server'));
+  try{
+    let who = '';
+    if(cfg.provider === 'firebase'){
+      const user = await fbEnsureAuth();
+      who = ' — přihlášen jako ' + (user && user.email ? user.email : 'uživatel');
+    }
+    const remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
+    const head = '✔ ' + where + ' funguje' + who + '. ';
+    // u Firebase/Supabase jsou podpisy zvlášť — ověřit i jejich úložiště
+    if(cloudSeparatesSignatures(cfg)){
+      try{ await sigRemoteIds(cfg); }
+      catch(e){
+        cloudSetStatus(head + 'Data ano, ale podpisy ne: ' + e.message, 'warn');
+        return;
+      }
+    }
+    if(remote && Array.isArray(remote.data.employees)){
+      cloudSetStatus(head + 'V cloudu: ' + cloudCountsOf(remote.data) + '.', 'ok');
+    } else {
+      cloudSetStatus(head + 'V cloudu zatím nejsou data — nahrajte je tlačítkem „⬆ Nahrát do cloudu“.', 'ok');
+    }
+  }catch(e){
+    cloudSetStatus('Připojení se nezdařilo: ' + e.message, 'err');
+  }
+}
+
 function renderCloudUI(){
   if(!document.getElementById('cloudProvider')) return;
   const cfg = cloudConfig();
@@ -4124,6 +4190,7 @@ document.addEventListener('DOMContentLoaded', function(){
     updateCloudProviderUI();
   });
   document.getElementById('btnCloudSave').addEventListener('click', cloudSaveConfig);
+  document.getElementById('btnCloudTest').addEventListener('click', cloudTestConnection);
   document.getElementById('btnCloudLogin').addEventListener('click', fbLogin);
   document.getElementById('btnCloudSync').addEventListener('click', function(){ cloudSync('auto'); });
   document.getElementById('btnCloudPush').addEventListener('click', function(){ cloudSync('push'); });

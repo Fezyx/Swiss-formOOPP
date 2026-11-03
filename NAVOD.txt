@@ -42,10 +42,21 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
   změny se odešlou, až se připojení obnoví (po změně, při startu,
   po návratu do aplikace a každých 5 minut).
 - Postup založení Firebase krok za krokem je v souboru FIREBASE.md.
+- Připojení ověříte tlačítkem „🧪 Otestovat připojení" — napíše, co případně
+  chybí, a kolik záznamů je v cloudu.
 - Aplikaci lze hostovat na GitHub Pages — návod v FIREBASE.md (bod 4).
 - Alternativy bez Firebase: Supabase (CLOUD.md), JSONBin.io, vlastní adresa.
 - Pozor: údaje do cloudu jsou přístupové údaje — neposílejte je mimo firmu.
   Bez cloudu aplikace funguje stejně jako dřív (jen lokálně).
+
+Aplikace na mobil a tablet (stejná data jako na PC)
+- Otevřete v prohlížeči stejnou adresu jako na počítači (GitHub Pages).
+- Android: nabídka ⋮ → „Přidat na plochu" / „Instalovat aplikaci".
+- iPhone/iPad: Safari → Sdílet → „Přidat na plochu".
+- Windows/Mac: ikona „Instalovat" v adresním řádku (nebo ⋮ → Aplikace).
+- V cloudu (Data → „☁ Cloud") vyplňte na každém zařízení stejné údaje
+  a zapněte „Synchronizovat automaticky" — data se pak ukládají na všech
+  zařízeních a knížka s podpisy jde vytisknout z kteréhokoli z nich.
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:

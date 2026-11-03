@@ -52,6 +52,8 @@ Do aplikace (Data → ☁ Cloud) zadejte:
 
 Klikněte **Uložit nastavení** → **🔑 Přihlásit** → **⟳ Synchronizovat**.
 První zařízení data nahraje, druhé je při první synchronizaci **sloučí**.
+Tlačítko **🧪 Otestovat připojení** ověří přihlášení i databázi a napíše,
+kolik záznamů je v cloudu — hodí se při prvním nastavení a při ladění chyb.
 
 > Heslo se ukládá v zařízení (aby se tablet znovu přihlašoval sám).
 > Držte údaje jen na firemních zařízeních.
@@ -78,7 +80,41 @@ Aplikace může běžet z veřejné adresy — aktualizace = `git push`.
 | `Firebase SDK se nenačetlo` | není internet — obnovte stránku po připojení |
 | `Missing or insufficient permissions` | v Rules není `request.auth != null`, nebo nejste přihlášení |
 
-## 6. Alternativy (bez Firebase)
+## 6. Počítač + mobil — stejná data, aplikace na plochu
+
+Aplikace je jedna webová stránka, takže počítač i mobil otevírají **stejnou
+adresu** a pracují s **jednou databází**: co se uloží na tabletu, je do pár
+sekund i na PC (a naopak).
+
+1. Na obou zařízeních otevřete stejnou adresu (např.
+   `https://<uživatel>.github.io/<repo>/`).
+2. Na obou zařízeních vyplňte v *Data → ☁ Cloud* **stejné údaje**
+   (Firebase, Project ID, Web API klíč, email, heslo) a zaškrtněte
+   **Synchronizovat automaticky**.
+3. Na prvním zařízení klikněte **⬆ Nahrát do cloudu**, na druhém
+   **⟳ Synchronizovat** — data se sloučí (u stejného záznamu vyhraje novější).
+
+### Instalace na plochu (bez obchodu Play / App Store)
+
+| zařízení | postup |
+|---|---|
+| **Android (Chrome / Edge)** | otevřít adresu → ⋮ → **Přidat na plochu / Instalovat aplikaci** (v aplikaci je i tlačítko **⬇ Nainstalovat aplikaci**) |
+| **iPhone / iPad (Safari)** | otevřít adresu → **Sdílet ⤴** → **Přidat na plochu** |
+| **Windows / Mac (Chrome, Edge)** | ikona **Instalovat** v adresním řádku, nebo ⋮ → Aplikace → Instalovat tuto stránku |
+| **Windows – OOPP.exe** | spouští stejnou stránku lokálně, cloud funguje také |
+
+Po instalaci se aplikace otevírá z plochy jako běžná aplikace (bez adresního
+řádku) a funguje i offline.
+
+### Když se zařízení neshodují
+
+* **🧪 Otestovat připojení** (Data → ☁ Cloud) — napíše, zda je přihlášení
+  a databáze v pořádku, a kolik záznamů je v cloudu.
+* Na obou zařízeních musí být **stejné Project ID** a **stejný uživatel**.
+* Při hlášce o konfliktu zvolte **Sloučit** — spojí záznamy z obou zařízení,
+  u stejného záznamu vyhraje novější.
+
+## 7. Alternativy (bez Firebase)
 
 Aplikace umí i **Supabase** (viz `CLOUD.md`), **JSONBin.io** a **vlastní
 adresu** (firemní server / Google Apps Script) — přepnete v poli Poskytovatel.
