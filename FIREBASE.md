@@ -85,10 +85,11 @@ V aplikaci (Data → ☁ Cloud) stačí:
 
 Klikněte **🔑 Přihlásit** → **🧪 Otestovat připojení** → **⟳ Synchronizovat**.
 Po přihlášení se synchronizace spustí sama („Synchronizovat automaticky“ je
-na novém zařízení zapnuté). První zařízení data nahraje, druhé je při první
-synchronizaci **sloučí**. Tlačítko **🧪 Otestovat připojení** ověří přihlášení
-i databázi a napíše, kolik záznamů je v cloudu — hodí se při prvním nastavení
-a při ladění chyb.
+zapnuté ve výchozím stavu). První zařízení data nahraje, druhé je při první
+synchronizaci **sloučí** — a stejně tak každá další synchronizace: data ze
+všech zařízení se jen **přidávají**, nikdy nepřepisují (viz bod 6). Tlačítko
+**🧪 Otestovat připojení** ověří přihlášení i databázi a napíše, kolik záznamů
+je v cloudu — hodí se při prvním nastavení a při ladění chyb.
 
 > Heslo se ukládá v zařízení (aby se tablet znovu přihlašoval sám).
 > Držte údaje jen na firemních zařízeních.
@@ -137,7 +138,37 @@ sekund i na PC (a naopak).
    (Firebase, Project ID, Web API klíč, email, heslo) a zaškrtněte
    **Synchronizovat automaticky**.
 3. Na prvním zařízení klikněte **⬆ Nahrát do cloudu**, na druhém
-   **⟳ Synchronizovat** — data se sloučí (u stejného záznamu vyhraje novější).
+   **⟳ Synchronizovat** — data se **sloučí** (u stejného záznamu vyhraje
+   novější, nic se nepřepíše ani nesmaže).
+
+### Souběh více zařízení — data se jen přidávají
+
+Synchronizace je od verze **v27** udělaná tak, že **každý zápis do cloudu je
+nejdřív sloučení**:
+
+1. aplikace si přečte, co je v cloudu (co tam mezitím dali ostatní),
+2. sloučí to s místními daty podle `id` záznamu — chybějící záznamy **přidá**,
+   u stejného `id` vyhraje novější `updatedAt`,
+3. sjednocení uloží do cloudu i do zařízení,
+4. hned znovu přečte cloud; kdyby v tu chvíli psalo jiné zařízení, jeho
+   záznamy znovu sloučí a odešle (max. 3 kola, zbytek dohoní příští sync).
+
+Takže: dva výdeje pro stejného zaměstnance vzniklé na tabletu a na PC
+v jednu chvíli **zůstanou oba**. Nic se „nepřepíše“ ani „nepřejede“ druhým
+zařízením. Mazání se pamatuje v `tombstones`, aby smazaný záznam z jiného
+zařízení znovu nevznikl.
+
+Automatická synchronizace běží po každé změně, při startu, po návratu do
+aplikace a každé 2 minuty; je zapnutá ve výchozím stavu.
+
+### Když se zařízení neshodují
+
+* **🧪 Otestovat připojení** (Data → ☁ Cloud) — napíše, zda je přihlášení
+  a databáze v pořádku, a kolik záznamů je v cloudu.
+* Na obou zařízeních musí být **stejné Project ID** a **stejný uživatel**.
+* Konfliktní dialog už není potřeba — **každá synchronizace data sloučí**.
+  Když se zařízení přesto neshodují, klikněte na obou zařízeních
+  **⟳ Synchronizovat**.
 
 ### Instalace na plochu (bez obchodu Play / App Store)
 
@@ -156,8 +187,9 @@ Po instalaci se aplikace otevírá z plochy jako běžná aplikace (bez adresní
 * **🧪 Otestovat připojení** (Data → ☁ Cloud) — napíše, zda je přihlášení
   a databáze v pořádku, a kolik záznamů je v cloudu.
 * Na obou zařízeních musí být **stejné Project ID** a **stejný uživatel**.
-* Při hlášce o konfliktu zvolte **Sloučit** — spojí záznamy z obou zařízení,
-  u stejného záznamu vyhraje novější.
+* Když se seznamy přesto rozcházejí, klikněte na obou zařízeních
+  **⟳ Synchronizovat** — každá synchronizace data jen slučuje, takže se nic
+  nemůže ztratit.
 
 ### Mobil zobrazuje starou verzi aplikace
 

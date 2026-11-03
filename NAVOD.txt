@@ -45,8 +45,18 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
   s podpisy vytisknete z obou zařízení. Data jsou soukromá (přístup jen
   po přihlášení emailem a heslem).
 - Data se ukládají i do zařízení, takže aplikace funguje i bez internetu;
-  změny se odešlou, až se připojení obnoví (po změně, při startu,
-  po návratu do aplikace a každých 5 minut).
+  změny se odešlou, až se připojení obnoví (po každé změně, při startu,
+  po návratu do aplikace a každé 2 minuty).
+- Data z více zařízení se VŽDY JEN SLUČUJÍ (přidávají) — nikdy se
+  nepřepisují ani nemažou. Když na tabletu v dílně vznikne výdej a zároveň
+  na PC v kanceláři jiný, po synchronizaci mají obě zařízení i cloud oba
+  výdeje. Když stejný záznam upraví dvě zařízení, platí novější úprava
+  (každý záznam má v sobě razítko poslední změny). Smazaný záznam se
+  z druhého zařízení nevrátí (mazání se pamatuje).
+- Tlačítka v záložce Data → „☁ Cloud": „⟳ Synchronizovat" = načte cizí
+  změny a odešle místní, „⬆ Nahrát do cloudu" = odešle místní změny
+  (v cloudu se nejdřív sloučí s ostatními zařízeními), „⬇ Stáhnout
+  z cloudu" = jen přidá cizí změny k místním datům.
 - Postup založení Firebase krok za krokem je v souboru FIREBASE.md.
 - Připojení ověříte tlačítkem „🧪 Otestovat připojení" — napíše, co případně
   chybí, a kolik záznamů je v cloudu.

@@ -435,22 +435,17 @@ tr.clickable:hover{background:#f1f5f9}
             <button class="btn" id="btnCloudSave">Uložit nastavení</button>
             <button class="btn secondary" id="btnCloudTest" title="Ověří přihlášení a spojení s databází">🧪 Otestovat připojení</button>
             <button class="btn secondary" id="btnCloudLogin">🔑 Přihlásit</button>
-            <button class="btn secondary" id="btnCloudSync">⟳ Synchronizovat</button>
-            <button class="btn outline" id="btnCloudPush">⬆ Nahrát do cloudu</button>
-            <button class="btn outline" id="btnCloudPull">⬇ Stáhnout z cloudu</button>
+            <button class="btn secondary" id="btnCloudSync" title="Sloučí data ze všech zařízení (nic se nepřepíše)">⟳ Synchronizovat</button>
+            <button class="btn outline" id="btnCloudPush" title="Odešle místní změny — v cloudu se nejdřív sloučí s ostatními zařízeními">⬆ Nahrát do cloudu</button>
+            <button class="btn outline" id="btnCloudPull" title="Načte změny z cloudu — k místním datům se jen přidají">⬇ Stáhnout z cloudu</button>
           </div>
           <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
-            <input type="checkbox" id="cloudAuto" style="width:auto"> Synchronizovat automaticky (po změně, při startu a každých 5 minut)
+            <input type="checkbox" id="cloudAuto" style="width:auto"> Synchronizovat automaticky (po každé změně, při startu a každé 2 minuty)
           </label>
           <p class="desc" id="cloudStatus" style="margin-top:10px"></p>
-          <div id="cloudConflict" class="hidden" style="margin-top:10px;padding:12px;border:1px solid #f59e0b;border-radius:8px;background:#fffbeb">
-            <strong>Data se změnila na obou stranách.</strong>
-            <div class="sig-hint" style="margin:6px 0 10px">Vyberte, co má platit. „Sloučit“ spojí záznamy z obou stran — u stejného záznamu vyhraje novější.</div>
-            <div class="row">
-              <button class="btn small" id="btnCloudKeepLocal">Ponechat moje</button>
-              <button class="btn small secondary" id="btnCloudTakeRemote">Vzít z cloudu</button>
-              <button class="btn small outline" id="btnCloudMerge">Sloučit</button>
-            </div>
+          <div style="margin-top:10px;padding:12px;border:1px solid #86efac;border-radius:8px;background:#f0fdf4">
+            <strong>Data z více zařízení se vždy jen slučují.</strong>
+            <div class="sig-hint" style="margin-top:6px">Synchronizace nic nemaže ani nepřepisuje — záznamy z jiných telefonů a PC se k těm místním přidají. Když stejný záznam upraví dvě zařízení, platí ta novější úprava; smazání se pamatuje, aby se záznam z druhého zařízení nevrátil.</div>
           </div>
         </div>
         <div class="card">
@@ -619,7 +614,46 @@ function applySignatureMap(map){
   return n;
 }
 
+// Každá změna záznamu musí mít updatedAt — jinak by při sloučení mohl starý
+// záznam z jiného zařízení přebít novější úpravu. Hlídá se to tady centrálně
+// (u každého uložení), takže na žádnou úpravu se nedá zapomenout.
+const recSnapshots = {};
+
+function recSig(rec){
+  return JSON.stringify(Object.assign({}, rec, {updatedAt: 0}));
+}
+
+function trackRecChanges(){
+  const now = Date.now();
+  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+    const alive = {};
+    (db[kind] || []).forEach(function(r){
+      if(!r || !r.id) return;
+      alive[r.id] = true;
+      const key = kind + '|' + r.id;
+      const sig = recSig(r);
+      const prev = recSnapshots[key];
+      if(prev === undefined){
+        recSnapshots[key] = sig;              // první uložení (nový nebo stažený záznam)
+        if(!r.updatedAt) r.updatedAt = now;
+        return;
+      }
+      if(prev !== sig){
+        recSnapshots[key] = sig;              // obsah se změnil → nové razítko
+        r.updatedAt = now;
+      } else if(!r.updatedAt){
+        r.updatedAt = now;
+      }
+    });
+    Object.keys(recSnapshots).forEach(function(key){
+      const cut = key.indexOf('|');
+      if(key.slice(0, cut) === kind && !alive[key.slice(cut + 1)]) delete recSnapshots[key];
+    });
+  });
+}
+
 function save(){
+  try{ trackRecChanges(); }catch(e){}
   const hasFile = !!dataDirHandle;
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -3120,7 +3154,8 @@ let cloudApplying = false;
 let cloudStatusMsg = '';
 
 function cloudDefaults(){
-  return {provider: 'firebase', url: '', key: '', docId: 'main', auto: false,
+  // auto: true = synchronizace je zapnutá rovnou (data ze všech zařízení se slučují sama)
+  return {provider: 'firebase', url: '', key: '', docId: 'main', auto: true,
     firebaseEmail: '', firebasePass: '',
     baseHash: '', lastRev: 0, lastSyncAt: 0, lastSigAt: 0, deviceId: ''};
 }
@@ -3162,13 +3197,23 @@ function saveCloudConfig(cfg){
 
 // Data pro cloud. Podpisy jsou obrázky (jednotky kB na výdej), proto se u Supabase
 // posílají zvlášť do tabulky oopp_sig a sem se dává jen příznak hasSignature.
+// Seznamy se řadí podle id, aby otisk dat (hash) nezáležel na pořadí záznamů —
+// jinak by se na každé zařízení zdálo, že se data změnila.
+function sortById(list, keyFn){
+  return (list || []).slice().sort(function(a, b){
+    const ka = String(keyFn(a) == null ? '' : keyFn(a));
+    const kb = String(keyFn(b) == null ? '' : keyFn(b));
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  });
+}
+
 function cloudDataOnly(d, opts){
   const keepSignatures = !!(opts && opts.signatures);
   const src = d || {};
   return {
-    employees: src.employees || [],
-    items: src.items || [],
-    issues: (src.issues || []).map(function(i){
+    employees: sortById(src.employees, function(r){ return r && r.id; }),
+    items: sortById(src.items, function(r){ return r && r.id; }),
+    issues: sortById((src.issues || []).map(function(i){
       const has = !!(i && (i.signature || i.hasSignature));
       if(keepSignatures){
         if(i && !i.hasSignature) return Object.assign({}, i, {hasSignature: has});
@@ -3177,9 +3222,9 @@ function cloudDataOnly(d, opts){
       const copy = Object.assign({}, i, {hasSignature: has});
       delete copy.signature;
       return copy;
-    }),
-    functions: src.functions || [],
-    tombstones: src.tombstones || [],
+    }), function(r){ return r && r.id; }),
+    functions: sortById(src.functions, function(r){ return r && r.id; }),
+    tombstones: sortById(src.tombstones, function(t){ return t && (t.kind + '|' + t.id); }),
     initialized: true
   };
 }
@@ -3396,12 +3441,32 @@ function cloudMarkSynced(cfg, hash, env){
   saveCloudConfig(cfg);
 }
 
+// Nahrání do cloudu je VŽDY sloučení, nikdy přepis:
+//  1) přečte, co je v cloudu, 2) sloučí to s místními daty (nic se nesmaže ani nepřepíše),
+//  3) uloží sjednocení, 4) znovu přečte — kdyby mezitím psalo jiné zařízení,
+//     sloučí i jeho záznamy a nahraje znovu (max. 3 kola, pak to dohoní další synchronizace).
 async function cloudPush(cfg){
-  let remote = null;
-  try{ remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET')); }catch(e){}
-  const env = cloudEnvelope(cfg, ((remote && remote.rev) || cfg.lastRev || 0) + 1);
-  await cloudHttp(cfg, cfg.provider === 'supabase' ? 'POST' : 'PUT', env);
-  cloudMarkSynced(cfg, cloudLocalHash(), env);
+  let env = null;
+  for(let round = 0; round < 3; round++){
+    let remote = null;
+    try{ remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET')); }catch(e){}
+    if(remote && remote.data && !cloudDataIsEmpty(remote.data)){
+      const merged = cloudMergeData(db, remote.data);
+      // co je v cloudu navíc, doplníme i do tohoto zařízení
+      if(cloudHashOf(merged) !== cloudLocalHash()) cloudApplyData(merged);
+    }
+    env = cloudEnvelope(cfg, ((remote && remote.rev) || cfg.lastRev || 0) + 1);
+    await cloudHttp(cfg, cfg.provider === 'supabase' ? 'POST' : 'PUT', env);
+    cloudMarkSynced(cfg, cloudLocalHash(), env);
+
+    // kontrola: nepsalo mezitím jiné zařízení?
+    let back = null;
+    try{ back = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET')); }catch(e){ return env; }
+    if(!back || !back.data || cloudDataIsEmpty(back.data)) return env;
+    const need = cloudMergeData(db, back.data);
+    if(cloudHashOf(need) === cloudLocalHash()) return env;   // obě strany mají totéž
+    cloudApplyData(need);                                    // někdo přidal záznamy → sloučit a nahrát znovu
+  }
   return env;
 }
 
@@ -3422,7 +3487,7 @@ function cloudApplyData(data, incomingSignatures){
     migrateItemSizes();
     migrateFunctions();
     save();
-    closeEmployeeDetail();
+    // otevřený detail zaměstnance necháme otevřený — automatická synchronizace ho nemá zavírat
     renderAll();
   }finally{
     cloudApplying = false;
@@ -3520,7 +3585,6 @@ function cloudShowConflict(show){
   const box = document.getElementById('cloudConflict');
   if(box) box.classList.toggle('hidden', !show);
 }
-
 /* ---------- Podpisy: samostatné uložiště (Supabase tabulka / Firebase kolekce oopp_sig) ---------- */
 // Jeden řádek = jeden podpis, takže se posílají/stahují jen chybějící obrázky
 // a hlavní dokument zůstává malý (desítky kB).
@@ -3698,70 +3762,42 @@ async function cloudSync(mode){
     if(mode === 'push'){
       await cloudPush(cfg);
       const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
-      cloudSetStatus('Nahráno do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      cloudSetStatus('Změny odeslány — v cloudu sloučeny s ostatními zařízeními (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
       return;
     }
-    if(!remote){
+    if(!remote || !remote.data || cloudDataIsEmpty(remote.data)){
       await cloudPush(cfg);
       const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
       cloudSetStatus('V cloudu ještě nic nebylo — data i podpisy nahrány (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
       return;
     }
 
-    const lh = cloudLocalHash();
-    const rh = cloudHashOf(remote.data);
-    const base = cfg.baseHash || '';
-
-    // první synchronizace z tohoto zařízení: neptat se na konflikt, ale sloučit
-    if(!base){
-      if(cloudDataIsEmpty(db)){
-        cloudApplyData(remote.data);
-        const sig = await cloudTrySyncSignatures(cfg, {upload: false});
-        // baseHash = otisk cloudu (lokální migrace dat ho nemají rozbít)
-        cloudMarkSynced(cfg, rh, remote);
-        cloudSetStatus('Data načtena z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-        toast('Data načtena z cloudu.');
-        return;
-      }
-      cloudApplyData(cloudMergeData(db, remote.data));
-      await cloudPush(cfg);
-      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-      cloudSetStatus('Data z tohoto zařízení sloučena s cloudem (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      return;
-    }
+    // Vždy SLUČENÍ, nikdy přepis: co je v cloudu navíc, přidá se k místním datům.
+    const before = cloudLocalHash();
+    const remoteHash = cloudHashOf(remote.data);
+    const merged = cloudMergeData(db, remote.data);
+    const gained = cloudHashOf(merged) !== before;
+    if(gained) cloudApplyData(merged);
 
     if(mode === 'pull'){
-      cloudApplyData(remote.data);
       const sig = await cloudTrySyncSignatures(cfg, {upload: false});
-      cloudMarkSynced(cfg, rh, remote);
-      cloudSetStatus('Staženo z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      toast('Data stažena z cloudu.');
+      cloudMarkSynced(cfg, cloudLocalHash(), remote);
+      cloudSetStatus('Změny z cloudu přidány k místním datům (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+      if(gained) toast('Data z cloudu sloučena.');
       return;
     }
 
-    if(lh === rh){
-      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-      cloudMarkSynced(cfg, lh, remote);
-      cloudSetStatus('Synchronizováno — data jsou na všech zařízeních stejná (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      return;
-    }
-    if(lh === base){
-      cloudApplyData(remote.data);
-      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-      cloudMarkSynced(cfg, rh, remote);
-      cloudSetStatus('Data aktualizována z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      toast('Data aktualizována z cloudu.');
-      return;
-    }
-    if(rh === base){
+    // sloučená data nahrát zpět (cloud tak obsahuje záznamy ze všech zařízení);
+    // když se nic nezměnilo, do cloudu se vůbec neposílá
+    if(cloudLocalHash() !== remoteHash){
       await cloudPush(cfg);
-      const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-      cloudSetStatus('Změny nahrány do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      return;
+    } else {
+      cloudMarkSynced(cfg, remoteHash, remote);
     }
-
-    cloudShowConflict(true);
-    cloudSetStatus('Data se změnila tady i v cloudu — vyberte prosím, co má platit.', 'warn');
+    const sig = await cloudTrySyncSignatures(cfg, {upload: true});
+    cloudSetStatus('Synchronizováno — data ze všech zařízení sloučena (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
+    if(gained && mode !== 'auto') toast('Data sloučena s cloudem.');
+    if(gained && mode === 'auto') toast('Načtena data z jiného zařízení (přidáno, nic nepřepsáno).');
   }catch(e){
     cloudSetStatus('Chyba cloudu: ' + e.message, 'err');
   }finally{
@@ -3770,38 +3806,10 @@ async function cloudSync(mode){
   }
 }
 
-async function cloudResolve(choice){
-  const cfg = cloudConfig();
-  if(!cloudReady(cfg) || cloudBusy) return;
-  cloudBusy = true;
-  cloudShowConflict(false);
-  try{
-    if(choice === 'local'){
-      await cloudPush(cfg);
-      const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
-      cloudSetStatus('Vaše data ponechána a nahrána do cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      return;
-    }
-    const remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
-    if(!remote){ cloudSetStatus('V cloudu nejsou žádná data.', 'warn'); return; }
-    if(choice === 'remote'){
-      cloudApplyData(remote.data);
-      const sig = await cloudTrySyncSignatures(cfg, {upload: false});
-      cloudMarkSynced(cfg, cloudHashOf(remote.data), remote);
-      cloudSetStatus('Použita data z cloudu (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      return;
-    }
-    cloudApplyData(cloudMergeData(db, remote.data));
-    await cloudPush(cfg);
-    const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-    cloudSetStatus('Data z obou zařízení sloučena a nahrána do cloudu' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-    toast('Data sloučena.');
-  }catch(e){
-    cloudSetStatus('Chyba cloudu: ' + e.message, 'err');
-  }finally{
-    cloudBusy = false;
-    renderCloudUI();
-  }
+// Původní volba „Ponechat moje / Vzít z cloudu / Sloučit“ už není potřeba:
+// každá synchronizace data jen slučuje (nic se nemaže ani nepřepisuje).
+async function cloudResolve(){
+  await cloudSync('auto');
 }
 
 function cloudSchedulePush(){
@@ -3994,7 +4002,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4322,9 +4330,6 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnCloudPush').addEventListener('click', function(){ cloudSync('push'); });
   document.getElementById('btnCloudPull').addEventListener('click', function(){ cloudSync('pull'); });
   document.getElementById('cloudAuto').addEventListener('change', cloudSaveConfig);
-  document.getElementById('btnCloudKeepLocal').addEventListener('click', function(){ cloudResolve('local'); });
-  document.getElementById('btnCloudTakeRemote').addEventListener('click', function(){ cloudResolve('remote'); });
-  document.getElementById('btnCloudMerge').addEventListener('click', function(){ cloudResolve('merge'); });
   renderCloudUI();
   if(cloudReady(cloudConfig()) && cloudConfig().auto){
     setTimeout(function(){ cloudSync('auto'); }, 1500);
@@ -4343,7 +4348,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(document.visibilityState === 'visible') cloudAutoTick(false);
   });
   window.addEventListener('focus', function(){ cloudAutoTick(false); });
-  setInterval(function(){ cloudAutoTick(true); }, 5 * 60 * 1000);
+  setInterval(function(){ cloudAutoTick(true); }, 2 * 60 * 1000);
 
   document.getElementById('btnConnectFile').addEventListener('click', pickDataDir);
   document.getElementById('btnReconnectFile').addEventListener('click', reconnectDataDir);
