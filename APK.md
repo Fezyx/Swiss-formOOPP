@@ -34,6 +34,30 @@ Kdy se sestavuje nové APK:
 - ručně: GitHub → Actions → „Android APK“ → tlačítko „Run workflow“.
 
 
+2b) QR kód ke stažení (sdílecí kód)
+-----------------------------------
+Aplikace má v sobě zabudovaný QR kód s odkazem z bodu 2, takže se dá
+stahování ukázat kolegovi nebo vytisknout:
+
+- v aplikaci: záložka **Data → karta „Sdílecí kód (QR)“** — QR kód, vypsaný
+  odkaz, tlačítka „📋 Kopírovat odkaz“ a „⬇ Otevřít odkaz“,
+- v tomto repozitáři: soubor **APK-QR.svg** (vektor, 512 px, pro tisk nebo
+  vložení do dokumentu) — otevře se v prohlížeči nebo v Illustratoru/Inkscape.
+
+QR kód se při novém sestavení APK nemění — odkaz míří vždy na nejnovější
+vydání (…/releases/latest/download/OOPP.apk).
+
+Jak QR kód přegenerovat (kdyby se změnila adresa):
+1. `node tools/qr.js "https://…/OOPP.apk" --js` vypíše řádky
+   `QR_SHARE_SIZE` a `QR_SHARE_BITS` → vložte je do index.html
+   (hledejte „Sdílecí QR kód“).
+2. `node tools/qr.js "https://…/OOPP.apk" --svg APK-QR.svg` přepíše soubor
+   pro tisk.
+   Nástroj nepotřebuje žádné knihovny ani internet — QR kód počítá sám.
+   Potom zvyšte APP_VERSION v index.html a CACHE v sw.js (jako u každé
+   změny kódu).
+
+
 3) Instalace do telefonu / tabletu
 ----------------------------------
 1. V zařízení otevřete odkaz z bodu 2 (Chrome, Edge, cokoli).
@@ -106,6 +130,14 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
   - doPrint() zavolá nativní tisk místo window.print(),
   - window.__ooppBack řeší tlačítko Zpět,
   - refreshInstallUI() v APK nenabízí instalaci z prohlížeče a vypíše verzi.
+  - renderShareQr() kreslí v záložce Data sdílecí QR kód (odkaz na APK)
+    jako SVG přímo z matice v index.html — funguje i offline.
+- QR kód ke stažení:
+  - APK-QR.svg .................... QR kód s odkazem na APK pro tisk/plakát
+  - tools/qr.js ................... generátor QR kódu (čisté Node.js, bez
+                                    závislostí): --js vypíše matici pro
+                                    index.html, --svg uloží obrázek.
+                                    Ověřeno shodou s quickchart.io.
 
 Změna podpisového klíče (jen když je potřeba):
   - smazat android/keystore/oopp.jks, spustit build → CI vytvoří nový klíč.

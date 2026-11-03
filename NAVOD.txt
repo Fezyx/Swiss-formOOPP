@@ -94,6 +94,10 @@ Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
 - APK sestavuje automaticky GitHub (Actions → „Android APK“), na počítači
   se nic sestavovat nemusí. Novou verzi APK stahujte pořád ze stejné adresy
   a instalujte přes starou — data v zařízení zůstávají.
+- Sdílecí QR kód: záložka Data → karta „Sdílecí kód (QR)“ ukazuje QR kód
+  s odkazem na stažení APK (dá se ukázat kolegovi nebo vytisknout; v repu
+  je i soubor APK-QR.svg pro tisk). Tlačítky pod kódem odkaz zkopírujete
+  nebo rovnou otevřete.
 - Aplikace uvnitř APK se aktualizuje sama z webu (jako v prohlížeči), takže
   nové APK je potřeba jen výjimečně.
 - V APK navíc funguje tisk přes tiskárnu Androidu (i „Uložit jako PDF“)

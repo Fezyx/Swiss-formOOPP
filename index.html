@@ -74,6 +74,10 @@ tr.clickable:hover{background:#f1f5f9}
 .sig-box{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
 #signatureCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
 .sig-hint{font-size:.76rem;color:#94a3b8;margin-top:4px}
+/* sdílecí QR kód (Data → Sdílecí kód) — kreslí se jako SVG, funguje offline */
+.share-qr{width:232px;max-width:100%;aspect-ratio:1/1;margin:0 auto 12px;padding:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px}
+.share-qr svg{display:block;width:100%;height:100%}
+.share-url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:12px}
 /* zaškrtávací seznam nároku na OOPP u funkce */
 .func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
 .func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#334155}
@@ -513,6 +517,17 @@ tr.clickable:hover{background:#f1f5f9}
             <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
             <strong>Otevírá se aplikace s adresním řádkem prohlížeče?</strong> Je to jen zástupce (shortcut), ne nainstalovaná aplikace — nainstalujte ji znovu přes menu ⋮ → „Instalovat aplikaci“; pak se otevírá bez adresního řádku a aktualizuje se sama.
           </div>
+        </div>
+        <div class="card" id="shareCard">
+          <h2>Sdílecí kód (QR)</h2>
+          <p class="desc">Naskenujte kód fotoaparátem nebo čtečkou QR — otevře se odkaz ke stažení aplikace (APK) pro Android. Kód můžete ukázat kolegovi, vytisknout nebo přiložit k předávacímu protokolu.</p>
+          <div class="share-qr" id="shareQr"></div>
+          <div class="share-url" id="shareUrl"></div>
+          <div class="row">
+            <button class="btn outline" id="btnCopyShare" title="Zkopíruje odkaz do schránky">📋 Kopírovat odkaz</button>
+            <button class="btn secondary" id="btnOpenShare" title="Otevře odkaz ke stažení">⬇ Otevřít odkaz</button>
+          </div>
+          <div class="sig-hint" style="margin-top:8px">Odkaz míří vždy na nejnovější verzi v sekci Releases, proto se QR kód při novém buildu nemění. Funguje i bez internetu — je nakreslený přímo v aplikaci.</div>
         </div>
         <div class="card danger-zone">
           <h2>Nebezpečná zóna</h2>
@@ -4049,7 +4064,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v29';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4200,6 +4215,89 @@ window.addEventListener('appinstalled', function(){
   toast('Aplikace nainstalována.');
 });
 
+/* ---------- Sdílecí QR kód (odkaz ke stažení APK) ---------- */
+// Odkaz vede na „latest“ release, takže po každém novém buildu zůstává stejný.
+const SHARE_APK_URL = 'https://github.com/Fezyx/Swiss-formOOPP/releases/latest/download/OOPP.apk';
+// Matice QR kódu (37×37, korekce M). Vygeneruje ji nástroj tools/qr.js:
+//   node tools/qr.js "<odkaz>" --js
+// Když se odkaz změní, spusťte nástroj znovu a nahraďte QR_SHARE_SIZE i QR_SHARE_BITS.
+const QR_SHARE_SIZE = 37;
+const QR_SHARE_BITS = '/uuqK/wV5P9QboiifLt1or/F26KVI67BJA0VB/qqqq/gHf4jALdjiTpYi04yaqbiWXBwaqpjzsYqwDdryh7Je+ztE8qy0DpPkHMjWOxAZYsG1JHEjHSODnDY5TKm+aJZ2I6JXKYhjpscJACMZ2icHrwz9rKIpWOe3eb+iz0Z+Sx3M3iX+P+ARvDMV/qlMarwWANzELp2NC/V1Kn4tm62s3O5BGUgo0/qmK5PgA==';
+
+// Rozbalí matici z base64 na mřížku 0/1 (jeden modul = jeden bit).
+function qrShareGrid(){
+  let raw = '';
+  try{ raw = atob(QR_SHARE_BITS); }catch(e){ return null; }
+  if(raw.length * 8 < QR_SHARE_SIZE * QR_SHARE_SIZE) return null;
+  const grid = [];
+  for(let r = 0; r < QR_SHARE_SIZE; r++){
+    const row = [];
+    for(let c = 0; c < QR_SHARE_SIZE; c++){
+      const i = r * QR_SHARE_SIZE + c;
+      row.push((raw.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1);
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+// Vykreslí QR jako SVG — ostré hrany, žádný soubor ke stažení, funguje offline.
+function renderShareQr(){
+  const urlEl = document.getElementById('shareUrl');
+  if(urlEl) urlEl.textContent = SHARE_APK_URL;
+  const box = document.getElementById('shareQr');
+  if(!box || box.dataset.rendered === '1') return;
+  const grid = qrShareGrid();
+  if(!grid) return;
+  const quiet = 3;                              // okraj, aby se kód dal přečíst
+  const total = QR_SHARE_SIZE + quiet * 2;
+  let path = '';
+  for(let r = 0; r < QR_SHARE_SIZE; r++){
+    for(let c = 0; c < QR_SHARE_SIZE; c++){
+      if(grid[r][c]) path += 'M' + (c + quiet) + ',' + (r + quiet) + 'h1v1h-1z';
+    }
+  }
+  box.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' ' + total +
+    '" shape-rendering="crispEdges" role="img" aria-label="QR kód s odkazem na stažení aplikace">' +
+    '<rect width="' + total + '" height="' + total + '" fill="#ffffff"/>' +
+    '<path d="' + path + '" fill="#111827"/></svg>';
+  box.dataset.rendered = '1';
+}
+
+// Zkopíruje odkaz do schránky; u starších prohlížečů záložní cestou přes textarea.
+function copyShareUrl(){
+  const fallback = function(){
+    const ta = document.createElement('textarea');
+    ta.value = SHARE_APK_URL;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    toast(ok ? 'Odkaz zkopírován.' : 'Kopírování není dostupné — odkaz je vypsaný pod QR kódem.');
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(SHARE_APK_URL).then(function(){
+      toast('Odkaz zkopírován.');
+    }).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+// Otevře odkaz ke stažení: v APK ho WebView předá prohlížeči, jinde nová karta.
+function openShareUrl(){
+  if(isAndroidShell()){
+    location.href = SHARE_APK_URL;
+    return;
+  }
+  const win = window.open(SHARE_APK_URL, '_blank', 'noopener');
+  if(!win) location.href = SHARE_APK_URL;
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   if(isDesktopShell()) document.documentElement.classList.add('desktop-shell');
   if(!db.initialized){
@@ -4312,6 +4410,12 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnForceUpdate').addEventListener('click', forceAppUpdate);
   refreshInstallUI();
   renderAppVersion();
+  // Sdílecí QR kód (odkaz ke stažení APK) — kreslí se hned, funguje i offline.
+  renderShareQr();
+  const btnCopyShare = document.getElementById('btnCopyShare');
+  if(btnCopyShare) btnCopyShare.addEventListener('click', copyShareUrl);
+  const btnOpenShare = document.getElementById('btnOpenShare');
+  if(btnOpenShare) btnOpenShare.addEventListener('click', openShareUrl);
 
   // V desktopovém okně (OOPP.exe) jsou soubory lokální, service worker není potřeba.
   if('serviceWorker' in navigator && !isDesktopShell() && (pageProtocol() === 'http:' || pageProtocol() === 'https:')){
