@@ -515,7 +515,8 @@ tr.clickable:hover{background:#f1f5f9}
             <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
             <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
             Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
-            <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.
+            <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
+            <strong>Otevírá se aplikace s adresním řádkem prohlížeče?</strong> Je to jen zástupce (shortcut), ne nainstalovaná aplikace — nainstalujte ji znovu přes menu ⋮ → „Instalovat aplikaci“; pak se otevírá bez adresního řádku a aktualizuje se sama.
           </div>
         </div>
         <div class="card danger-zone">
@@ -3993,7 +3994,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v26';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4069,6 +4070,39 @@ async function forceAppUpdate(){
     }
   }catch(e){}
   location.replace(location.origin + location.pathname + '?v=' + Date.now());
+}
+
+// Porovná verzi běžící aplikace s verzí na serveru (v sw.js) a při rozdílu se
+// sám aktualizuje. Bez toho zůstane nainstalovaná aplikace v telefonu na staré
+// verzi, dokud se nesmaže a znovu nenainstaluje.
+// autoReload = true  → při rozdílu verzi se rovnou načte nová verze (start appky)
+// autoReload = false → jen upozorní (během práce, aby se nic nepřerušilo)
+async function autoUpdateCheck(autoReload){
+  if(!('serviceWorker' in navigator)) return;
+  if(pageProtocol() !== 'http:' && pageProtocol() !== 'https:') return;
+  let server = '';
+  try{
+    const res = await fetch('sw.js?ts=' + Date.now(), {cache: 'no-store'});
+    if(!res.ok) return;
+    const txt = await res.text();
+    const m = txt.match(/CACHE = '(oopp-app-v\d+)'/);
+    if(m) server = m[1];
+  }catch(e){ return; }               // offline — žádná kontrola
+  if(!server) return;
+  if(server === 'oopp-app-' + APP_VERSION){
+    try{ sessionStorage.removeItem('ooppUpdateTries'); }catch(e){}
+    return;
+  }
+  if(!autoReload){
+    toast('Je dostupná nová verze aplikace — zavřete a znovu otevřete aplikaci (nebo ⟳ Aktualizovat aplikaci v záložce Data).');
+    return;
+  }
+  let tries = 0;
+  try{ tries = parseInt(sessionStorage.getItem('ooppUpdateTries') || '0', 10) || 0; }catch(e){}
+  if(tries >= 3) return;             // pojistka, aby se aplikace nezacyklila
+  try{ sessionStorage.setItem('ooppUpdateTries', String(tries + 1)); }catch(e){}
+  toast('Načítám novou verzi aplikace…');
+  await forceAppUpdate();
 }
 
 function promptInstall(){
@@ -4216,13 +4250,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // V desktopovém okně (OOPP.exe) jsou soubory lokální, service worker není potřeba.
   if('serviceWorker' in navigator && !isDesktopShell() && (pageProtocol() === 'http:' || pageProtocol() === 'https:')){
-    navigator.serviceWorker.register('sw.js').then(function(reg){
+    // updateViaCache: 'none' = prohlížeč si nesmí brát sw.js z vlastní cache,
+    // jinak by nainstalovaná aplikace zůstala na staré verzi.
+    navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).then(function(reg){
       // Zeptat se hned, jestli na serveru neleží novější verze (mobil ji jinak
       // drží v offline paměti, dokud se appka úplně nezavře).
       try{ reg.update(); }catch(e){}
       const hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', function(){
         if(hadController) toast('Nová verze aplikace je připravena — klepněte na „⟳ Aktualizovat aplikaci“ v záložce Data.');
+      });
+      // Vlastní kontrola verze — aplikace se takto zaktualizuje sama, i když
+      // je nainstalovaná na ploše telefonu.
+      autoUpdateCheck(true);
+      setInterval(function(){ autoUpdateCheck(false); }, 30 * 60 * 1000);
+      document.addEventListener('visibilitychange', function(){
+        if(!document.hidden) autoUpdateCheck(false);
       });
     }).catch(function(){});
   }

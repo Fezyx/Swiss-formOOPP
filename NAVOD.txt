@@ -63,11 +63,15 @@ Aplikace na mobil a tablet (stejná data jako na PC)
 - V cloudu (Data → „☁ Cloud") stačí na každém zařízení přihlásit se stejným
   emailem a heslem (ostatní údaje jsou přednastavené) — data se pak ukládají
   na všech zařízeních a knížka s podpisy jde vytisknout z kteréhokoli z nich.
-- Aktualizace aplikace: Záložka Data → karta „Instalace do telefonu / tabletu"
-  dole vypisuje „Verze aplikace: vXX · offline paměť: oopp-app-vXX". Když mobil
-  zobrazuje starou verzi, klepněte na „⟳ Aktualizovat aplikaci" — smaže offline
-  paměť, odregistruje service worker a načte aktuální verzi. Data v zařízení
-  (ani v cloudu) to nesmaže.
+- Aktualizace aplikace: aplikace se aktualizuje sama. Při každém spuštění
+  porovná svou verzi s verzí na serveru a když je na serveru novější, sama
+  ji stáhne a znovu se načte (poznáte to hláškou „Načítám novou verzi
+  aplikace…“). Telefon ani PC se nemusí odinstalovávat.
+  Záložka Data → karta „Instalace do telefonu / tabletu“ dole vypisuje
+  „Verze aplikace: vXX · offline paměť: oopp-app-vXX“ — podle toho poznáte,
+  jakou verzi zařízení používá. Kdyby se někdy aktualizace zasekla, klepněte
+  na „⟳ Aktualizovat aplikaci“ (smaže offline paměť a načte aktuální verzi;
+  data v zařízení ani v cloudu to nesmaže).
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:

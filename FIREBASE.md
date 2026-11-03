@@ -161,20 +161,24 @@ Po instalaci se aplikace otevírá z plochy jako běžná aplikace (bez adresní
 
 ### Mobil zobrazuje starou verzi aplikace
 
-Nainstalovaná aplikace (PWA) si drží stránku v offline paměti zařízení, takže
-může chvíli běžet stará verze — poznáte to podle toho, že chybí nové prvky
-(např. předvyplněné Project ID / Web API klíč).
+Nainstalovaná aplikace (PWA) si drží stránku v offline paměti zařízení. Proto
+má **vlastní kontrolu verze**: při každém spuštění (a pak každých 30 minut)
+porovná `APP_VERSION` v běžící stránce s verzí na serveru (`CACHE` v `sw.js`).
+Když je na serveru novější verze, aplikace sama smaže offline paměť,
+odregistruje service worker a znovu se načte — **odinstalace není potřeba**.
 
-1. V aplikaci otevřete **Data → Instalace do telefonu / tabletu** a zkontrolujte
-   řádek **„Verze aplikace: vXX · offline paměť: oopp-app-vXX“**.
-2. Klepněte na **⟳ Aktualizovat aplikaci** — smaže offline paměť, odregistruje
-   service worker a načte aktuální verzi z internetu. Data v zařízení ani
-   v cloudu to nesmaže.
-3. Když tlačítko v telefonu není (běží opravdu stará verze): otevřete adresu
-   aplikace v prohlížeči (ne přes ikonu na ploše), načtěte stránku a ikonu
-   na ploše případně přidejte znovu. V Chrome/Edge pomůže i
-   **Nastavení stránky → Vymazat data** (smaže ale i data uložená v zařízení
-   — nejdřív si udělejte zálohu v *Data → Záloha*).
+1. Verzi zkontrolujete v **Data → Instalace do telefonu / tabletu** na řádku
+   **„Verze aplikace: vXX · offline paměť: oopp-app-vXX“**.
+2. Když aktualizace nedoběhne (např. telefon byl celou dobu offline), klepněte
+   na **⟳ Aktualizovat aplikaci** — to samé udělá ručně.
+3. Když tlačítko v zařízení vůbec není (běží opravdu hodně stará verze,
+   např. před zavedením kontroly verze), otevřete adresu aplikace
+   **v prohlížeči** (ne přes ikonu na ploše) a ikonu na ploše přidejte znovu.
+   V Chrome/Edge pomůže i **Nastavení stránky → Vymazat data** (smaže ale
+   i data uložená v zařízení — nejdřív *Data → Záloha*).
+
+> Pozn.: první přechod na verzi s automatickou aktualizací musí každé zařízení
+> udělat ručně (jednorázově) — stará verze o nové ještě neví.
 
 ## 7. Alternativy (bez Firebase)
 
