@@ -459,6 +459,12 @@ tr.clickable:hover{background:#f1f5f9}
           <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
           <label>Má nárok (dle zákona)</label>
           <div class="row" style="margin-top:2px">
+            <select id="funcClaimSelect" class="grow">
+              <option value="">＋ vybrat z předmětů (přidá se hned)…</option>
+            </select>
+          </div>
+          <div class="sig-hint" style="margin-top:4px">nebo přidejte vlastní název a životnost:</div>
+          <div class="row" style="margin-top:2px">
             <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
             <input type="text" id="funcClaimLifetime" list="lifetimeOptions" placeholder="životnost (volitelné)" autocomplete="off" style="max-width:180px">
             <button type="button" class="btn outline" id="btnFuncAddClaim">＋ přidat</button>
@@ -1645,7 +1651,7 @@ function renderFunctionClaims(){
   const box = document.getElementById('funcClaims');
   if(!box) return;
   if(functionClaims.length === 0){
-    box.innerHTML = '<div class="sig-hint">Zatím žádná položka — napište název (případně životnost) a klikněte „＋ přidat“.</div>';
+    box.innerHTML = '<div class="sig-hint">Zatím žádná položka — vyberte z předmětů výše nebo napište vlastní název.</div>';
     return;
   }
   box.innerHTML = functionClaims.map(function(c, i){
@@ -1653,6 +1659,39 @@ function renderFunctionClaims(){
       (c.lifetime ? '<span class="claim-life">' + escapeHtml(c.lifetime) + '</span>' : '') +
       '<button type="button" class="claim-x" data-claim-i="' + i + '" aria-label="Odebrat">✕</button></span>';
   }).join('');
+}
+
+// Rolovací seznam „vybrat z předmětů“ — už přidané položky se vynechají.
+function renderFunctionSelect(){
+  const sel = document.getElementById('funcClaimSelect');
+  if(!sel) return;
+  const added = {};
+  functionClaims.forEach(function(c){ added[normalizeFunctionName(c.name)] = true; });
+  let opts = '<option value="">＋ vybrat z předmětů (přidá se hned)…</option>';
+  db.items.forEach(function(it){
+    if(added[normalizeFunctionName(it.name)]) return;
+    const life = lifetimeLabel(it);
+    opts += '<option value="' + it.id + '">' + escapeHtml(it.name) + (life ? ' — ' + escapeHtml(life) : '') + '</option>';
+  });
+  sel.innerHTML = opts;
+}
+
+function addFunctionClaimFromSelect(){
+  const sel = document.getElementById('funcClaimSelect');
+  if(!sel || !sel.value) return;
+  const it = db.items.find(function(x){ return x.id === sel.value; });
+  if(!it){ sel.value = ''; return; }
+  const name = String(it.name || '').replace(/\s+/g, ' ').trim();
+  const lifetime = lifetimeLabel(it);
+  const key = normalizeFunctionName(name);
+  if(functionClaims.some(function(c){ return normalizeFunctionName(c.name) === key; })){
+    toast('Tato položka už v seznamu je.');
+    sel.value = '';
+    return;
+  }
+  functionClaims.push({name: name, lifetime: lifetime});
+  renderFunctionClaims();
+  renderFunctionSelect();
 }
 
 function addFunctionClaim(){
@@ -1727,6 +1766,7 @@ function renderFunctionList(){
 
 // Vykreslí seznam funkcí a editační formulář (stav zůstává zachován).
 function renderFunctions(){
+  renderFunctionSelect();
   renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', checkedIdsIn('funcCanIssue'));
   renderFunctionList();
@@ -1753,6 +1793,7 @@ function resetFunctionForm(){
   if(input) input.value = '';
   const lifeInput = document.getElementById('funcClaimLifetime');
   if(lifeInput) lifeInput.value = '';
+  renderFunctionSelect();
   renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', []);
   document.getElementById('btnAddFunction').textContent = 'Přidat funkci';
@@ -1769,6 +1810,7 @@ function editFunction(id){
   if(input) input.value = '';
   const lifeInput = document.getElementById('funcClaimLifetime');
   if(lifeInput) lifeInput.value = '';
+  renderFunctionSelect();
   renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', f.canIssue || []);
   document.getElementById('btnAddFunction').textContent = 'Uložit změny';
@@ -4011,6 +4053,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('funcClaimLifetime').addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); addFunctionClaim(); }
   });
+  document.getElementById('funcClaimSelect').addEventListener('change', addFunctionClaimFromSelect);
   document.getElementById('funcClaims').addEventListener('click', function(e){
     const x = e.target.closest ? e.target.closest('.claim-x') : null;
     if(x) removeFunctionClaim(parseInt(x.dataset.claimI, 10));
