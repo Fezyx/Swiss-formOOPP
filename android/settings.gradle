@@ -1,0 +1,21 @@
+/* Evidence OOPP — nastavení Gradle pro Android APK.
+   Projekt se nesestavuje na počítači, ale automaticky na GitHubu
+   (.github/workflows/android-apk.yml) — výsledné APK ke stažení je
+   v Releases pod značkou „apk“. */
+pluginManagement {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+  }
+}
+
+dependencyResolutionManagement {
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+
+rootProject.name = 'EvidenceOOPP'
+include ':app'

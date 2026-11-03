@@ -83,6 +83,22 @@ Aplikace na mobil a tablet (stejná data jako na PC)
   na „⟳ Aktualizovat aplikaci“ (smaže offline paměť a načte aktuální verzi;
   data v zařízení ani v cloudu to nesmaže).
 
+Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
+- Postup je v souboru APK.md. Ve zkratce:
+  1. V telefonu/tabletu otevřete adresu
+     https://github.com/Fezyx/Swiss-formOOPP/releases/latest/download/OOPP.apk
+  2. Stáhne se OOPP.apk → klepněte na něj → povolte „instalaci z tohoto
+     zdroje“ a případně „Přesto nainstalovat“ (Play Protect).
+  3. Na ploše je ikona „Evidence OOPP“. Při prvním spuštění potřebuje
+     internet, pak už funguje i offline.
+- APK sestavuje automaticky GitHub (Actions → „Android APK“), na počítači
+  se nic sestavovat nemusí. Novou verzi APK stahujte pořád ze stejné adresy
+  a instalujte přes starou — data v zařízení zůstávají.
+- Aplikace uvnitř APK se aktualizuje sama z webu (jako v prohlížeči), takže
+  nové APK je potřeba jen výjimečně.
+- V APK navíc funguje tisk přes tiskárnu Androidu (i „Uložit jako PDF“)
+  a exporty (PDF, CSV, záloha) se ukládají do složky Stahování.
+
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:
   • „Export PDF" uloží knížku (evidenční list + listy výdejů s podpisy) do PDF,

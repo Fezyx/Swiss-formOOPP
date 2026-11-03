@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evidence OOPP — bez připojení</title>
+  <style>
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:#17324d;color:#e2e8f0;font-family:'Segoe UI',Roboto,sans-serif;padding:24px;
+    }
+    .card{
+      max-width:420px;width:100%;background:#1f3f60;border-radius:16px;padding:26px;
+      text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.35);
+    }
+    h1{font-size:1.15rem;margin:0 0 10px}
+    p{font-size:.92rem;line-height:1.55;margin:0 0 14px;color:#cbd8e5}
+    ol{text-align:left;font-size:.88rem;line-height:1.6;color:#cbd8e5;margin:0 0 18px 18px;padding:0}
+    button{
+      width:100%;padding:14px 18px;border:0;border-radius:10px;background:#2f80ed;color:#fff;
+      font-size:1rem;font-weight:600;cursor:pointer;
+    }
+    button:active{background:#1c66c9}
+    .hint{font-size:.78rem;color:#93a7bb;margin:14px 0 0}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📶 Aplikace teď nemá připojení k internetu</h1>
+    <p>Tato stránka se zobrazila, protože se první načtení aplikace nepovedlo.
+       Data v zařízení ani v cloudu se tím nemažou.</p>
+    <ol>
+      <li>Zkontrolujte, že je tablet / telefon připojený k Wi-Fi.</li>
+      <li>Klepněte na tlačítko níže.</li>
+    </ol>
+    <button type="button" id="retry">🔄 Zkusit znovu</button>
+    <p class="hint">Až se aplikace jednou načte, půjde otevřít i bez internetu
+       (data zůstávají v zařízení a odešlou se, až bude připojení).</p>
+  </div>
+  <script>
+    var START = 'https://fezyx.github.io/Swiss-formOOPP/';
+    document.getElementById('retry').addEventListener('click', function(){
+      location.href = START;
+    });
+    setTimeout(function(){ location.href = START; }, 12000);
+  </script>
+</body>
+</html>

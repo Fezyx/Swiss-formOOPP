@@ -6,3 +6,16 @@ OOPP.exe
 *.dll
 OOPP.ico
 Pridat-na-plochu.bat
+
+# --- Android / APK ---
+# APK se nesestavuje na počítači, ale automaticky na GitHubu
+# (.github/workflows/android-apk.yml), proto se build složky necommitují.
+# Podpisový klíč android/keystore/oopp.jks se naopak commituje schválně —
+# díky stejnému klíči jde nová verze nainstalovat přes starou.
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.iml

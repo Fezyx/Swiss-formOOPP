@@ -1,0 +1,55 @@
+/* APK „Evidence OOPP“ — tenký nativní obal (WebView), který otevírá
+   aplikaci z GitHub Pages, takže se aktualizuje stejně jako v prohlížeči.
+   Navíc umí to, co WebView sám neumí: tisk, ukládání exportů do složky
+   Stahování a výběr souboru pro import zálohy.
+
+   Verzi dodává GitHub Actions:
+     -PappVersionName=v28 -PappVersionCode=<číslo běhu> */
+plugins {
+  id 'com.android.application'
+}
+
+def ksFile = rootProject.file('keystore/oopp.jks')
+def ksPass = System.getenv('OOPP_KS_PASS') ?: 'ooppKeystore2026'
+
+android {
+  namespace 'cz.swissform.oopp'
+  compileSdk 34
+
+  defaultConfig {
+    applicationId 'cz.swissform.oopp'
+    minSdk 24                 // Android 7 a novější
+    targetSdk 34
+    versionCode (project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 1)
+    versionName (project.hasProperty('appVersionName') ? project.appVersionName.toString() : 'v28')
+  }
+
+  signingConfigs {
+    release {
+      if (ksFile.exists()) {
+        storeFile ksFile
+        storeType 'JKS'
+        storePassword ksPass
+        keyAlias 'oopp'
+        keyPassword ksPass
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      shrinkResources false
+      if (ksFile.exists()) signingConfig signingConfigs.release
+    }
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  lint {
+    abortOnError false
+  }
+}

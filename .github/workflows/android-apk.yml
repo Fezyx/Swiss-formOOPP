@@ -1,0 +1,112 @@
+name: Android APK
+
+# Sestaví instalační soubor (APK) aplikace „Evidence OOPP“ a pověsí ho do
+# Releases pod značkou „apk“. Adresa ke stažení je pak pořád stejná:
+#   https://github.com/Fezyx/Swiss-formOOPP/releases/latest/download/OOPP.apk
+#
+# APK je jen obal — aplikace se načítá z GitHub Pages, takže se aktualizuje
+# sama stejně jako v prohlížeči.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Heslo k podpisovému klíči (klíč se vytvoří sám při prvním běhu a uloží
+      # se do repozitáře, aby šly nové verze instalovat přes staré).
+      OOPP_KS_PASS: ooppKeystore2026
+    steps:
+      - name: Stažení repozitáře
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Podpisový klíč (vytvoří se jen při prvním běhu)
+        run: |
+          set -e
+          if [ -f android/keystore/oopp.jks ]; then
+            echo "Podpisový klíč v repozitáři existuje — použije se."
+            exit 0
+          fi
+          echo "Podpisový klíč chybí — vytvářím nový."
+          mkdir -p android/keystore
+          keytool -genkeypair \
+            -keystore android/keystore/oopp.jks \
+            -storetype JKS \
+            -alias oopp \
+            -keyalg RSA -keysize 2048 -validity 36500 \
+            -storepass "$OOPP_KS_PASS" -keypass "$OOPP_KS_PASS" \
+            -dname "CN=Swissform OOPP, O=Swissform, C=CZ"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/keystore/oopp.jks
+          git commit -m "APK: podpisovy klic (vytvoreno automaticky)"
+          git push
+
+      - name: Zjištění verze aplikace
+        id: verze
+        run: |
+          set -e
+          V=$(grep -o "APP_VERSION = '[^']*'" index.html | head -1 | sed "s/.*'\(.*\)'/\1/")
+          if [ -z "$V" ]; then V="v0"; fi
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "Verze aplikace: $V (build ${{ github.run_number }})"
+
+      - name: Sestavení APK
+        run: |
+          gradle -p android assembleRelease --no-daemon --stacktrace \
+            -PappVersionName="${{ steps.verze.outputs.name }}" \
+            -PappVersionCode="${{ steps.verze.outputs.code }}"
+
+      - name: Přejmenování na OOPP.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk OOPP.apk
+
+      - name: Uložení jako artefakt
+        uses: actions/upload-artifact@v4
+        with:
+          name: OOPP-apk-${{ steps.verze.outputs.name }}
+          path: OOPP.apk
+          if-no-files-found: error
+
+      - name: Vydání ke stažení (Releases)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: Evidence OOPP — APK (${{ steps.verze.outputs.name }})
+          make_latest: true
+          body: |
+            Instalační soubor aplikace pro Android (telefon i tablet).
+
+            **Stažení:** klepněte níže na `OOPP.apk`, nebo použijte pořád stejnou adresu
+            https://github.com/Fezyx/Swiss-formOOPP/releases/latest/download/OOPP.apk
+
+            - Verze aplikace: ${{ steps.verze.outputs.name }}
+            - Sestaveno z commitu: ${{ github.sha }}
+            - Instaluje se přes starou verzi — data v zařízení i v cloudu zůstávají.
+            - Návod krok za krokem je v souboru APK.md.
+          files: OOPP.apk
+          fail_on_unmatched_files: true

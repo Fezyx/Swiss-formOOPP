@@ -1014,8 +1014,29 @@ function safeName(s){
   return (s || 'export').replace(/[^a-z0-9\u00e1\u00e9\u011b\u00ed\u00fd\u00f3\u00fa\u016f\u017e\u0161\u010d\u0159\u010f\u0165\u0148\u00c1\u00c9\u011a\u00cd\u00dd\u00d3\u00da\u016e\u017d\u0160\u010c\u0158\u010e\u0164\u0147]+/gi, '_');
 }
 
+// Převede obsah souboru na base64 — tak se soubor předává do nativní části APK.
+function blobToBase64(blob, done){
+  const reader = new FileReader();
+  reader.onload = function(){
+    const s = String(reader.result || '');
+    done(s.slice(s.indexOf(',') + 1));
+  };
+  reader.onerror = function(){ toast('Soubor se nepodařilo připravit.'); };
+  reader.readAsDataURL(blob);
+}
+
 function downloadBlob(content, filename, type){
   const blob = new Blob([content], {type: type});
+  if(isAndroidShell()){
+    // V APK (Android WebView) stahování souborů nefunguje — soubor předáme
+    // nativní části, která ho uloží do složky Stahování telefonu/tabletu.
+    const mime = type || 'application/octet-stream';
+    blobToBase64(blob, function(b64){
+      try{ window.OOPPAndroid.saveFile(filename, b64, mime); }
+      catch(err){ toast('Soubor se nepodařilo uložit.'); }
+    });
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -2281,8 +2302,34 @@ function printDocHeader(title){
 }
 
 function doPrint(){
+  if(isAndroidShell()){
+    // Android WebView neumí window.print() — tisk spustí nativní část
+    // (dialog Androidu umí i „Uložit jako PDF“).
+    try{
+      window.OOPPAndroid.printPage('Evidence OOPP');
+      return;
+    }catch(err){}
+  }
   window.print();
 }
+
+// Tlačítko Zpět v Androidu: nejdřív zavře otevřený podpis, výběr data nebo
+// detail zaměstnance, a teprve když není co zavřít, aplikace se ukončí.
+function ooppAndroidBack(){
+  const sig = document.getElementById('sigOverlay');
+  if(sig && !sig.classList.contains('hidden')){ hideSignature(); return true; }
+  const picker = document.getElementById('issueDatePicker');
+  if(picker && !picker.classList.contains('hidden')){ closeDatePicker(); return true; }
+  const setup = document.getElementById('fileSetup');
+  if(setup && !setup.classList.contains('hidden')){
+    setup.classList.add('hidden');
+    try{ localStorage.setItem('oopp_fs_dismissed', '1'); }catch(e){}
+    return true;
+  }
+  if(currentEmployeeId){ closeEmployeeDetail(); return true; }
+  return false;
+}
+window.__ooppBack = ooppAndroidBack;
 
 // Po zavření tisku vrátit tiskovou plochu do výchozího stavu (knížka má vlastní sazbu stránek).
 function resetPrintArea(){
@@ -4002,7 +4049,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4019,6 +4066,13 @@ function isDesktopShell(){
   return !!(window.__OOPP_DESKTOP__ || (window.chrome && window.chrome.webview));
 }
 
+// Běží appka jako APK v Androidu? Nativní obal (MainActivity) vkládá most
+// OOPPAndroid — přes něj jde tisk a ukládání souborů, protože WebView sám
+// window.print() ani stahování souborů neumí.
+function isAndroidShell(){
+  return !!(window.OOPPAndroid && typeof window.OOPPAndroid.saveFile === 'function');
+}
+
 function installButtons(){
   return ['btnInstall', 'btnInstall2'].map(function(id){
     return document.getElementById(id);
@@ -4029,15 +4083,18 @@ function refreshInstallUI(){
   const standalone = isAppStandalone();
   const canPrompt = !!installPromptEvent;
   const desktop = isDesktopShell();
+  const android = isAndroidShell();
   const card = document.getElementById('installCard');
   if(card) card.classList.toggle('hidden', desktop);
   installButtons().forEach(function(btn){
-    btn.classList.toggle('hidden', standalone || !canPrompt || desktop);
+    btn.classList.toggle('hidden', standalone || !canPrompt || desktop || android);
   });
   if(desktop) return;
   const hint = document.getElementById('installHint');
   if(!hint) return;
-  if(standalone){
+  if(android){
+    hint.innerHTML = 'Aplikace je nainstalovaná jako <strong>APK</strong> — novou verzi si načítá z webu sama, přeinstalace není potřeba. Exporty (PDF, CSV, záloha) se ukládají do složky <strong>Stahování</strong> v zařízení.';
+  } else if(standalone){
     hint.textContent = 'Aplikace je nainstalovaná — spouští se z plochy zařízení a funguje i bez internetu.';
   } else if(pageProtocol() === 'file:'){
     hint.textContent = 'Aplikaci otevíráte přímo ze souboru na disku. Instalace je možná až po otevření přes webovou adresu (http/https).';
