@@ -77,10 +77,13 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
 ---------------------------------
 1. GitHub → záložka „Actions“ → „Android APK“ → červený běh → krok, který
    spadl (červený křížek) → text chyby.
-2. Nejčastější příčiny: dočasný výpadek GitHubu, změna verze Gradle/Android
+2. Při chybě workflow sám uloží text sestavení do souboru
+   „apk-build-log.txt“ v repozitáři — tam je vidět přesná příčina
+   (klidně ho po vyřešení smažte).
+3. Nejčastější příčiny: dočasný výpadek GitHubu, změna verze Gradle/Android
    pluginu. Řešení: „Re-run all jobs“, nebo upravit verze v
    android/build.gradle (AGP) a v .github/workflows/android-apk.yml (Gradle).
-3. APK z dřívějška funguje dál — aplikace v něm se aktualizuje z webu,
+4. APK z dřívějška funguje dál — aplikace v něm se aktualizuje z webu,
    takže není kam spěchat.
 
 
