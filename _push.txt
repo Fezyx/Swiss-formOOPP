@@ -1,0 +1,30 @@
+﻿git : To https://g
+ithub.com/Fezyx/Sw
+iss-formOOPP.git
+At line:1 char:112
++ ... orce -ErrorA
+ction SilentlyCont
+inue; git push ori
+gin main 2>&1 | Ou
+t-F ...
++                 
+                  
+      ~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInf 
+   o          :   
+  NotSpecified:   
+  (To https://    
+gith...ss-for    m
+OOPP.git:Str    in
+g) [], Remo    teE
+xception
+    + FullyQualif 
+   iedErrorId :   
+  NativeCommand   
+ Error
+ 
+   8d6282c..f13cb2
+c  main -> main
+## main...origin/main
+?? _push.txt
