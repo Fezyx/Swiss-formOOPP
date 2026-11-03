@@ -201,9 +201,9 @@ tr.clickable:hover{background:#f1f5f9}
   .bk-page{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="dependencies/firebase/firebase-app-compat.js"></script>
+  <script defer src="dependencies/firebase/firebase-auth-compat.js"></script>
+  <script defer src="dependencies/firebase/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div id="splash">
@@ -3993,7 +3993,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 let installPromptEvent = null;
 
 function isAppStandalone(){

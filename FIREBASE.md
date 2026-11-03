@@ -116,8 +116,14 @@ Aplikace může běžet z veřejné adresy — aktualizace = `git push`.
 |---|---|
 | `Přihlášení se nezdařilo (auth/invalid-credential)` | špatný email/heslo, nebo Email/Password metoda není zapnutá |
 | `auth/configuration-not-found` | špatné Project ID / Web API klíč |
-| `Firebase SDK se nenačetlo` | není internet — obnovte stránku po připojení |
+| `auth/network-request-failed` | zařízení nemá internet, nebo síť blokuje `*.googleapis.com` (firemní Wi-Fi, VPN) |
+| `Firebase SDK se nenačetlo` | soubor `dependencies/firebase/*.js` chybí vedle `index.html` (nebo se nepodařilo načíst stránku) |
 | `Missing or insufficient permissions` | v Rules není `request.auth != null`, nebo nejste přihlášení |
+
+> **Firebase SDK je součástí aplikace** (složka `dependencies/firebase/`) —
+> netahá se z internetu. Na mobilu tedy cloud neblokuje AdBlock, VPN ani filtr
+> DNS a SDK funguje i offline. Při kopírování aplikace na jiné PC/disk proto
+> nezapomeňte na celou složku `dependencies`.
 
 ## 6. Počítač + mobil — stejná data, aplikace na plochu
 
@@ -152,6 +158,23 @@ Po instalaci se aplikace otevírá z plochy jako běžná aplikace (bez adresní
 * Na obou zařízeních musí být **stejné Project ID** a **stejný uživatel**.
 * Při hlášce o konfliktu zvolte **Sloučit** — spojí záznamy z obou zařízení,
   u stejného záznamu vyhraje novější.
+
+### Mobil zobrazuje starou verzi aplikace
+
+Nainstalovaná aplikace (PWA) si drží stránku v offline paměti zařízení, takže
+může chvíli běžet stará verze — poznáte to podle toho, že chybí nové prvky
+(např. předvyplněné Project ID / Web API klíč).
+
+1. V aplikaci otevřete **Data → Instalace do telefonu / tabletu** a zkontrolujte
+   řádek **„Verze aplikace: vXX · offline paměť: oopp-app-vXX“**.
+2. Klepněte na **⟳ Aktualizovat aplikaci** — smaže offline paměť, odregistruje
+   service worker a načte aktuální verzi z internetu. Data v zařízení ani
+   v cloudu to nesmaže.
+3. Když tlačítko v telefonu není (běží opravdu stará verze): otevřete adresu
+   aplikace v prohlížeči (ne přes ikonu na ploše), načtěte stránku a ikonu
+   na ploše případně přidejte znovu. V Chrome/Edge pomůže i
+   **Nastavení stránky → Vymazat data** (smaže ale i data uložená v zařízení
+   — nejdřív si udělejte zálohu v *Data → Záloha*).
 
 ## 7. Alternativy (bez Firebase)
 

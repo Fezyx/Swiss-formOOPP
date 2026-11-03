@@ -1,13 +1,16 @@
 /* Service worker — offline režim aplikace Evidence OOPP.
    Data se ukládají do zařízení (localStorage / soubor) a volitelně do cloudu
    (Firebase), tady se cachuje jen aplikace. */
-const CACHE = 'oopp-app-v24';
+const CACHE = 'oopp-app-v25';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './dependencies/logo.png',
   './dependencies/logo-inverse.png',
+  './dependencies/firebase/firebase-app-compat.js',
+  './dependencies/firebase/firebase-auth-compat.js',
+  './dependencies/firebase/firebase-firestore-compat.js',
   './dependencies/icons/icon-192.png',
   './dependencies/icons/icon-512.png',
   './dependencies/icons/icon-maskable-512.png',
