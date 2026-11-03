@@ -11,17 +11,41 @@ Každé zařízení má navíc lokální kopii, takže se pracuje i bez internet
 
 ## 1. Založení projektu Firebase
 
+> **Nové rozhraní Firebase (2025+)** má jiné menu než staré návody. Vlevo nahoře
+> je **Search for products** — tudy najdete všechno. Cesty níže platí pro nové
+> rozhraní (ve starším se používalo „Build → …").
+
 1. <https://console.firebase.google.com> → **Add project** (název např. `oopp-evidence`).
-2. V projektu zapněte:
-   - **Build → Authentication → Get started → Sign-in method → Email/Password → Enable** (a uložit).
-   - **Build → Authentication → Users → Add user** → zadejte firemní email + heslo
+
+2. **Přihlašování (Authentication)** — vlevo **Security → Authentication**,
+   nebo napište do vyhledávání `Authentication`:
+   - **Get started** → karta **Sign-in method** → **Email/Password** → **Enable** → **Save**.
+   - karta **Users** → **Add user** → firemní email + heslo
      (jeden sdílený účet pro tablet i PC).
-   - **Build → Firestore Database → Create database** → produkční mód, region
-     `europe-west3` (Frankfurt).
+
+3. **Databáze (Firestore)** — vlevo **Databases & Storage → Firestore**
+   (nebo vyhledat `Firestore`):
+   - **Create database** → **Production mode** → umístění **europe-west3**
+     (Frankfurt) → **Create**. Pravidla viz bod 2.
+
+4. **Klíče pro aplikaci** — na **Project Overview** klikněte **+ Add app**
+   a vyberte **Web** (ikona `</>`):
+   - název např. `OOPP` → **Register app** (Hosting zapínat nemusíte),
+   - Firebase ukáže `firebaseConfig` — opište `projectId` a `apiKey`.
+   - Stejné hodnoty jsou i v **⚙ Settings → Project settings → General**.
+
+Rychlý tahák (nové vs. staré menu):
+
+| co potřebujete | nové rozhraní (2025+) | starší návody |
+|---|---|---|
+| přihlašování | **Security → Authentication** | Build → Authentication |
+| databáze | **Databases & Storage → Firestore** | Build → Firestore Database |
+| Project ID a Web API klíč | **+ Add app → Web**, nebo **⚙ Settings → Project settings → General** | Project settings → General |
 
 ## 2. Pravidla (Security Rules)
 
-V **Firestore Database → Rules** vložte:
+V **Firestore → Rules** (v novém rozhraní *Databases & Storage → Firestore → Rules*)
+vložte:
 
 ```
 rules_version = '2';
@@ -38,7 +62,8 @@ Toto pravidlo = **jen přihlášený uživatel** (Firebase Auth) smí data čís
 
 ## 3. Údaje do aplikace
 
-V **Project Settings → General** najděte **Web API Key** a **Project ID**.
+V **⚙ Settings → Project settings → General** najděte **Project ID** a **Web API Key**
+(stejné hodnoty, jaké ukáže **+ Add app → Web** v `firebaseConfig` jako `projectId` a `apiKey`).
 Do aplikace (Data → ☁ Cloud) zadejte:
 
 | pole | hodnota |

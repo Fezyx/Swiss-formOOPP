@@ -1,7 +1,7 @@
 /* Service worker — offline režim aplikace Evidence OOPP.
    Data se ukládají do zařízení (localStorage / soubor) a volitelně do cloudu
    (Firebase), tady se cachuje jen aplikace. */
-const CACHE = 'oopp-app-v21';
+const CACHE = 'oopp-app-v22';
 const ASSETS = [
   './',
   './index.html',
