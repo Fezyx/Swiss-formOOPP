@@ -289,7 +289,7 @@ tr.clickable:hover{background:#f1f5f9}
         <div id="employeeList" class="hidden" style="margin-top:14px"></div>
       </div>
       <div class="card" id="empAddCard">
-        <h2>Přidat zaměstnance</h2>
+        <h2 id="empAddTitle">Přidat zaměstnance</h2>
         <label>Jméno a příjmení</label>
         <input type="text" id="empName" placeholder="např. Jan Novák">
         <label>Osobní číslo (volitelné)</label>
@@ -297,7 +297,10 @@ tr.clickable:hover{background:#f1f5f9}
         <label>Funkce (volitelné — určuje, na co má nárok)</label>
         <select id="empFunction"><option value="">— bez funkce —</option></select>
         <div class="sig-hint">Funkce/pozice a jejich nároky („má nárok“) spravujte v sekci <strong>Data → Funkce a pozice</strong>.</div>
-        <div style="margin-top:12px"><button class="btn" id="btnAddEmployee">Přidat zaměstnance</button></div>
+        <div style="margin-top:12px" class="row">
+          <button class="btn" id="btnAddEmployee">Přidat zaměstnance</button>
+          <button class="btn outline hidden" id="btnCancelEditEmployee">Zrušit</button>
+        </div>
       </div>
       <div class="card" id="empImportCard">
         <h2>Import seznamu zaměstnanců</h2>
@@ -1297,69 +1300,64 @@ function renderEmployees(){
     }).join('') + '</tbody></table>';
 }
 
+let editingEmployeeId = null;
+
+function resetEmployeeForm(){
+  editingEmployeeId = null;
+  document.getElementById('empName').value = '';
+  document.getElementById('empPersonalNumber').value = '';
+  document.getElementById('empFunction').value = '';
+  document.getElementById('empAddTitle').textContent = 'Přidat zaměstnance';
+  document.getElementById('btnAddEmployee').textContent = 'Přidat zaměstnance';
+  document.getElementById('btnCancelEditEmployee').classList.add('hidden');
+}
+
 function addEmployee(){
   const name = document.getElementById('empName').value.trim();
   const personalNumber = document.getElementById('empPersonalNumber').value.trim();
   const fn = functionById(document.getElementById('empFunction').value);
   if(!name){ toast('Zadejte jméno.'); return; }
-  if(personalNumber && db.employees.some(function(e){ return e.personalNumber === personalNumber; })){
+  if(personalNumber && db.employees.some(function(e){ return e.personalNumber === personalNumber && e.id !== editingEmployeeId; })){
     toast('Zaměstnanec s osobním číslem ' + personalNumber + ' už existuje.');
     return;
   }
-  db.employees.push(touchRec({id: uid(), name: name, personalNumber: personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
+  if(editingEmployeeId){
+    const e = db.employees.find(function(x){ return x.id === editingEmployeeId; });
+    if(e){
+      e.name = name;
+      e.personalNumber = personalNumber;
+      e.functionId = fn ? fn.id : '';
+      e.department = fn ? fn.name : '';
+      delete e.birthDate;
+      touchRec(e);
+      toast('Zaměstnanec upraven.');
+    }
+  } else {
+    db.employees.push(touchRec({id: uid(), name: name, personalNumber: personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
+    toast('Zaměstnanec přidán.');
+  }
   save();
-  document.getElementById('empName').value = '';
-  document.getElementById('empPersonalNumber').value = '';
-  document.getElementById('empFunction').value = '';
+  const keepId = editingEmployeeId;
+  resetEmployeeForm();
   renderEmployees();
   populateIssueForm();
-  toast('Zaměstnanec přidán.');
-}
-
-// Volba funkce v dialogu úpravy: číslo ze seznamu nebo (přesný) název funkce.
-function resolveFunctionInput(value){
-  const s = String(value == null ? '' : value).trim();
-  if(!s) return null;
-  if(/^\d+$/.test(s)){
-    const idx = parseInt(s, 10) - 1;
-    if(db.functions[idx]) return db.functions[idx];
-  }
-  return functionByName(s);
+  if(keepId && currentEmployeeId === keepId) refreshEmployeeDetail();
 }
 
 function editEmployee(id){
   const e = db.employees.find(function(x){ return x.id === id; });
   if(!e) return;
-  const name = prompt('Jméno:', e.name);
-  if(name === null) return;
-  const personalNumber = prompt('Osobní číslo (volitelné):', e.personalNumber || '');
-  if(personalNumber === null) return;
-  const options = db.functions.map(function(f, i){ return (i + 1) + ') ' + f.name; }).join('\n');
-  const typed = prompt(
-    'Funkce — napište číslo volby nebo název (prázdné = bez funkce):' +
-    (options ? '\n\n' + options : '\n\n(číselník funkcí je prázdný — přidejte funkci v sekci Data)'),
-    employeeFunctionName(e)
-  );
-  if(typed === null) return;
-  let fn = null;
-  if(String(typed).trim()){
-    fn = resolveFunctionInput(typed);
-    if(!fn){
-      toast('Funkce „' + String(typed).trim() + '“ není v číselníku — vyberte ze seznamu nebo ji nejdřív přidejte v sekci Data.');
-      return;
-    }
-  }
-  e.name = name.trim() || e.name;
-  e.personalNumber = personalNumber.trim();
-  e.functionId = fn ? fn.id : '';
-  e.department = fn ? fn.name : '';
-  delete e.birthDate;
-  touchRec(e);
-  save();
-  renderEmployees();
-  populateIssueForm();
-  if(currentEmployeeId === id) refreshEmployeeDetail();
-  toast('Uloženo.');
+  editingEmployeeId = id;
+  document.getElementById('empName').value = e.name;
+  document.getElementById('empPersonalNumber').value = e.personalNumber || '';
+  refreshFunctionOptions(e.functionId || '');
+  document.getElementById('empAddTitle').textContent = 'Upravit zaměstnance';
+  document.getElementById('btnAddEmployee').textContent = 'Uložit změny';
+  document.getElementById('btnCancelEditEmployee').classList.remove('hidden');
+  showTab('employees');
+  const card = document.getElementById('empAddCard');
+  if(card && card.scrollIntoView) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+  document.getElementById('empName').focus();
 }
 
 function deleteEmployee(id){
@@ -3920,6 +3918,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnClearSig').addEventListener('click', clearSignature);
   document.getElementById('btnSaveIssue').addEventListener('click', saveIssue);
   document.getElementById('btnAddEmployee').addEventListener('click', addEmployee);
+  document.getElementById('btnCancelEditEmployee').addEventListener('click', resetEmployeeForm);
   document.getElementById('empFilter').addEventListener('input', renderEmployees);
   const issueFilter = document.getElementById('issueEmployeeFilter');
   const issueList = document.getElementById('issueEmployeeList');
