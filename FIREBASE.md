@@ -62,26 +62,40 @@ Toto pravidlo = **jen přihlášený uživatel** (Firebase Auth) smí data čís
 
 ## 3. Údaje do aplikace
 
-V **⚙ Settings → Project settings → General** najděte **Project ID** a **Web API Key**
+> **Projekt `swissformoopp` je v aplikaci už přednastavený.** `Project ID`
+> i `Web API klíč` jsou přímo v `index.html` (konstanta `CLOUD_PRESET`), takže
+> na novém zařízení je **nemusíte vypisovat** — zadáte jen **email a heslo**.
+> Webový `apiKey` u Firebase není tajemství (je vidět v každé webové aplikaci
+> na Firebase) — data chrání přihlášení a pravidla ve Firestore.
+> **Heslo se do stránky nikdy nedává** (repo je veřejné) — zadává se ručně
+> jednou na každém zařízení a zůstane v něm uložené.
+
+V **⚙ Settings → Project settings → General** najdete **Project ID** a **Web API Key**
 (stejné hodnoty, jaké ukáže **+ Add app → Web** v `firebaseConfig` jako `projectId` a `apiKey`).
-Do aplikace (Data → ☁ Cloud) zadejte:
+V aplikaci (Data → ☁ Cloud) stačí:
 
 | pole | hodnota |
 |---|---|
-| Poskytovatel | Firebase |
-| ID projektu | `Project ID` (např. `oopp-evidence`) |
-| Web API klíč | `Web API Key` |
+| Poskytovatel | Firebase (přednastaveno) |
+| ID projektu | `swissformoopp` (přednastaveno) |
+| Web API klíč | `AIza…` (přednastaveno) |
 | Přihlašovací email | email uživatele z bodu 1 |
 | Heslo | heslo uživatele z bodu 1 |
-| ID dokumentu | nechte `main` |
+| ID dokumentu | `main` (přednastaveno) |
 
-Klikněte **Uložit nastavení** → **🔑 Přihlásit** → **⟳ Synchronizovat**.
-První zařízení data nahraje, druhé je při první synchronizaci **sloučí**.
-Tlačítko **🧪 Otestovat připojení** ověří přihlášení i databázi a napíše,
-kolik záznamů je v cloudu — hodí se při prvním nastavení a při ladění chyb.
+Klikněte **🔑 Přihlásit** → **🧪 Otestovat připojení** → **⟳ Synchronizovat**.
+Po přihlášení se synchronizace spustí sama („Synchronizovat automaticky“ je
+na novém zařízení zapnuté). První zařízení data nahraje, druhé je při první
+synchronizaci **sloučí**. Tlačítko **🧪 Otestovat připojení** ověří přihlášení
+i databázi a napíše, kolik záznamů je v cloudu — hodí se při prvním nastavení
+a při ladění chyb.
 
 > Heslo se ukládá v zařízení (aby se tablet znovu přihlašoval sám).
 > Držte údaje jen na firemních zařízeních.
+>
+> Změna projektu (jiný `Project ID` / `apiKey`) = upravte `CLOUD_PRESET`
+> v `index.html`; ručně vyplněné hodnoty v aplikaci mají vždy přednost.
+
 
 ## 4. GitHub Pages (hosting aplikace)
 

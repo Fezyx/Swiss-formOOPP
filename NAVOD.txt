@@ -31,9 +31,15 @@ Záloha / přenos dat
   Odhlásíte se tlačítkem „Odhlásit" vpravo nahoře v hlavičce.
 
 Cloud — společná databáze (Firebase) a hosting na GitHubu
-- Záložka Data → „☁ Cloud": vyberte Firebase, vyplňte ID projektu (Project ID),
-  Web API klíč, email a heslo uživatele, klikněte „Uložit nastavení" →
-  „🔑 Přihlásit" → „⟳ Synchronizovat".
+- Projekt „swissformoopp" je v aplikaci UŽ PŘEDNASTAVENÝ: ID projektu i Web API
+  klíč jsou v souboru index.html (CLOUD_PRESET), takže se na novém zařízení
+  nevypisují. Stačí v Záložce Data → „☁ Cloud" zadat email a heslo uživatele
+  a kliknout „🔑 Přihlásit" — data se pak načtou sama (automatická
+  synchronizace je na novém zařízení zapnutá).
+- Web API klíč u Firebase není tajemství — je vidět v každé webové aplikaci
+  na Firebase; data chrání přihlášení a pravidla ve Firestore.
+- HESLO se do aplikace (do souboru index.html) nikdy nedává, protože web je
+  veřejný. Zadává se ručně jednou na každém zařízení a tam zůstane uložené.
 - V cloudu jsou zaměstnanci, předměty, funkce/pozice, výdeje i obrázky
   podpisů — tablet v dílně a počítač v kanceláři tak vidí totéž a knížku
   s podpisy vytisknete z obou zařízení. Data jsou soukromá (přístup jen
@@ -54,9 +60,9 @@ Aplikace na mobil a tablet (stejná data jako na PC)
 - Android: nabídka ⋮ → „Přidat na plochu" / „Instalovat aplikaci".
 - iPhone/iPad: Safari → Sdílet → „Přidat na plochu".
 - Windows/Mac: ikona „Instalovat" v adresním řádku (nebo ⋮ → Aplikace).
-- V cloudu (Data → „☁ Cloud") vyplňte na každém zařízení stejné údaje
-  a zapněte „Synchronizovat automaticky" — data se pak ukládají na všech
-  zařízeních a knížka s podpisy jde vytisknout z kteréhokoli z nich.
+- V cloudu (Data → „☁ Cloud") stačí na každém zařízení přihlásit se stejným
+  emailem a heslem (ostatní údaje jsou přednastavené) — data se pak ukládají
+  na všech zařízeních a knížka s podpisy jde vytisknout z kteréhokoli z nich.
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:

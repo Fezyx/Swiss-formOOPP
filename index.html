@@ -3098,6 +3098,17 @@ function clearAll(){
 
 /* ---------- Cloud (společné seznamy na více zařízeních) ---------- */
 const CLOUD_KEY = 'oopp_cloud_v1';
+/* Přednastavení cloudu: na novém zařízení (mobil, tablet, jiný PC) se pak nemusí
+   vypisovat Project ID a Web API klíč — jsou už v aplikaci.
+   Webový apiKey u Firebase NENÍ tajemství (je vidět v každé webové aplikaci na
+   Firebase), data chrání přihlášení + pravidla ve Firestore.
+   Heslo se sem nikdy nedává — to se zadá jednou na každém zařízení. */
+const CLOUD_PRESET = {
+  provider: 'firebase',
+  url: 'swissformoopp',
+  key: 'AIzaSyDghSHIEfhHGuW_o14m7JAOjnBqIeBNgz0',
+  docId: 'main'
+};
 const CLOUD_PUSH_DELAY = 4000;
 let cloudBusy = false;
 let cloudPushTimer = null;
@@ -3110,17 +3121,33 @@ function cloudDefaults(){
     baseHash: '', lastRev: 0, lastSyncAt: 0, lastSigAt: 0, deviceId: ''};
 }
 
+// True, když zařízení používá právě to nastavení, které je v aplikaci předpřipravené.
+function cloudPresetActive(cfg){
+  return !!cfg && cfg.provider === CLOUD_PRESET.provider
+    && (cfg.url || '') === (CLOUD_PRESET.url || '')
+    && (cfg.key || '') === (CLOUD_PRESET.key || '');
+}
+
 function cloudConfig(){
   const cfg = cloudDefaults();
+  let stored = false;
   try{
     const raw = localStorage.getItem(CLOUD_KEY);
     if(raw){
       const d = JSON.parse(raw);
       if(d && typeof d === 'object'){
+        stored = true;
         Object.keys(cfg).forEach(function(k){ if(d[k] !== undefined) cfg[k] = d[k]; });
       }
     }
   }catch(e){}
+  // Chybějící údaje projektu doplní přednastavení (migrace, nový mobil, vymazaná data prohlížeče).
+  Object.keys(CLOUD_PRESET).forEach(function(k){
+    const v = CLOUD_PRESET[k];
+    if(v && !cfg[k]) cfg[k] = v;
+  });
+  // Na úplně novém zařízení zapnout automatickou synchronizaci (jakmile se zadá heslo).
+  if(!stored && CLOUD_PRESET.provider) cfg.auto = true;
   if(!cfg.deviceId){ cfg.deviceId = uid(); saveCloudConfig(cfg); }
   return cfg;
 }
@@ -3265,6 +3292,9 @@ async function fbLogin(){
     const user = await fbEnsureAuth();
     cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : '?') + '.', 'ok');
     toast('Přihlášeno.');
+    // Po přihlášení hned sladit data s cloudem (u nového zařízení tím appka „naskočí“ sama).
+    const after = cloudConfig();
+    if(after.auto && cloudReady(after) && !cloudBusy) cloudSync('auto');
   }catch(e){
     cloudSetStatus('Chyba přihlášení: ' + e.message, 'err');
     toast('Přihlášení se nezdařilo.');
@@ -3779,7 +3809,7 @@ function cloudSchedulePush(){
 }
 
 const CLOUD_HINTS = {
-  firebase: 'Ve <strong>Firebase</strong> (zdarma) zapněte vlevo <strong>Security → Authentication → Get started → Email/Password → Enable</strong> a přidejte uživatele (<em>Users → Add user</em>). Pak <strong>Databases &amp; Storage → Firestore → Create database</strong> (Production mode, <em>europe-west3</em>) a pravidla z <strong>FIREBASE.md</strong>. <strong>Project ID</strong> a <strong>Web API klíč</strong> ukáže <strong>+ Add app → Web</strong> (nebo ⚙ Settings → Project settings → General). ID dokumentu nechte <em>main</em>.',
+  firebase: '<strong>Tady je projekt už přednastavený</strong> (<em>swissformoopp</em> — ID projektu i Web API klíč jsou v aplikaci), takže stačí zadat <strong>email a heslo</strong> a kliknout <strong>🔑 Přihlásit</strong>. Nový Firebase projekt: <strong>Security → Authentication → Get started → Email/Password → Enable</strong> a uživatel (<em>Users → Add user</em>), <strong>Databases &amp; Storage → Firestore → Create database</strong> (Production mode, <em>europe-west3</em>) a pravidla z <strong>FIREBASE.md</strong>. <strong>Project ID</strong> a <strong>Web API klíč</strong> ukáže <strong>+ Add app → Web</strong> (nebo ⚙ Settings → Project settings → General). ID dokumentu nechte <em>main</em>. Heslo se do souboru index.html nedává — web je veřejný.',
   supabase: 'V <strong>Supabase</strong> (zdarma) spusťte SQL ze souboru <strong>CLOUD.md</strong> — vytvoří tabulku <em>oopp</em> (zaměstnanci, předměty, funkce, výdeje) a <em>oopp_sig</em> (obrázky podpisů). Do adresy dejte <em>https://vaše-id.supabase.co</em>, do klíče „anon public“ klíč z <em>Project Settings → API</em>. ID dokumentu nechte <em>main</em>.',
   jsonbin: 'Na <strong>jsonbin.io</strong> si založte účet (zdarma), v sekci <em>API Keys</em> zkopírujte <em>X-Master-Key</em> do pole „Klíč“ a z adresy nového záznamu (…/b/6f8a…) opište část za lomítkem do pole „ID dokumentu“. Adresa se doplní sama. U JSONBin se podpisy vezou uvnitř dokumentu (větší přenosy).',
   custom: 'Adresa musí umět <strong>GET</strong> (vrátí uložený JSON) a <strong>PUT</strong> (uloží JSON). Pokud vyžaduje token, vložte ho do klíče — posílá se jako <em>Authorization: Bearer</em>. Server musí povolit CORS (<em>Access-Control-Allow-Origin</em>). Podpisy jsou uvnitř dokumentu.'
@@ -3877,7 +3907,11 @@ function renderCloudUI(){
   updateCloudProviderUI();
   if(!cloudStatusMsg){
     if(!cloudReady(cfg)){
-      cloudSetStatus('Cloud není nastavený — data se ukládají jen do tohoto zařízení.', 'warn');
+      if(cloudPresetActive(cfg) && cfg.provider === 'firebase'){
+        cloudSetStatus('Cloud je v aplikaci už přednastavený (projekt ' + cfg.url + ') — stačí zadat email a heslo a kliknout na „🔑 Přihlásit“. Data se pak načtou sama.', 'warn');
+      } else {
+        cloudSetStatus('Cloud není nastavený — data se ukládají jen do tohoto zařízení.', 'warn');
+      }
     } else if(cfg.lastSyncAt){
       cloudSetStatus('Poslední synchronizace: ' + cloudFormatTime(cfg.lastSyncAt) + ' — ' + cloudCountsNote() + '.', 'ok');
     } else {
