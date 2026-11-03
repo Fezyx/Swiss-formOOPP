@@ -100,6 +100,11 @@ tr.clickable:hover{background:#f1f5f9}
 .file-setup-card h2{margin-bottom:8px}
 .file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#475569;line-height:1.5}
 .file-setup-card .btn{width:100%;justify-content:center;margin-top:8px}
+/* ---- Připojení ke cloudu (lišta nahoře + rychlé přihlášení) ---- */
+#cloudBanner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+#cloudBanner .cb-text{flex:1;min-width:190px;font-size:.85rem;line-height:1.45;color:#7c2d12}
+#cloudBanner .cb-text strong{display:block;font-size:.95rem;margin-bottom:2px}
+#cloudBanner .cb-actions{display:flex;gap:8px;flex-wrap:wrap}
 .hidden{display:none!important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
@@ -239,6 +244,17 @@ tr.clickable:hover{background:#f1f5f9}
     <button data-tab="data">Data</button>
   </nav>
   <main>
+    <!-- Lišta se ukáže, dokud zařízení není přihlášené ke cloudu (heslo se do kódu nedává). -->
+    <div id="cloudBanner" class="hidden" role="status">
+      <div class="cb-text">
+        <strong>☁ Cloud zatím není připojený</strong>
+        Data jsou uložená jen v tomto zařízení. Po přihlášení se zaměstnanci, předměty, výdeje i podpisy sladí se všemi ostatními telefony a počítači.
+      </div>
+      <div class="cb-actions">
+        <button class="btn small" id="btnCloudBannerLogin">🔑 Připojit ke cloudu</button>
+        <button class="btn outline small" id="btnCloudBannerLater">Teď ne</button>
+      </div>
+    </div>
     <section id="tab-issue" class="tab-content active">
       <div class="card">
         <h2>Nový výdej OOPP</h2>
@@ -551,6 +567,23 @@ tr.clickable:hover{background:#f1f5f9}
       <p class="sig-hint">Prohlížeč se jednou zeptá na přístup ke složce — zvolte <strong>„Povolit při každé návštěvě“</strong>, aby se příště připojila automaticky a už se neptal.</p>
       <button class="btn" id="btnFileSetupPick">📁 Vybrat složku</button>
       <button class="btn outline" id="btnFileSetupSkip">Použít vnitřní úložiště</button>
+    </div>
+  </div>
+  <!-- Rychlé přihlášení ke cloudu: e-mail a heslo se zadají jednou na tomto zařízení
+       a zůstanou uložené jen v něm. Do souboru index.html se nikdy nedávají —
+       web i repozitář jsou veřejné a kdokoli by se pak dostal k datům OOPP. -->
+  <div class="file-setup hidden" id="cloudQuick">
+    <div class="file-setup-card">
+      <h2>☁ Připojení ke cloudu</h2>
+      <p>Zadejte <strong>e-mail a heslo k aplikaci</strong> (dostal(a) jste je od správce). Údaje projektu Firebase jsou v aplikaci už přednastavené, takže se nic jiného vyplňovat nemusí. Zařízení si přihlášení zapamatuje a data se od té chvíle sladí sama se všemi ostatními telefony a počítači.</p>
+      <label for="qcEmail">Přihlašovací e-mail</label>
+      <input type="email" id="qcEmail" placeholder="jmeno@firma.cz" autocomplete="username" spellcheck="false">
+      <label for="qcPass">Heslo</label>
+      <input type="password" id="qcPass" placeholder="heslo k aplikaci" autocomplete="current-password">
+      <div class="sig-hint" style="margin-top:8px">Heslo se ukládá jen do tohoto zařízení (stejně jako v <strong>Data → ☁ Cloud</strong>). Do aplikace se nevkládá, protože web je veřejně dostupný.</div>
+      <div class="sig-hint" id="qcError" style="color:#dc2626;margin-top:8px"></div>
+      <button class="btn" id="btnQcLogin">🔑 Přihlásit a sladit data</button>
+      <button class="btn outline" id="btnQcLater">Teď ne — jen v tomto zařízení</button>
     </div>
   </div>
   <div class="toast" id="toast"></div>
@@ -3437,6 +3470,121 @@ async function fbLogin(){
   }
 }
 
+/* ---------- Připojení ke cloudu hned po spuštění (lišta + formulář) ----------
+   Cíl: na novém zařízení se nemusí nic hledat v menu — nahoře je lišta
+   „Cloud zatím není připojený“ a tlačítko Připojit. E-mail a heslo se zadají
+   jednou a uloží se jen do tohoto zařízení (localStorage), nikdy do kódu:
+   web i repozitář jsou veřejné, takže heslo v index.html by zpřístupnilo
+   celou databázi OOPP (jména, výdeje i podpisy) komukoli na internetu. */
+const CLOUD_PROMPT_KEY = 'oopp_cloud_prompt_off';
+
+function cloudPromptDismissed(){
+  try{ return localStorage.getItem(CLOUD_PROMPT_KEY) === '1'; }catch(e){ return false; }
+}
+
+function setCloudPromptDismissed(on){
+  try{
+    if(on) localStorage.setItem(CLOUD_PROMPT_KEY, '1');
+    else localStorage.removeItem(CLOUD_PROMPT_KEY);
+  }catch(e){}
+}
+
+// Ukáže/schová lištu podle toho, jestli je zařízení přihlášené ke cloudu.
+function updateCloudBanner(){
+  const el = document.getElementById('cloudBanner');
+  if(!el) return;
+  const ready = cloudReady(cloudConfig());
+  if(ready) setCloudPromptDismissed(false); // po odhlášení se lišta ukáže znovu
+  el.classList.toggle('hidden', ready || cloudPromptDismissed());
+}
+
+function dismissCloudBanner(){
+  setCloudPromptDismissed(true);
+  updateCloudBanner();
+}
+
+function openCloudQuick(){
+  const box = document.getElementById('cloudQuick');
+  if(!box) return;
+  const cfg = cloudConfig();
+  const emailEl = document.getElementById('qcEmail');
+  const passEl = document.getElementById('qcPass');
+  const errEl = document.getElementById('qcError');
+  if(emailEl) emailEl.value = cfg.firebaseEmail || '';
+  if(passEl) passEl.value = '';
+  if(errEl) errEl.textContent = '';
+  box.classList.remove('hidden');
+  setTimeout(function(){
+    const target = (cfg.firebaseEmail ? passEl : emailEl);
+    if(target) target.focus();
+  }, 80);
+}
+
+function closeCloudQuick(){
+  const box = document.getElementById('cloudQuick');
+  if(box) box.classList.add('hidden');
+  const passEl = document.getElementById('qcPass');
+  if(passEl) passEl.value = '';
+  const errEl = document.getElementById('qcError');
+  if(errEl) errEl.textContent = '';
+}
+
+async function cloudQuickLogin(){
+  const errEl = document.getElementById('qcError');
+  const emailEl = document.getElementById('qcEmail');
+  const passEl = document.getElementById('qcPass');
+  const email = ((emailEl && emailEl.value) || '').trim();
+  const pass = (passEl && passEl.value) || '';
+  if(!email || !pass){
+    if(errEl) errEl.textContent = 'Zadejte e-mail i heslo.';
+    return;
+  }
+  const cfg = cloudConfig();
+  if(cfg.provider !== 'firebase' || !cfg.url || !cfg.key){
+    if(errEl) errEl.textContent = 'V aplikaci chybí nastavení projektu (Project ID / Web API klíč) — doplňte ho v Data → ☁ Cloud.';
+    return;
+  }
+  cfg.firebaseEmail = email;
+  cfg.firebasePass = pass;
+  cfg.auto = true;
+  saveCloudConfig(cfg);
+  // Propojit s poli v Data → ☁ Cloud, aby bylo vidět, co je uložené.
+  const cardEmail = document.getElementById('cloudEmail');
+  const cardPass = document.getElementById('cloudPass');
+  const cardAuto = document.getElementById('cloudAuto');
+  if(cardEmail) cardEmail.value = email;
+  if(cardPass) cardPass.value = pass;
+  if(cardAuto) cardAuto.checked = true;
+
+  const btn = document.getElementById('btnQcLogin');
+  const btnLabel = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Přihlašuji…'; }
+  if(errEl) errEl.textContent = '';
+  cloudSetStatus('Přihlašuji…', 'warn');
+  try{
+    // Kdyby v tomto zařízení byl dřív přihlášený jiný účet, nejdřív se odhlásit.
+    try{
+      if(typeof firebase !== 'undefined'){
+        const auth = firebase.auth(fb());
+        const cur = auth.currentUser;
+        if(cur && String(cur.email || '').toLowerCase() !== email.toLowerCase()) await auth.signOut();
+      }
+    }catch(e){}
+    const user = await fbEnsureAuth();
+    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : email) + '.', 'ok');
+    toast('Cloud připojen — slučuji data ze všech zařízení.');
+    closeCloudQuick();
+    updateCloudBanner();
+    renderCloudUI();
+    if(!cloudBusy) cloudSync('auto');
+  }catch(e){
+    if(errEl) errEl.textContent = 'Přihlášení se nezdařilo: ' + e.message;
+    cloudSetStatus('Chyba přihlášení: ' + e.message, 'err');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = btnLabel; }
+  }
+}
+
 function fbFs(){
   return firebase.firestore(fb());
 }
@@ -4017,6 +4165,7 @@ function renderCloudUI(){
       cloudSetStatus('Cloud je nastavený, ale synchronizace ještě neproběhla.', 'warn');
     }
   }
+  updateCloudBanner();
 }
 
 function updateCloudProviderUI(){
@@ -4089,7 +4238,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v30';
+const APP_VERSION = 'v31';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4516,6 +4665,20 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnCloudPush').addEventListener('click', function(){ cloudSync('push'); });
   document.getElementById('btnCloudPull').addEventListener('click', function(){ cloudSync('pull'); });
   document.getElementById('cloudAuto').addEventListener('change', cloudSaveConfig);
+  // připojení ke cloudu hned po spuštění (lišta nahoře + formulář)
+  document.getElementById('btnCloudBannerLogin').addEventListener('click', openCloudQuick);
+  document.getElementById('btnCloudBannerLater').addEventListener('click', dismissCloudBanner);
+  document.getElementById('btnQcLogin').addEventListener('click', cloudQuickLogin);
+  document.getElementById('btnQcLater').addEventListener('click', function(){
+    dismissCloudBanner();
+    closeCloudQuick();
+  });
+  document.getElementById('qcEmail').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('qcPass').focus(); }
+  });
+  document.getElementById('qcPass').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); cloudQuickLogin(); }
+  });
   renderCloudUI();
   if(cloudReady(cloudConfig()) && cloudConfig().auto){
     setTimeout(function(){ cloudSync('auto'); }, 1500);

@@ -39,6 +39,9 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
   nevypisují. Stačí v Záložce Data → „☁ Cloud" zadat email a heslo uživatele
   a kliknout „🔑 Přihlásit" — data se pak načtou sama (automatická
   synchronizace je na novém zařízení zapnutá).
+- Připojení je hned po spuštění: nahoře je lišta „☁ Cloud zatím není
+  připojený" s tlačítkem „🔑 Připojit ke cloudu". Když lištu zavřete
+  („Teď ne"), najdete totéž v Záložce Data → „☁ Cloud".
 - Web API klíč u Firebase není tajemství — je vidět v každé webové aplikaci
   na Firebase; data chrání přihlášení a pravidla ve Firestore.
 - HESLO se do aplikace (do souboru index.html) nikdy nedává, protože web je
