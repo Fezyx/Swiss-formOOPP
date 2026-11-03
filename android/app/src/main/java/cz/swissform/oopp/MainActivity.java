@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.util.Base64;
@@ -300,12 +301,15 @@ public class MainActivity extends Activity {
         public void run() {
           if (web == null) return;
           try {
+            String name = (jobName == null || jobName.trim().isEmpty())
+                ? "Evidence OOPP"
+                : jobName.trim();
             PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
             PrintAttributes attrs = new PrintAttributes.Builder()
                 .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
                 .build();
-            pm.print(jobName == null || jobName.trim().isEmpty() ? "Evidence OOPP" : jobName,
-                web.createPrintJob(), attrs);
+            PrintDocumentAdapter adapter = web.createPrintDocumentAdapter(name);
+            pm.print(name, adapter, attrs);
           } catch (Exception e) {
             Log.e(TAG, "Tisk se nepodařil", e);
             toast("Tisk se nepodařil: " + e.getMessage());
