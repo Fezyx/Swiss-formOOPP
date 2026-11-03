@@ -93,7 +93,7 @@ tr.clickable:hover{background:#f1f5f9}
 .file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#475569;line-height:1.5}
 .file-setup-card .btn{width:100%;justify-content:center;margin-top:8px}
 .hidden{display:none!important}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 .print-area{display:none}
 .danger-zone{border:1px dashed #fca5a5;background:#fef2f2;border-radius:10px;padding:14px}
@@ -394,6 +394,7 @@ tr.clickable:hover{background:#f1f5f9}
             <button class="btn danger hidden" id="btnDisconnectFile">Odpojit</button>
           </div>
           <div class="sig-hint" style="margin-top:8px">Data a podpisy se ukládají do souboru <strong>OOPP_data.json</strong> ve vybrané složce (bez limitu velikosti). Přesun na jiný počítač: použijte „Stáhnout zálohu“ / „Importovat zálohu“ níže.</div>
+          <div class="sig-hint" style="margin-top:8px">Když se prohlížeč po startu zeptá na přístup ke složce, zvolte <strong>„Povolit při každé návštěvě“</strong>. Příště se složka připojí sama a nic se už neptá.</div>
         </div>
         <div class="card" id="cloudCard">
           <h2>☁ Cloud — společná databáze (Firebase)</h2>
@@ -491,6 +492,7 @@ tr.clickable:hover{background:#f1f5f9}
     <div class="file-setup-card">
       <h2>Kde ukládat data?</h2>
       <p>Vyberte složku na SD kartě, USB nebo přímo složku, kde je aplikace (OOPP.exe). Ukládá se do ní soubor <strong>OOPP_data.json</strong> — zaměstnanci, předměty, funkce/pozice, výdeje i podpisy. Pokud tam soubor už je, bude se do něj zapisovat; pokud ne, vytvoří se.</p>
+      <p class="sig-hint">Prohlížeč se jednou zeptá na přístup ke složce — zvolte <strong>„Povolit při každé návštěvě“</strong>, aby se příště připojila automaticky a už se neptal.</p>
       <button class="btn" id="btnFileSetupPick">📁 Vybrat složku</button>
       <button class="btn outline" id="btnFileSetupSkip">Použít vnitřní úložiště</button>
     </div>
@@ -512,6 +514,7 @@ let db = load();
 let currentEmployeeId = null;
 let dataDirHandle = null;
 let pendingDirReconnect = false;
+let pendingDirHandle = null;
 let writeTimer = null;
 let editingItemId = null;
 
@@ -594,12 +597,12 @@ function uid(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 
-function toast(msg){
+function toast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2500);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, ms || 2500);
 }
 
 function escapeHtml(s){
@@ -2520,6 +2523,22 @@ function supportsFS(){
   return ('showDirectoryPicker' in window);
 }
 
+/* Přístup ke složce: prohlížeč se ptá dialogem a jen on rozhoduje, jestli
+   přístup zůstane i po restartu (volba „Povolit při každé návštěvě“).
+   - Když je přístup trvale povolený, aplikace se připojí sama a nic neukazuje.
+   - Když uživatel zvolí „Nepovolovat“, zapamatujeme si to a přestaneme se
+     ptát při každém spuštění (obnovit to jde tlačítkem „Znovu připojit“). */
+const FS_DECLINED_KEY = 'oopp_fs_declined';
+function fsDeclined(){
+  try{ return localStorage.getItem(FS_DECLINED_KEY) === '1'; }catch(e){ return false; }
+}
+function setFsDeclined(on){
+  try{
+    if(on) localStorage.setItem(FS_DECLINED_KEY, '1');
+    else localStorage.removeItem(FS_DECLINED_KEY);
+  }catch(e){}
+}
+
 function idbOpen(){
   return new Promise(function(resolve, reject){
     const req = indexedDB.open('oopp_db', 1);
@@ -2585,9 +2604,12 @@ async function persistToFileNow(){
   }catch(e){
     // Přístup ke složce mohl vypršet (restart prohlížeče) — zkusíme ho obnovit
     // při nejbližším klepnutí uživatele, aby se data znovu ukládala do souboru.
+    const wasPending = pendingDirReconnect;
     pendingDirReconnect = true;
     updateStorageUI();
-    toast('Nepodařilo se zapsat do složky: ' + e.message);
+    if(wasPending) return;   // už se to řeší — nehlásit u každého uložení
+    toast('Zápis do složky se nepovedl (' + e.message + '). Klepněte do aplikace a obnovte přístup.', 6000);
+    if(!fsDeclined()) bindDirPermissionGesture();
   }
 }
 
@@ -2633,6 +2655,8 @@ async function readDataFromDir(){
 async function connectDataDir(dir){
   try{
     dataDirHandle = dir;
+    pendingDirHandle = dir;
+    setFsDeclined(false);
     try{ await idbSet('dataDir', dir); }catch(e){}
     const existing = await readDataFromDir();
     if(existing){
@@ -2687,7 +2711,7 @@ async function reconnectDataDir(){
   try{
     let perm = await dir.queryPermission({mode: 'readwrite'});
     if(perm !== 'granted'){ perm = await dir.requestPermission({mode: 'readwrite'}); }
-    if(perm !== 'granted'){ toast('Přístup ke složce nebyl povolen.'); return; }
+    if(perm !== 'granted'){ setFsDeclined(true); toast('Přístup ke složce nebyl povolen.'); return; }
     const ok = await connectDataDir(dir);
     if(ok) toast('Úložiště znovu připojeno: složka „' + (dir.name || 'složka') + '“');
     else toast('Nepodařilo se znovu připojit složku.');
@@ -2702,20 +2726,24 @@ async function autoReconnectDataDir(){
   let dir = null;
   try{ dir = await idbGet('dataDir'); }catch(e){}
   if(!dir) return;
+  pendingDirHandle = dir;
   try{
     let perm = null;
     try{ perm = await dir.queryPermission({mode: 'readwrite'}); }catch(e){}
-    if(perm !== 'granted'){
-      // Prohlížeč povolí přístup jen po klepnutí uživatele — připravíme obnovení
-      // na první klepnutí, aby se data zase ukládala do souboru ve složce.
-      pendingDirReconnect = true;
-      updateStorageUI();
-      toast('Klepněte kamkoli do aplikace — obnoví se ukládání do složky.');
-      bindDirPermissionGesture();
+    if(perm === 'granted'){
+      // přístup je trvale povolený → připojí se samo, bez dotazů a bez hlášky
+      const ok = await connectDataDir(dir);
+      if(!ok){ pendingDirReconnect = true; updateStorageUI(); }
       return;
     }
-    const ok = await connectDataDir(dir);
-    if(ok) toast('Úložiště připojeno: složka „' + (dir.name || 'složka') + '“');
+    // Přístup není (trvale) povolený. Prohlížeč ho povolí jen po klepnutí
+    // uživatele — připravíme obnovení na první klepnutí. Když ale uživatel
+    // dřív zvolil „Nepovolovat“, nic nevynucujeme a necháme ho v klidu.
+    pendingDirReconnect = true;
+    updateStorageUI();
+    if(fsDeclined()) return;
+    toast('Obnovení složky: klepněte kamkoli a zvolte „Povolit při každé návštěvě“.', 7000);
+    bindDirPermissionGesture();
   }catch(e){}
 }
 
@@ -2733,15 +2761,18 @@ function bindDirPermissionGesture(){
     document.removeEventListener('pointerdown', handler, true);
     document.removeEventListener('keydown', handler, true);
     bindDirPermissionGesture.bound = false;
-    let dir = null;
-    try{ dir = await idbGet('dataDir'); }catch(e){}
+    let dir = pendingDirHandle;
+    if(!dir){
+      try{ dir = await idbGet('dataDir'); }catch(e){}
+    }
     if(!dir){ pendingDirReconnect = false; updateStorageUI(); return; }
     try{
       let perm = await dir.queryPermission({mode: 'readwrite'});
       if(perm !== 'granted') perm = await dir.requestPermission({mode: 'readwrite'});
       if(perm !== 'granted'){
+        setFsDeclined(true);
         updateStorageUI();
-        toast('Přístup ke složce nebyl obnoven — v záložce Data klikněte na „Znovu připojit“.');
+        toast('Přístup ke složce nebyl povolen. Data zůstávají v zařízení — obnovit to jde v záložce Data → „Znovu připojit“.', 6500);
         return;
       }
       const ok = await connectDataDir(dir);
@@ -2787,7 +2818,9 @@ function updateStorageUI(){
     disconnectBtn.classList.remove('hidden');
     reconnectBtn.classList.add('hidden');
   } else if(pendingDirReconnect){
-    status.innerHTML = 'Složka s daty je zapamatovaná, jen je potřeba obnovit přístup.<br><span class="sig-hint">Klepněte kamkoli do aplikace nebo na „Znovu připojit“ — data se pak znovu ukládají do souboru OOPP_data.json ve složce.</span>';
+    status.innerHTML = fsDeclined()
+      ? 'Složka s daty je zapamatovaná, přístup k ní ale není povolený.<br><span class="sig-hint">Data se zatím ukládají do zařízení (a do cloudu). Klepněte na „Znovu připojit“ a v dotazu zvolte „Povolit při každé návštěvě“ — pak se složka bude připojovat sama.</span>'
+      : 'Složka s daty je zapamatovaná, jen je potřeba obnovit přístup.<br><span class="sig-hint">Klepněte kamkoli do aplikace nebo na „Znovu připojit“. V dotazu prohlížeče zvolte „Povolit při každé návštěvě“ — příště se složka připojí sama a už se na nic neptá.</span>';
     disconnectBtn.classList.add('hidden');
     reconnectBtn.classList.remove('hidden');
   } else {
