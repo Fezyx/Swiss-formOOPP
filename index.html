@@ -291,9 +291,9 @@ tr.clickable:hover{background:#f1f5f9}
         <input type="text" id="empName" placeholder="např. Jan Novák">
         <label>Osobní číslo (volitelné)</label>
         <input type="text" id="empPersonalNumber" placeholder="např. 00318">
-        <label>Funkce (volitelné — určuje nárok na OOPP)</label>
+        <label>Funkce (volitelné — určuje, na co má nárok)</label>
         <select id="empFunction"><option value="">— bez funkce —</option></select>
-        <div class="sig-hint">Číselník funkcí a nároky na OOPP spravujte v sekci <strong>Data → Funkce a nároky na OOPP</strong>.</div>
+        <div class="sig-hint">Funkce/pozice a jejich nároky („má nárok“) spravujte v sekci <strong>Data → Funkce a pozice</strong>.</div>
         <div style="margin-top:12px"><button class="btn" id="btnAddEmployee">Přidat zaměstnance</button></div>
       </div>
       <div class="card" id="empImportCard">
@@ -335,6 +335,7 @@ tr.clickable:hover{background:#f1f5f9}
       <div id="itemsContent" class="hidden">
         <div class="card">
           <h2>Přidat / upravit předmět OOPP</h2>
+          <div class="sig-hint" style="margin:-4px 0 12px">Tento seznam tvoří rolovací menu ve výdeji — jsou to OOPP, které zaměstnanec <strong>můžou obdržet</strong>. Na které konkrétně má daná pozice <strong>nárok</strong> (dle zákona), nastavíte v sekci <strong>Data → Funkce a pozice</strong>.</div>
           <label>Název předmětu</label>
           <input type="text" id="itemName" placeholder="např. Ochranné brýle">
           <label>Jednotka (volitelné)</label>
@@ -354,7 +355,7 @@ tr.clickable:hover{background:#f1f5f9}
             <option value="__custom">vlastní…</option>
           </select>
           <input type="text" id="itemLifetimeCustom" class="hidden" placeholder="vlastní životnost, např. 14 dní / dle potřeby">
-          <div class="sig-hint">Životnost se tiskne do evidenčního listu u nároku na OOPP. U rukavic a respirátorů se používá „14 dní / dle potřeby“.</div>
+          <div class="sig-hint">Životnost se tiskne do evidenčního listu u položky „má nárok“. U rukavic a respirátorů se používá „14 dní / dle potřeby“.</div>
           <label>Velikosti — min / max (volitelné)</label>
           <div class="row">
             <input type="text" id="itemSizeMin" placeholder="min (např. 34 nebo S)" class="grow">
@@ -445,11 +446,11 @@ tr.clickable:hover{background:#f1f5f9}
           </div>
         </div>
         <div class="card">
-          <h2>Funkce a nároky na OOPP</h2>
-          <p class="desc">Vytvořte číselník funkcí a u každé zaškrtněte, na které OOPP má nárok. Nárok se vypisuje do evidenčního listu zaměstnance (tisk knížky) — podle funkce přiřazené zaměstnanci.</p>
+          <h2>Funkce a pozice</h2>
+          <p class="desc">Ke každé funkci/pozici zaškrtněte, na které OOPP má zaměstnanec <strong>nárok</strong> (dle zákona) — ty se tisknou do evidenčního listu (PDF) podle funkce přiřazené zaměstnanci. Celý seznam OOPP, které zaměstnanec <strong>můžou obdržet</strong> (rolovací menu ve výdeji), spravujete v záložce <strong>Předměty</strong>.</p>
           <label>Název funkce</label>
           <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
-          <label>Nárok na OOPP</label>
+          <label>Má nárok (dle zákona)</label>
           <div id="funcItems" class="func-items"></div>
           <div style="margin-top:12px" class="row">
             <button class="btn" id="btnAddFunction">Přidat funkci</button>
@@ -625,7 +626,7 @@ function normalizeFunctionName(s){
   return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-// db.functions = [{id, name, items:[idPředmětu, …]}] — nárok funkce na OOPP.
+// db.functions = [{id, name, items:[idPředmětu, …]}] — na co má funkce nárok (tisk do PDF).
 function ensureFunctions(){
   if(!Array.isArray(db.functions)) db.functions = [];
   db.functions.forEach(function(f){
@@ -729,7 +730,7 @@ function itemByName(name){
   return db.items.find(function(x){ return normalizeFunctionName(x.name) === key; }) || null;
 }
 
-// Nárok zaměstnance: OOPP z číselníku jeho funkce. Když funkce nárok nemá,
+// „Má nárok“ zaměstnance: OOPP z číselníku jeho funkce. Když funkce nárok nemá,
 // použije se to, co mu skutečně bylo vydáno (aby evidenční list nezůstal prázdný).
 function employeeEntitlement(e, issues){
   const out = [];
@@ -1553,7 +1554,7 @@ function deleteItem(id){
   toast('Předmět smazán.');
 }
 
-/* ---------- Funkce a nároky na OOPP (sekce Data) ---------- */
+/* ---------- Funkce a pozice (sekce Data) ---------- */
 let editingFunctionId = null;
 
 function currentFunctionChecks(){
@@ -1585,7 +1586,7 @@ function renderFunctionList(){
     list.innerHTML = '<div class="empty">Žádné funkce. Přidejte první výše.</div>';
     return;
   }
-  list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Nárok na OOPP</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
+  list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Má nárok</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
     db.functions.map(function(f){
       const names = (f.items || []).map(function(id){
         const it = db.items.find(function(x){ return x.id === id; });
@@ -1912,8 +1913,8 @@ function refreshEmployeeDetail(){
   document.getElementById('empDetailMeta').textContent = meta.join(' • ');
   const ent = employeeEntitlement(e, issues);
   const entLine = ent.length
-    ? 'Nárok na OOPP: ' + ent.map(function(x){ return x.name + (x.lifetime ? ' (' + x.lifetime + ')' : ''); }).join(', ')
-    : 'Nárok na OOPP: — (funkce nemá v číselníku nastavený žádný nárok)';
+    ? 'Má nárok: ' + ent.map(function(x){ return x.name + (x.lifetime ? ' (' + x.lifetime + ')' : ''); }).join(', ')
+    : 'Má nárok: — (funkce nemá v číselníku nastavený žádný nárok)';
   const entEl = document.getElementById('empDetailEntitlement');
   if(entEl) entEl.textContent = entLine;
   renderEmployeeIssues(e.id, issues);

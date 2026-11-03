@@ -52,8 +52,8 @@ Knížka OOPP zaměstnance
   • „Export PDF" uloží knížku (evidenční list + listy výdejů s podpisy) do PDF,
   • „Tisk knížky" vytiskne stejnou podobu na tiskárně,
   • „Export CSV" uloží výdeje pro Excel.
-- První strana (evidenční list) má 15 řádků se sloupci Datum, Funkce,
-  Nárok na přidělení OOPP a Životnost.
+- První strana (evidenční list) má 8 řádků se sloupci Datum, Funkce,
+  Nárok na přidělení OOPP („má nárok") a Životnost.
 - Životnost předmětu se vybírá v záložce Předměty: „14 dní / dle potřeby"
   (rukavice, respirátory), 1/3/6/12/24/36 měsíců, nebo „vlastní…".
 
