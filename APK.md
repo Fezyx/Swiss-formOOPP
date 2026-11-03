@@ -95,6 +95,13 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
   zaměstnance, a teprve podruhé ukončí aplikaci.
 - Na Androidu 7–9 si aplikace při prvním ukládání vyžádá povolení
   „Ukládání“ — po povolení klepněte na export znovu.
+- Úložiště: v APK se aplikace na žádnou složku neptá. Data (zaměstnanci,
+  předměty, funkce/pozice, výdeje i podpisy) zůstávají v zařízení a do
+  společného cloudu se synchronizují samy. Výběr složky na SD kartě / USB je
+  jen pro Windows (OOPP.exe) — v APK je vypnutý, protože WebView neumí se
+  složkou na kartě spolehlivě pracovat a data by se zbytečně rozdvojila
+  (soubor OOPP_data.json vs. cloud). Záložka Data → karta „Úložiště v zařízení“
+  to uživateli vypíše; zálohu dělá „⬇ Stáhnout zálohu (JSON)“.
 
 
 6) Když se sestavení APK nepovede

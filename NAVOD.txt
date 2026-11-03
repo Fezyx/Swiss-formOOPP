@@ -12,7 +12,7 @@ Jak spustit
    spusťte přímo OOPP.exe.
 2. Aplikace se otevře v okně. F11 = celá obrazovka, Esc = zpět z celé obrazovky.
 
-První spuštění
+První spuštění (Windows — OOPP.exe)
 - Aplikace se zeptá, kam ukládat data. Vyberte složku na SD kartě / USB,
   nebo přímo složku, kde je OOPP.exe (data pak cestují spolu s aplikací).
   Do složky se ukládá soubor OOPP_data.json — zaměstnanci, předměty,
@@ -22,6 +22,9 @@ První spuštění
 - Po restartu se složka připojí sama. Když prohlížeč přístup zablokuje,
   stačí do aplikace jednou klepnout — přístup se obnoví a ukládání do
   souboru pokračuje.
+- V telefonu / tabletu (APK i prohlížeč) se na složku NIC neptá: data drží
+  zařízení samo a o společná data se stará cloud. Kdykoli je můžete zálohovat
+  v Záložce Data → „Stáhnout zálohu (JSON)“.
 
 Záloha / přenos dat
 - Záložka Data (heslo admin) → „Stáhnout zálohu" / „Importovat zálohu".
@@ -102,6 +105,9 @@ Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
   nové APK je potřeba jen výjimečně.
 - V APK navíc funguje tisk přes tiskárnu Androidu (i „Uložit jako PDF“)
   a exporty (PDF, CSV, záloha) se ukládají do složky Stahování.
+- Úložiště v APK: aplikace se na žádnou složku neptá (výběr složky na SD
+  kartě je jen pro počítač). Data jsou v zařízení a synchronizují se do
+  cloudu — v Záložce Data → karta „Úložiště v zařízení“ je to i vysvětlené.
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:

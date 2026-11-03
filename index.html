@@ -397,16 +397,23 @@ tr.clickable:hover{background:#f1f5f9}
         <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
       </div>
       <div id="dataContent" class="hidden">
-        <div class="card">
-          <h2>Úložiště (složka na SD kartě / USB)</h2>
-          <p class="desc" id="storageStatus"></p>
-          <div class="row">
-            <button class="btn" id="btnConnectFile">📁 Vybrat složku</button>
-            <button class="btn outline" id="btnReconnectFile">🔗 Znovu připojit</button>
-            <button class="btn danger hidden" id="btnDisconnectFile">Odpojit</button>
+        <div class="card" id="storageCard">
+          <h2 id="storageTitle">Úložiště (složka na SD kartě / USB)</h2>
+          <div id="storageFolderBody">
+            <p class="desc" id="storageStatus"></p>
+            <div class="row">
+              <button class="btn" id="btnConnectFile">📁 Vybrat složku</button>
+              <button class="btn outline" id="btnReconnectFile">🔗 Znovu připojit</button>
+              <button class="btn danger hidden" id="btnDisconnectFile">Odpojit</button>
+            </div>
+            <div class="sig-hint" style="margin-top:8px">Data a podpisy se ukládají do souboru <strong>OOPP_data.json</strong> ve vybrané složce (bez limitu velikosti). Přesun na jiný počítač: použijte „Stáhnout zálohu“ / „Importovat zálohu“ níže.</div>
+            <div class="sig-hint" style="margin-top:8px">Když se prohlížeč po startu zeptá na přístup ke složce, zvolte <strong>„Povolit při každé návštěvě“</strong>. Příště se složka připojí sama a nic se už neptá.</div>
           </div>
-          <div class="sig-hint" style="margin-top:8px">Data a podpisy se ukládají do souboru <strong>OOPP_data.json</strong> ve vybrané složce (bez limitu velikosti). Přesun na jiný počítač: použijte „Stáhnout zálohu“ / „Importovat zálohu“ níže.</div>
-          <div class="sig-hint" style="margin-top:8px">Když se prohlížeč po startu zeptá na přístup ke složce, zvolte <strong>„Povolit při každé návštěvě“</strong>. Příště se složka připojí sama a nic se už neptá.</div>
+          <div id="storageAndroidBody" class="hidden">
+            <p class="desc">Data (zaměstnanci, předměty, funkce/pozice, výdeje i podpisy) se ukládají v tomto zařízení do paměti aplikace. Nemusíte nic nastavovat — zůstanou tam i po zavření a aplikace funguje offline.</p>
+            <p class="desc" style="margin-top:8px">O společnou databázi na více telefonech a počítačích se stará <strong>☁ Cloud</strong> níže — stačí jednou zadat přihlašovací email a heslo a seznamy se na všech zařízeních slučují samy.</p>
+            <div class="sig-hint" style="margin-top:8px">Výběr složky na SD kartě / USB je jen pro počítač (OOPP.exe nebo Chrome/Edge). V telefonu použijte „⬇ Stáhnout zálohu (JSON)“ v sekci Záloha dat.</div>
+          </div>
         </div>
         <div class="card" id="cloudCard">
           <h2>☁ Cloud — společná databáze (Firebase)</h2>
@@ -2834,6 +2841,10 @@ async function exportEmployeePdf(id){
 
 
 function supportsFS(){
+  // V APK na Androidu nemá výběr složky smysl: WebView s vybranou složkou na
+  // SD kartě neumí spolehlivě pracovat a data v zařízení drží aplikace sama.
+  // Společná data mezi telefony řeší cloud, zálohu JSON tlačítko „Stáhnout zálohu“.
+  if(isAndroidShell()) return false;
   return ('showDirectoryPicker' in window);
 }
 
@@ -3119,6 +3130,20 @@ function updateStorageUI(){
   const disconnectBtn = document.getElementById('btnDisconnectFile');
   const reconnectBtn = document.getElementById('btnReconnectFile');
   const connectBtn = document.getElementById('btnConnectFile');
+  const title = document.getElementById('storageTitle');
+  const folderBody = document.getElementById('storageFolderBody');
+  const androidBody = document.getElementById('storageAndroidBody');
+  // V APK na Androidu se složka nenabízí — místo ní se vysvětlí úložiště
+  // v zařízení a cloud (aby se nikdo neptal „kam mám data ukládat?“).
+  if(isAndroidShell()){
+    if(title) title.textContent = 'Úložiště v zařízení';
+    if(folderBody) folderBody.classList.add('hidden');
+    if(androidBody) androidBody.classList.remove('hidden');
+    return;
+  }
+  if(title) title.textContent = 'Úložiště (složka na SD kartě / USB)';
+  if(folderBody) folderBody.classList.remove('hidden');
+  if(androidBody) androidBody.classList.add('hidden');
   const fsOk = supportsFS();
   if(connectBtn) connectBtn.classList.toggle('hidden', !fsOk);
   if(!fsOk){
@@ -4064,7 +4089,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 let installPromptEvent = null;
 
 function isAppStandalone(){
