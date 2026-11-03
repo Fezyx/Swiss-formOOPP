@@ -335,7 +335,7 @@ tr.clickable:hover{background:#f1f5f9}
       <div id="itemsContent" class="hidden">
         <div class="card">
           <h2>Přidat / upravit předmět OOPP</h2>
-          <div class="sig-hint" style="margin:-4px 0 12px">Tento seznam tvoří rolovací menu ve výdeji — jsou to OOPP, které zaměstnanec <strong>můžou obdržet</strong>. Na které konkrétně má daná pozice <strong>nárok</strong> (dle zákona), nastavíte v sekci <strong>Data → Funkce a pozice</strong>.</div>
+          <div class="sig-hint" style="margin:-4px 0 12px">Tento seznam jsou všechny OOPP. Které z nich smí zaměstnanec na dané pozici <strong>nafasovat</strong> (rolovací menu ve výdeji) a na které má <strong>nárok</strong> (tisk do PDF), nastavíte v sekci <strong>Data → Funkce a pozice</strong>.</div>
           <label>Název předmětu</label>
           <input type="text" id="itemName" placeholder="např. Ochranné brýle">
           <label>Jednotka (volitelné)</label>
@@ -447,11 +447,17 @@ tr.clickable:hover{background:#f1f5f9}
         </div>
         <div class="card">
           <h2>Funkce a pozice</h2>
-          <p class="desc">Ke každé funkci/pozici zaškrtněte, na které OOPP má zaměstnanec <strong>nárok</strong> (dle zákona) — ty se tisknou do evidenčního listu (PDF) podle funkce přiřazené zaměstnanci. Celý seznam OOPP, které zaměstnanec <strong>můžou obdržet</strong> (rolovací menu ve výdeji), spravujete v záložce <strong>Předměty</strong>.</p>
+          <p class="desc">Ke každé funkci/pozici nastavte: <strong>„Má nárok“</strong> (OOPP povinné dle zákona — tiskne se do evidenčního listu/PDF) a <strong>„Může nafasovat“</strong> (OOPP dostupné k výdeji pro tuto pozici — rolovací menu ve výdeji, včetně věcí nad rámec zákona).</p>
           <label>Název funkce</label>
           <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
           <label>Má nárok (dle zákona)</label>
           <div id="funcItems" class="func-items"></div>
+          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <label style="margin:0">Může nafasovat</label>
+            <button type="button" class="btn outline small" id="btnFuncCopyIssue">＋ doplnit z „má nárok“</button>
+          </div>
+          <div id="funcCanIssue" class="func-items"></div>
+          <div class="sig-hint" style="margin-top:4px">„Může nafasovat“ tvoří rolovací menu ve výdeji pro tuto pozici — zahrňte povinné OOPP i případné další.</div>
           <div style="margin-top:12px" class="row">
             <button class="btn" id="btnAddFunction">Přidat funkci</button>
             <button class="btn outline hidden" id="btnCancelEditFunction">Zrušit</button>
@@ -626,12 +632,15 @@ function normalizeFunctionName(s){
   return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-// db.functions = [{id, name, items:[idPředmětu, …]}] — na co má funkce nárok (tisk do PDF).
+// db.functions = [{id, name, items:[idPředmětu, …], canIssue:[idPředmětu, …]}]
+// items    = „má nárok“ (dle zákona) → tisk do evidenčního listu (PDF)
+// canIssue = „může nafasovat“ → rolovací menu ve výdeji (včetně věcí nad rámec zákona)
 function ensureFunctions(){
   if(!Array.isArray(db.functions)) db.functions = [];
   db.functions.forEach(function(f){
     if(!f || typeof f !== 'object') return;
     if(!Array.isArray(f.items)) f.items = [];
+    if(!Array.isArray(f.canIssue)) f.canIssue = f.items.slice();   // výchozí = to, na co má nárok
     if(typeof f.name !== 'string') f.name = String(f.name || '');
   });
 }
@@ -1235,6 +1244,7 @@ function selectIssueEmployee(id){
   document.getElementById('issueEmployee').value = id;
   document.getElementById('issueEmployeeFilter').value = issueEmployeeLabel(e);
   closeIssueEmployeeSuggestions();
+  refreshIssueItemOptions();
 }
 
 function renderEmployees(){
@@ -1453,11 +1463,20 @@ function importEmployeeList(file){
 }
 
 /* ---------- Předměty ---------- */
-function itemOptions(selectedId){
+function itemOptions(selectedId, allowedIds){
   if(db.items.length === 0){
     return '<option value="">— žádné předměty —</option>';
   }
-  return db.items.map(function(it){
+  let list = db.items;
+  if(allowedIds != null){
+    const allowed = {};
+    allowedIds.forEach(function(id){ allowed[id] = true; });
+    list = db.items.filter(function(it){ return allowed[it.id]; });
+  }
+  if(list.length === 0){
+    return '<option value="">— pozice nemá nastaveno, co může nafasovat —</option>';
+  }
+  return list.map(function(it){
     return '<option value="' + it.id + '"' + (it.id === selectedId ? ' selected' : '') + '>' + escapeHtml(it.name) + '</option>';
   }).join('');
 }
@@ -1541,11 +1560,12 @@ function deleteItem(id){
   if(!confirm('Smazat předmět?')) return;
   db.items = db.items.filter(function(x){ return x.id !== id; });
   markDeleted('items', id);
-  // předmět zmizí i z nároků jednotlivých funkcí
+  // předmět zmizí i z nároků a „může nafasovat“ jednotlivých funkcí
   (db.functions || []).forEach(function(f){
-    if((f.items || []).indexOf(id) === -1) return;
-    f.items = f.items.filter(function(x){ return x !== id; });
-    touchRec(f);
+    let changed = false;
+    if((f.items || []).indexOf(id) !== -1){ f.items = f.items.filter(function(x){ return x !== id; }); changed = true; }
+    if((f.canIssue || []).indexOf(id) !== -1){ f.canIssue = f.canIssue.filter(function(x){ return x !== id; }); changed = true; }
+    if(changed) touchRec(f);
   });
   save();
   renderItems();
@@ -1557,13 +1577,15 @@ function deleteItem(id){
 /* ---------- Funkce a pozice (sekce Data) ---------- */
 let editingFunctionId = null;
 
-function currentFunctionChecks(){
-  return Array.prototype.slice.call(document.querySelectorAll('#funcItems input.func-item:checked'))
+function checkedIdsIn(boxId){
+  const box = document.getElementById(boxId);
+  if(!box) return [];
+  return Array.prototype.slice.call(box.querySelectorAll('input.func-item:checked'))
     .map(function(cb){ return cb.value; });
 }
 
-function renderFunctionItems(checkedIds){
-  const box = document.getElementById('funcItems');
+function renderFunctionChecklist(boxId, checkedIds){
+  const box = document.getElementById(boxId);
   if(!box) return;
   if(db.items.length === 0){
     box.innerHTML = '<div class="sig-hint">Zatím žádné předměty — přidejte je v sekci Předměty.</div>';
@@ -1579,6 +1601,16 @@ function renderFunctionItems(checkedIds){
   }).join('');
 }
 
+function copyClaimToCanIssue(){
+  const ids = checkedIdsIn('funcItems');
+  if(ids.length === 0){ toast('Nejprve zaškrtněte „má nárok“.'); return; }
+  const set = {};
+  ids.forEach(function(id){ set[id] = true; });
+  const box = document.getElementById('funcCanIssue');
+  if(box) box.querySelectorAll('input.func-item').forEach(function(cb){ if(set[cb.value]) cb.checked = true; });
+  toast('Doplněno z „má nárok“ (' + ids.length + ').');
+}
+
 function renderFunctionList(){
   const list = document.getElementById('functionList');
   if(!list) return;
@@ -1586,18 +1618,24 @@ function renderFunctionList(){
     list.innerHTML = '<div class="empty">Žádné funkce. Přidejte první výše.</div>';
     return;
   }
-  list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Má nárok</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
+  const itemNames = function(ids){
+    return (ids || []).map(function(id){
+      const it = db.items.find(function(x){ return x.id === id; });
+      return it ? it.name : null;
+    }).filter(Boolean);
+  };
+  const dash = '<span style="color:#94a3b8">—</span>';
+  list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Má nárok</th><th>Může nafasovat</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
     db.functions.map(function(f){
-      const names = (f.items || []).map(function(id){
-        const it = db.items.find(function(x){ return x.id === id; });
-        return it ? it.name : null;
-      }).filter(Boolean);
+      const names = itemNames(f.items);
+      const canNames = itemNames(f.canIssue);
       const count = db.employees.filter(function(e){
         const own = employeeFunction(e);
         return !!own && own.id === f.id;
       }).length;
       return '<tr><td>' + escapeHtml(f.name) + '</td>' +
-        '<td>' + (names.length ? escapeHtml(names.join(', ')) : '<span style="color:#94a3b8">—</span>') + '</td>' +
+        '<td>' + (names.length ? escapeHtml(names.join(', ')) : dash) + '</td>' +
+        '<td>' + (canNames.length ? escapeHtml(canNames.join(', ')) : dash) + '</td>' +
         '<td class="opt">' + count + '</td>' +
         '<td style="text-align:right;white-space:nowrap">' +
         '<button class="btn outline small" data-editfunc="' + f.id + '">Upravit</button> ' +
@@ -1607,8 +1645,8 @@ function renderFunctionList(){
 
 // Vykreslí seznam funkcí a k tomu zaškrtávátka (stav zaškrtání se zachová).
 function renderFunctions(){
-  const checked = currentFunctionChecks();
-  renderFunctionItems(checked);
+  renderFunctionChecklist('funcItems', checkedIdsIn('funcItems'));
+  renderFunctionChecklist('funcCanIssue', checkedIdsIn('funcCanIssue'));
   renderFunctionList();
 }
 
@@ -1628,7 +1666,8 @@ function refreshFunctionOptions(selectedId){
 function resetFunctionForm(){
   editingFunctionId = null;
   document.getElementById('funcName').value = '';
-  renderFunctionItems([]);
+  renderFunctionChecklist('funcItems', []);
+  renderFunctionChecklist('funcCanIssue', []);
   document.getElementById('btnAddFunction').textContent = 'Přidat funkci';
   document.getElementById('btnCancelEditFunction').classList.add('hidden');
 }
@@ -1638,7 +1677,8 @@ function editFunction(id){
   if(!f) return;
   editingFunctionId = id;
   document.getElementById('funcName').value = f.name;
-  renderFunctionItems(f.items || []);
+  renderFunctionChecklist('funcItems', f.items || []);
+  renderFunctionChecklist('funcCanIssue', f.canIssue || []);
   document.getElementById('btnAddFunction').textContent = 'Uložit změny';
   document.getElementById('btnCancelEditFunction').classList.remove('hidden');
   document.getElementById('funcName').focus();
@@ -1646,7 +1686,8 @@ function editFunction(id){
 
 function addFunction(){
   const name = document.getElementById('funcName').value.trim();
-  const items = currentFunctionChecks();
+  const items = checkedIdsIn('funcItems');
+  const canIssue = checkedIdsIn('funcCanIssue');
   if(!name){ toast('Zadejte název funkce.'); return; }
   const dup = db.functions.some(function(f){
     return f.id !== editingFunctionId && normalizeFunctionName(f.name) === normalizeFunctionName(name);
@@ -1657,13 +1698,14 @@ function addFunction(){
     if(f){
       f.name = name;
       f.items = items;
+      f.canIssue = canIssue;
       touchRec(f);
       // název funkce se propíše i k zaměstnancům (tisk používá id, název je jen záloha)
       db.employees.forEach(function(e){ if(e.functionId === f.id){ e.department = f.name; touchRec(e); } });
       toast('Funkce upravena.');
     }
   } else {
-    db.functions.push(touchRec({id: uid(), name: name, items: items}));
+    db.functions.push(touchRec({id: uid(), name: name, items: items, canIssue: canIssue}));
     toast('Funkce přidána.');
   }
   save();
@@ -1673,6 +1715,7 @@ function addFunction(){
   refreshFunctionOptions();
   renderEmployees();
   renderDataInfo();
+  populateIssueForm();
   if(keepId && currentEmployeeId) refreshEmployeeDetail();
 }
 
@@ -1777,11 +1820,36 @@ function migrateItemSizes(){
   return changed;
 }
 
+// Které OOPP smí vybraný zaměstnanec nafasovat (podle funkce jeho pozice).
+// null = bez funkce → všechny předměty; prázdné pole = pozice nic nemá nastaveno.
+function issueItemFilter(){
+  const id = document.getElementById('issueEmployee').value;
+  if(!id) return null;
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return null;
+  const fn = employeeFunction(e);
+  if(!fn) return null;
+  return fn.canIssue || [];
+}
+
+// Přepíše rolovací okna položek podle aktuálně vybraného zaměstnance.
+function refreshIssueItemOptions(){
+  const filter = issueItemFilter();
+  document.querySelectorAll('.item-row').forEach(function(row){
+    const itemSel = row.querySelector('.row-item');
+    const sizeSel = row.querySelector('.row-size');
+    const prevItem = itemSel.value;
+    const prevSize = sizeSel ? sizeSel.value : '';
+    itemSel.innerHTML = itemOptions(prevItem, filter);
+    updateRowSizeOptions(row, prevSize);
+  });
+}
+
 function addItemRow(itemId, qty, size){
   const container = document.getElementById('itemRows');
   const div = document.createElement('div');
   div.className = 'item-row';
-  div.innerHTML = '<select class="row-item" title="Předmět">' + itemOptions(itemId) + '</select>' +
+  div.innerHTML = '<select class="row-item" title="Předmět">' + itemOptions(itemId, issueItemFilter()) + '</select>' +
     '<input type="number" class="row-qty" min="1" step="1" value="' + (qty || 1) + '" placeholder="množství">' +
     '<select class="row-size" title="Velikost"></select>' +
     '<button type="button" class="btn danger small row-del">✕</button>';
@@ -1800,10 +1868,11 @@ function populateIssueForm(){
     else { sel.value = ''; input.value = ''; }
   }
   closeIssueEmployeeSuggestions();
+  const itemFilter = issueItemFilter();
   document.querySelectorAll('.item-row').forEach(function(row){
     const itemSel = row.querySelector('.row-item');
     const prevItem = itemSel.value;
-    itemSel.innerHTML = itemOptions(prevItem);
+    itemSel.innerHTML = itemOptions(prevItem, itemFilter);
     const sizeSel = row.querySelector('.row-size');
     updateRowSizeOptions(row, sizeSel ? sizeSel.value : '');
   });
@@ -3228,12 +3297,13 @@ function cloudDropDeleted(data){
       return (r.updatedAt || r.createdAt || 0) > at;   // novější úprava mazání přebije
     });
   });
-  // smazaný předmět zmizí i z nároků funkcí
+  // smazaný předmět zmizí i z nároků a „může nafasovat“ funkcí
   const itemIds = {};
   (data.items || []).forEach(function(it){ if(it && it.id) itemIds[it.id] = true; });
   (data.functions || []).forEach(function(f){
-    if(!f || !Array.isArray(f.items)) return;
-    f.items = f.items.filter(function(id){ return itemIds[id]; });
+    if(!f) return;
+    if(Array.isArray(f.items)) f.items = f.items.filter(function(id){ return itemIds[id]; });
+    if(Array.isArray(f.canIssue)) f.canIssue = f.canIssue.filter(function(id){ return itemIds[id]; });
   });
   return data;
 }
@@ -3802,6 +3872,7 @@ document.addEventListener('DOMContentLoaded', function(){
   issueFilter.addEventListener('input', function(){
     document.getElementById('issueEmployee').value = '';
     renderIssueEmployeeSuggestions();
+    refreshIssueItemOptions();
   });
   issueFilter.addEventListener('focus', renderIssueEmployeeSuggestions);
   issueFilter.addEventListener('keydown', function(ev){
@@ -3840,6 +3911,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('itemLifetime').addEventListener('change', syncLifetimeCustom);
   document.getElementById('btnAddFunction').addEventListener('click', addFunction);
   document.getElementById('btnCancelEditFunction').addEventListener('click', resetFunctionForm);
+  document.getElementById('btnFuncCopyIssue').addEventListener('click', copyClaimToCanIssue);
 
   installButtons().forEach(function(btn){
     btn.addEventListener('click', promptInstall);
