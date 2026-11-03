@@ -506,13 +506,16 @@ tr.clickable:hover{background:#f1f5f9}
           <p class="desc">Aplikaci lze nainstalovat přímo z prohlížeče na plochu zařízení — bez obchodu Play/App Store a bez veřejného seznamu aplikací. Po instalaci funguje i offline.</p>
           <div class="row">
             <button class="btn hidden" id="btnInstall2">⬇ Nainstalovat aplikaci</button>
+            <button class="btn secondary" id="btnForceUpdate" title="Smaže offline paměť aplikace a načte nejnovější verzi">⟳ Aktualizovat aplikaci</button>
           </div>
           <div class="sig-hint" id="installHint" style="margin-top:8px"></div>
+          <div class="sig-hint" id="appVersion" style="margin-top:8px"></div>
           <div class="sig-hint" style="margin-top:10px;line-height:1.6">
             <strong>Android (Chrome):</strong> menu ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.<br>
             <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
             <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
-            Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.
+            Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
+            <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.
           </div>
         </div>
         <div class="card danger-zone">
@@ -3987,6 +3990,10 @@ function renderAll(){
 }
 
 /* ---------- Instalace aplikace (PWA) ---------- */
+// Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
+// (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
+// paměť zahodí.
+const APP_VERSION = 'v24';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4030,6 +4037,38 @@ function refreshInstallUI(){
   } else {
     hint.textContent = 'Prohlížeč teď nenabídl instalaci automaticky — postupujte podle menu prohlížeče níže.';
   }
+}
+
+// Vypíše verzi aplikace a název offline paměti — podle toho poznáte, jestli
+// zařízení opravdu běží aktuální verzi (např. po aktualizaci z GitHubu).
+function renderAppVersion(){
+  const el = document.getElementById('appVersion');
+  if(!el) return;
+  el.textContent = 'Verze aplikace: ' + APP_VERSION;
+  if(!('caches' in window)) return;
+  caches.keys().then(function(keys){
+    const own = keys.filter(function(n){ return n.indexOf('oopp-app-') === 0; });
+    el.textContent = 'Verze aplikace: ' + APP_VERSION + ' · offline paměť: ' + (own.length ? own.join(', ') : '–');
+  }).catch(function(){});
+}
+
+// Vynutí stažení nejnovější verze: smaže offline paměť i registraci service
+// workeru a stránku načte znovu s obchvatem cache. Data v zařízení zůstávají.
+async function forceAppUpdate(){
+  toast('Aktualizuji aplikaci…');
+  try{
+    if('caches' in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+    }
+  }catch(e){}
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(function(r){ return r.unregister(); }));
+    }
+  }catch(e){}
+  location.replace(location.origin + location.pathname + '?v=' + Date.now());
 }
 
 function promptInstall(){
@@ -4171,11 +4210,21 @@ document.addEventListener('DOMContentLoaded', function(){
   installButtons().forEach(function(btn){
     btn.addEventListener('click', promptInstall);
   });
+  document.getElementById('btnForceUpdate').addEventListener('click', forceAppUpdate);
   refreshInstallUI();
+  renderAppVersion();
 
   // V desktopovém okně (OOPP.exe) jsou soubory lokální, service worker není potřeba.
   if('serviceWorker' in navigator && !isDesktopShell() && (pageProtocol() === 'http:' || pageProtocol() === 'https:')){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      // Zeptat se hned, jestli na serveru neleží novější verze (mobil ji jinak
+      // drží v offline paměti, dokud se appka úplně nezavře).
+      try{ reg.update(); }catch(e){}
+      const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        if(hadController) toast('Nová verze aplikace je připravena — klepněte na „⟳ Aktualizovat aplikaci“ v záložce Data.');
+      });
+    }).catch(function(){});
   }
 
   document.getElementById('btnBackToList').addEventListener('click', function(){
