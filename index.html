@@ -2343,20 +2343,26 @@ const BK_COLGROUP = '<colgroup>' +
   '</colgroup>';
 
 // Jeden řádek knížky = jeden výdej: datum, co bylo vydáno a uložený podpis.
+// Více předmětů na jeden výdej se vypíše pod sebe — každý na vlastní řádek.
 function bookletEntry(issue){
   const items = (issue.items && issue.items.length) ? issue.items : [];
-  const oop = items.map(function(it){
+  const oopLines = items.map(function(it){
     let s = String(it.name || '');
     if(it.size) s += ' (vel. ' + it.size + ')';
     const qty = (it.qty == null || it.qty === '') ? '' : String(it.qty);
     if(qty) s += ' ' + qty + ' ' + (it.unit || '');
     return s;
-  }).join(', ');
+  });
+  // Odhad zalomení pro případ, že by měření skutečné výšky neproběhlo.
+  const wrapped = oopLines.reduce(function(sum, line){
+    return sum + Math.max(1, Math.ceil(line.length / BK_CHARS_LINE));
+  }, 0);
   return {
     date: issue.date ? formatDate(issue.date) : '',
-    oop: oop,
+    oopLines: oopLines,
+    oop: oopLines.join(', '),
     signature: issue.signature || '',
-    height: Math.max(1, Math.ceil(oop.length / BK_CHARS_LINE)) * BK_ROW_MM
+    height: Math.max(1, wrapped) * BK_ROW_MM
   };
 }
 
@@ -2364,8 +2370,11 @@ function bookletEntry(issue){
 function bookletCellsHtml(entry, mid){
   const cls = mid ? ' bk-mid' : '';
   if(!entry) return '<td class="bk-date' + cls + '"></td><td></td><td class="bk-sig"></td>';
+  const oopHtml = (entry.oopLines && entry.oopLines.length)
+    ? entry.oopLines.map(escapeHtml).join('<br>')
+    : escapeHtml(entry.oop || '');
   return '<td class="bk-date' + cls + '">' + escapeHtml(entry.date) + '</td>' +
-    '<td>' + escapeHtml(entry.oop) + '</td>' +
+    '<td>' + oopHtml + '</td>' +
     '<td class="bk-sig">' + (entry.signature ? '<img src="' + entry.signature + '" alt="podpis">' : '') + '</td>';
 }
 
