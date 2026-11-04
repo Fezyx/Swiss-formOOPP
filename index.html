@@ -1314,8 +1314,10 @@ function employeeEntitlement(e, issues){
     (issues || []).forEach(function(issue){
       (issue.items || []).forEach(function(row){
         if(!row || !row.name) return;
+        // i náhradní řádky z výdejů se slučují na obecné položky (jedny Rukavice)
+        const name = genericClaimName(row.name) || row.name;
         const it = itemByName(row.name);
-        push(row.name, it ? lifetimeLabel(it) : '');
+        push(name, it ? lifetimeLabel(it) : genericClaimLifetime(name));
       });
     });
   }
