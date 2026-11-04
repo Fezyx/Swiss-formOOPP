@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Evidence OOPP</title>
 <meta name="description" content="Evidence vydávání osobních ochranných pracovních prostředků. Funguje offline, data zůstávají v zařízení.">
-<meta name="theme-color" content="#17324d">
+<meta name="theme-color" content="#3663ae">
 <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="dependencies/icons/favicon-32.png" sizes="32x32" type="image/png">
@@ -21,15 +21,17 @@
 /* Rozvržení je vždy na celé okno: hlavička i menu zůstávají nahoře, posouvá se jen obsah.
    Posuvník je skrytý, aby aplikace působila jako nativní (na tabletu i v OOPP.exe). */
 html{height:100%}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#eef1f5;color:#1f2937;-webkit-tap-highlight-color:transparent;height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f4f7fb;color:#231f20;-webkit-tap-highlight-color:transparent;height:100%;overflow:hidden;overscroll-behavior:none}
 #app{max-width:960px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 /* v desktopovém okně (OOPP.exe) využít šířku obrazovky */
 html.desktop-shell #app{max-width:1280px}
-header{background:#17324d;color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;gap:12px;flex:0 0 auto}
+/* Hlavička v modré firmy SWISS-FORM (stejná modrá jako na swissform.cz). */
+header{background:#3663ae;color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;gap:12px;flex:0 0 auto;box-shadow:0 2px 8px rgba(30,55,96,.28)}
 header h1{font-size:1.25rem;line-height:1.2}
-header .sub{font-size:.8rem;opacity:.8;text-align:right}
+header .sub{font-size:.8rem;opacity:.85;text-align:right}
+/* V hlavičce není žádný obrázek loga — název aplikace stačí textem. Obrázek
+   se tak nikdy nemůže zobrazit zastaralý (z cache) a je ostrý na každé obrazovce. */
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand-logo{height:34px;width:auto;display:block}
 .head-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .admin-badge{display:flex;align-items:center;gap:8px}
@@ -44,42 +46,42 @@ header .sub{font-size:.8rem;opacity:.8;text-align:right}
 .sync-pill .sync-ic{display:block;pointer-events:none}
 .sync-pill.busy .sync-ic{animation:splashSpin .9s linear infinite}
 @media (prefers-reduced-motion: reduce){.sync-pill.busy .sync-ic{animation:none}}
-.btn.light{background:#fff;color:#17324d}
-nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);flex:0 0 auto;z-index:10}
-nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#475569;border-bottom:3px solid transparent}
-nav button.active{color:#17324d;font-weight:700;border-bottom-color:#17324d}
+.btn.light{background:#fff;color:#3663ae}
+nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(30,55,96,.10);flex:0 0 auto;z-index:10}
+nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#48586e;border-bottom:3px solid transparent}
+nav button.active{color:#3663ae;font-weight:700;border-bottom-color:#3663ae}
 /* obsah se posouvá sám (bez viditelného posuvníku) */
 main{flex:1 1 auto;min-height:0;padding:16px;padding-bottom:calc(24px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 main::-webkit-scrollbar{display:none}
 .tab-content{display:none}
 .tab-content.active{display:block}
-.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(30,55,96,.10)}
 .card h2{font-size:1.1rem;margin-bottom:4px}
-.card .desc{font-size:.82rem;color:#64748b;margin-bottom:14px}
+.card .desc{font-size:.82rem;color:#5b6b83;margin-bottom:14px}
 /* Rozklikávací karty (záložka Data): karta je <details>/<summary>, takže
    otevírání zvládne prohlížeč sám — bez knihovny a bez vlastního skriptu.
    Otevřený stav si aplikace pamatuje v tomto zařízení (viz initAccordions). */
 .card.acc-card{padding:0}
 .card.acc-card > details > summary{display:flex;align-items:center;gap:10px;padding:16px 18px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;user-select:none;border-radius:12px}
 .card.acc-card > details > summary::-webkit-details-marker{display:none}
-.card.acc-card > details > summary:hover{background:#f8fafc}
+.card.acc-card > details > summary:hover{background:#f5f8fd}
 .card.acc-card > details > summary > h2{flex:1;min-width:0;margin:0}
-.card.acc-card > details[open] > summary{border-bottom:1px solid #eef2f7}
-.card.acc-card > details > summary::after{content:'▾';flex:0 0 auto;font-size:.9rem;line-height:1;color:#64748b}
+.card.acc-card > details[open] > summary{border-bottom:1px solid #e9f0fa}
+.card.acc-card > details > summary::after{content:'▾';flex:0 0 auto;font-size:.9rem;line-height:1;color:#5b6b83}
 .card.acc-card > details:not([open]) > summary::after{content:'▸'}
 .card.acc-card > details > .acc-body{padding:14px 18px 18px}
 /* krátká stavová poznámka v hlavičce sbalené karty (např. Cloud) */
-.acc-note{flex:0 1 auto;max-width:48%;font-size:.72rem;line-height:1.3;text-align:right;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-label{display:block;font-size:.82rem;font-weight:600;margin:12px 0 5px;color:#334155}
-input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#17324d}
+.acc-note{flex:0 1 auto;max-width:48%;font-size:.72rem;line-height:1.3;text-align:right;color:#5b6b83;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+label{display:block;font-size:.82rem;font-weight:600;margin:12px 0 5px;color:#33465c}
+input,select,textarea{width:100%;padding:11px;border:1px solid #c6d4e6;border-radius:8px;font-size:1rem;background:#fff}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3663ae}
 textarea{resize:vertical;min-height:110px;line-height:1.45;font-family:inherit}
-textarea[readonly]{background:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.5}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border:none;border-radius:8px;background:#17324d;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer}
+textarea[readonly]{background:#f5f8fd;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.5}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border:none;border-radius:8px;background:#3663ae;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer}
 .btn:active{transform:scale(.98)}
-.btn.secondary{background:#64748b}
+.btn.secondary{background:#5b6b83}
 .btn.danger{background:#dc2626}
-.btn.outline{background:#fff;color:#17324d;border:1px solid #17324d}
+.btn.outline{background:#fff;color:#3663ae;border:1px solid #3663ae}
 .btn.small{padding:7px 12px;font-size:.85rem}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .row .grow{flex:1;min-width:120px}
@@ -87,72 +89,72 @@ textarea[readonly]{background:#f8fafc;font-family:ui-monospace,SFMono-Regular,Me
 .item-row .row-item{flex:2;min-width:120px}
 .item-row .row-qty{flex:1;min-width:64px}
 .item-row .row-size{flex:0 0 80px;min-width:80px}
-.emp-suggest{position:relative;margin-top:2px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;max-height:300px;overflow:auto;box-shadow:0 10px 28px rgba(15,23,42,.14)}
-.emp-suggest-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.emp-suggest{position:relative;margin-top:2px;border:1px solid #c6d4e6;border-radius:8px;background:#fff;max-height:300px;overflow:auto;box-shadow:0 10px 28px rgba(20,38,66,.14)}
+.emp-suggest-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #eef3fa}
 .emp-suggest-item:last-child{border-bottom:none}
-.emp-suggest-item:hover,.emp-suggest-item.active{background:#eef4ff}
+.emp-suggest-item:hover,.emp-suggest-item.active{background:#e8f0fc}
 .emp-suggest-item .sig-hint{margin-top:1px}
 table{width:100%;border-collapse:collapse;font-size:.9rem}
-th,td{padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
-th{background:#f8fafc;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;color:#64748b}
+th,td{padding:10px 8px;border-bottom:1px solid #dce6f3;text-align:left;vertical-align:top}
+th{background:#f5f8fd;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;color:#5b6b83}
 tr.clickable{cursor:pointer}
-tr.clickable:hover{background:#f1f5f9}
-.sig-box{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
+tr.clickable:hover{background:#eef3fa}
+.sig-box{border:1px solid #c6d4e6;border-radius:8px;overflow:hidden;background:#fff}
 #signatureCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
 .proto-canvas{display:block;width:100%;height:140px;touch-action:none;cursor:crosshair}
-.sig-hint{font-size:.76rem;color:#94a3b8;margin-top:4px}
+.sig-hint{font-size:.76rem;color:#8fa0b6;margin-top:4px}
 /* Informace o automatické synchronizaci v kartě Cloud (místo zaškrtávacího políčka). */
 .cloud-auto-info{display:flex;align-items:flex-start;gap:8px;font-size:.8rem;line-height:1.4;color:#166534;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px}
 .cloud-auto-info .sync-ic{font-size:1rem;line-height:1.2;color:#16a34a}
 /* sdílecí QR kód (Data → Sdílecí kód) — kreslí se jako SVG, funguje offline */
-.share-qr{width:232px;max-width:100%;aspect-ratio:1/1;margin:0 auto 12px;padding:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px}
+.share-qr{width:232px;max-width:100%;aspect-ratio:1/1;margin:0 auto 12px;padding:8px;background:#fff;border:1px solid #dce6f3;border-radius:10px}
 .share-qr svg{display:block;width:100%;height:100%}
-.share-url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:12px}
+.share-url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;color:#33465c;background:#f5f8fd;border:1px solid #dce6f3;border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:12px}
 /* Spotřeba předmětů (záložka Data) — přehled jen pro čtení */
 .ro-badge{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;color:#166534;background:#dcfce7;border:1px solid #86efac}
 .cons-filters{margin:10px 0 4px}
 .cons-filters select{flex:0 0 220px;max-width:220px}
 .cons-filters input{flex:1 1 160px;min-width:140px}
-.cons-summary{margin:12px 0 8px;font-size:.84rem;color:#334155}
-.cons-summary strong{color:#17324d}
+.cons-summary{margin:12px 0 8px;font-size:.84rem;color:#33465c}
+.cons-summary strong{color:#3663ae}
 .cons-table{font-size:.86rem}
 .cons-table th,.cons-table td{padding:8px 6px}
 .cons-table .nowrap{white-space:nowrap}
 .cons-table th.num,.cons-table td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .cons-tools{margin-top:12px}
 /* zaškrtávací seznam nároku na OOPP u funkce */
-.func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
-.func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#334155}
+.func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #c6d4e6;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
+.func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#33465c}
 .func-items input[type=checkbox]{width:auto;flex:0 0 auto}
 /* textové položky „má nárok“ */
-.claim-tag{display:inline-flex;align-items:center;gap:6px;background:#eef2f7;border:1px solid #cbd5e1;border-radius:999px;padding:4px 6px 4px 12px;margin:0 6px 6px 0;font-size:.9rem;color:#1f2937}
-.claim-x{border:0;background:#94a3b8;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;line-height:1;font-size:.8rem;padding:0}
-.claim-life{background:#dbeafe;color:#1d4ed8;border-radius:999px;padding:1px 8px;font-size:.72rem;white-space:nowrap}
+.claim-tag{display:inline-flex;align-items:center;gap:6px;background:#e9f0fa;border:1px solid #c6d4e6;border-radius:999px;padding:4px 6px 4px 12px;margin:0 6px 6px 0;font-size:.9rem;color:#231f20}
+.claim-x{border:0;background:#8fa0b6;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;line-height:1;font-size:.8rem;padding:0}
+.claim-life{background:#dbe7f8;color:#1e3760;border-radius:999px;padding:1px 8px;font-size:.72rem;white-space:nowrap}
 .func-items .sig-hint{flex:0 0 auto;margin:0;white-space:nowrap}
 .only-mobile{display:none}
 .issue-table th,.issue-table td{padding:8px 6px;vertical-align:top}
 .issue-table .nowrap{white-space:nowrap}
-.sig-thumb{height:34px;width:auto;max-width:88px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+.sig-thumb{height:34px;width:auto;max-width:88px;border:1px solid #c6d4e6;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
 /* podepsáno, ale podpis je jen v cloudu (v zařízení se nedrží) */
 .btn.outline.sig-ok{color:#166534;border-color:#86efac;background:#f0fdf4;font-weight:600}
 .btn.outline.sig-ok:hover{background:#dcfce7}
 .bk-sig-cloud{font-size:7pt;color:#555}
-.sig-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;z-index:60}
+.sig-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(20,38,66,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;z-index:60}
 .sig-overlay img{background:#fff;border-radius:10px;padding:10px;max-width:100%;max-height:62vh;object-fit:contain}
-.sig-overlay-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;color:#e2e8f0;font-size:.85rem}
-.empty{padding:20px;text-align:center;color:#94a3b8}
-.file-setup{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
+.sig-overlay-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;color:#dce6f3;font-size:.85rem}
+.empty{padding:20px;text-align:center;color:#8fa0b6}
+.file-setup{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(20,38,66,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
 .file-setup-card{background:#fff;border-radius:14px;padding:22px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.32)}
 .file-setup-card h2{margin-bottom:8px}
-.file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#475569;line-height:1.5}
+.file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#48586e;line-height:1.5}
 .file-setup-card .btn{width:100%;justify-content:center;margin-top:8px}
 /* ---- Připojení ke cloudu (lišta nahoře + rychlé přihlášení) ---- */
-#cloudBanner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+#cloudBanner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 3px rgba(30,55,96,.08)}
 #cloudBanner .cb-text{flex:1;min-width:190px;font-size:.85rem;line-height:1.45;color:#7c2d12}
 #cloudBanner .cb-text strong{display:block;font-size:.95rem;margin-bottom:2px}
 #cloudBanner .cb-actions{display:flex;gap:8px;flex-wrap:wrap}
 .hidden{display:none!important}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e3760;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 .print-area{display:none}
 .danger-zone{border:1px dashed #fca5a5;background:#fef2f2;border-radius:10px;padding:14px}
@@ -164,30 +166,32 @@ tr.clickable:hover{background:#f1f5f9}
 .print-area .meta{margin-bottom:4px}
 .print-area .sign{margin-top:24px}
 /* ---- Úvodní obrazovka (splash) ---- */
-#splash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:120;background:#17324d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .45s ease}
+#splash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:120;background:linear-gradient(160deg,#1e3760 0%,#3663ae 65%,#2e75cf 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease}
 #splash.splash-hide{opacity:0;pointer-events:none}
-.splash-logo{width:min(74vw,560px);height:auto;display:block}
-.splash-spinner{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.22);border-top-color:#7fb0e0;animation:splashSpin .9s linear infinite}
+/* Úvodní obrazovka bez obrázku loga — název aplikace a firmy textem. */
+.splash-brand{font-size:clamp(28px,7.5vw,46px);font-weight:800;letter-spacing:.01em;color:#fff;text-align:center;line-height:1.1}
+.splash-company{font-size:.95rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#c7dcff;margin-top:-10px;text-align:center}
+.splash-spinner{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:#c7dcff;animation:splashSpin .9s linear infinite}
 @keyframes splashSpin{to{transform:rotate(360deg)}}
-.splash-text{color:#c7d6e6;font-size:1.05rem;letter-spacing:.02em}
+.splash-text{color:#dbe7f8;font-size:1.05rem;letter-spacing:.02em}
 /* ---- Větší dotykový kalendář (datum výdeje) ---- */
-.date-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:14px 16px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1.1rem;color:#1f2937;cursor:pointer;text-align:left}
-.date-trigger:active{background:#f1f5f9}
+.date-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:14px 16px;border:1px solid #c6d4e6;border-radius:10px;background:#fff;font-size:1.1rem;color:#231f20;cursor:pointer;text-align:left}
+.date-trigger:active{background:#eef3fa}
 .date-trigger-icon{font-size:1.35rem;line-height:1}
-.datepicker{position:fixed;top:0;right:0;bottom:0;left:0;z-index:110;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:14px}
+.datepicker{position:fixed;top:0;right:0;bottom:0;left:0;z-index:110;background:rgba(20,38,66,.55);display:flex;align-items:center;justify-content:center;padding:14px}
 .datepicker-card{background:#fff;border-radius:18px;padding:18px;width:min(94vw,470px);max-height:94vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .dp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.dp-title{font-size:1.25rem;font-weight:700;color:#17324d;text-transform:capitalize}
-.dp-nav{width:48px;height:48px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-size:1.5rem;line-height:1;color:#17324d;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.dp-nav:active{background:#e2e8f0}
+.dp-title{font-size:1.25rem;font-weight:700;color:#3663ae;text-transform:capitalize}
+.dp-nav{width:48px;height:48px;border:1px solid #c6d4e6;border-radius:10px;background:#f5f8fd;font-size:1.5rem;line-height:1;color:#3663ae;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dp-nav:active{background:#dce6f3}
 .dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
-.dp-weekdays span{text-align:center;font-size:.82rem;font-weight:600;color:#64748b;padding:4px 0}
+.dp-weekdays span{text-align:center;font-size:.82rem;font-weight:600;color:#5b6b83;padding:4px 0}
 .dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.dp-day{aspect-ratio:1 / 1;border:none;background:none;border-radius:10px;font-size:1.05rem;color:#1f2937;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.dp-day:active{background:#e2e8f0}
+.dp-day{aspect-ratio:1 / 1;border:none;background:none;border-radius:10px;font-size:1.05rem;color:#231f20;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dp-day:active{background:#dce6f3}
 .dp-day.dp-empty{visibility:hidden}
-.dp-day.dp-today{outline:2px solid #7fb0e0;outline-offset:-3px}
-.dp-day.dp-selected{background:#17324d;color:#fff;font-weight:700}
+.dp-day.dp-today{outline:2px solid #7fb7df;outline-offset:-3px}
+.dp-day.dp-selected{background:#3663ae;color:#fff;font-weight:700}
 .dp-foot{display:flex;gap:10px;margin-top:14px}
 .dp-foot .btn{flex:1;justify-content:center}
 /* ---- Mobilní / dotykové zobrazení ---- */
@@ -196,7 +200,6 @@ tr.clickable:hover{background:#f1f5f9}
   .card{padding:14px;border-radius:10px;margin-bottom:12px}
   .head-right .sub{display:none}
   .admin-badge-who{display:none}
-  .brand-logo{height:28px}
   header h1{font-size:1rem}
   nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
@@ -219,7 +222,6 @@ tr.clickable:hover{background:#f1f5f9}
 @media (max-width:400px){
   nav button{padding:11px 10px;font-size:.8rem}
   header h1{font-size:.95rem}
-  .brand-logo{height:24px}
 }
 /* ---- Knížka OOPP: tisková podoba evidenčního listu (předlohy ev.jpg + list.jpg) ---- */
 .print-area.booklet{padding:0}
@@ -251,21 +253,21 @@ tr.clickable:hover{background:#f1f5f9}
 /* ---- Předávací protokol: tisková podoba A4 s logem a podpisy ---- */
 .proto-page{position:relative;width:210mm;min-height:296mm;padding:14mm 16mm 12mm;background:#fff;color:#000;font-family:'Segoe UI',Arial,Helvetica,sans-serif;font-size:10pt;page-break-after:always;break-after:page}
 .proto-page:last-child{page-break-after:auto;break-after:auto}
-.proto-head{display:flex;align-items:center;gap:8mm;border-bottom:2.5px solid #17324d;padding-bottom:5mm;margin-bottom:8mm}
+.proto-head{display:flex;align-items:center;gap:8mm;border-bottom:2.5px solid #3663ae;padding-bottom:5mm;margin-bottom:8mm}
 .proto-logo{height:22mm;width:auto;flex:0 0 auto}
 .proto-head-txt{flex:1;min-width:0}
-.proto-kicker{font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:#17324d;font-weight:700;margin:0 0 1mm}
+.proto-kicker{font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:#3663ae;font-weight:700;margin:0 0 1mm}
 .proto-head h1{font-size:23pt;font-weight:800;letter-spacing:.02em;margin:0;color:#000;background:none;text-transform:none}
 .proto-no{font-size:10pt;color:#333;margin-top:1.5mm}
 /* Údaje protokolu jsou pod sebou (jeden údaj = jeden řádek), aby se to dalo
    po vytištění snadno přečíst — žádné dva sloupce vedle sebe. */
 .proto-rows{width:100%;border-collapse:collapse;margin:0 0 8mm;table-layout:fixed}
 .proto-rows th,.proto-rows td{border:1px solid #000;padding:3mm 4mm;text-align:left;vertical-align:top;background:#fff;color:#000}
-.proto-rows th{width:48mm;background:#eef2f7;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#17324d;line-height:1.25}
+.proto-rows th{width:48mm;background:#e9f0fa;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#3663ae;line-height:1.25}
 .proto-rows td{font-size:11pt;font-weight:600;line-height:1.35}
 .proto-rows td .sub{display:block;font-size:9pt;font-weight:400;color:#333;margin-top:1mm}
 .proto-note{margin:0 0 6mm;font-size:10pt;color:#000}
-.proto-note .lbl{font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;color:#17324d;font-weight:700;display:block;margin-bottom:1.5mm}
+.proto-note .lbl{font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;color:#3663ae;font-weight:700;display:block;margin-bottom:1.5mm}
 /* Podpisy jsou také pod sebou — každý na vlastním řádku. */
 .proto-sigs{margin-top:10mm}
 .proto-sig{margin-top:9mm}
@@ -273,7 +275,7 @@ tr.clickable:hover{background:#f1f5f9}
 .proto-sig-label{font-size:9.5pt;font-weight:700;color:#000;margin-bottom:2mm}
 .proto-sig-line{width:100%;height:22mm;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:flex-start;padding-bottom:1mm}
 .proto-sig-line img{height:20mm;max-width:100%;object-fit:contain}
-.proto-sig-nosig{font-size:8pt;color:#94a3b8;font-weight:400}
+.proto-sig-nosig{font-size:8pt;color:#8fa0b6;font-weight:400}
 .proto-foot{position:absolute;left:16mm;right:16mm;bottom:10mm;display:flex;justify-content:space-between;gap:6mm;font-size:8pt;color:#333;border-top:1px solid #666;padding-top:2mm}
 @media print{
   @page{size:A4 portrait;margin:0}
@@ -291,14 +293,14 @@ tr.clickable:hover{background:#f1f5f9}
 </head>
 <body>
 <div id="splash">
-  <img src="dependencies/logo-inverse.png" alt="SWISSFORM" class="splash-logo">
+  <div class="splash-brand">Evidence OOPP</div>
+  <div class="splash-company">SWISS – FORM a.s.</div>
   <div class="splash-spinner" aria-hidden="true"></div>
   <div class="splash-text">Spouštím aplikaci…</div>
 </div>
 <div id="app">
   <header>
     <div class="brand">
-      <img src="dependencies/logo-inverse.png" alt="SWISSFORM" class="brand-logo">
       <h1>Evidence OOPP</h1>
     </div>
     <div class="head-right">
@@ -491,7 +493,7 @@ tr.clickable:hover{background:#f1f5f9}
         <label style="margin-top:14px">Náhled odesílaného textu</label>
         <textarea id="orderPreview" rows="10" readonly placeholder="Náhled se zobrazí po stisku „Náhled“."></textarea>
         <details style="margin-top:14px">
-          <summary style="cursor:pointer;font-size:.84rem;font-weight:600;color:#334155">Pokročilé — automatické odesílání přes službu</summary>
+          <summary style="cursor:pointer;font-size:.84rem;font-weight:600;color:#33465c">Pokročilé — automatické odesílání přes službu</summary>
           <label>URL odesílací služby (nepovinné)</label>
           <input type="text" id="orderEndpoint" placeholder="https://…" autocomplete="off" inputmode="url">
           <div class="sig-hint">
@@ -663,6 +665,7 @@ tr.clickable:hover{background:#f1f5f9}
                   <option value="">＋ vybrat z předmětů (přidá se hned)…</option>
                 </select>
               </div>
+              <div class="sig-hint" style="margin-top:4px">Nárok se vede obecně: všechny druhy rukavic = jedny <strong>Rukavice</strong>, pánské i dámské montérky = <strong>Montérky</strong>. Konkrétní druhy pak uvidíte v „Může nafasovat“.</div>
               <div class="sig-hint" style="margin-top:4px">nebo přidejte vlastní název a životnost:</div>
               <div class="row" style="margin-top:2px">
                 <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
@@ -1044,38 +1047,122 @@ function normalizeFunctionName(s){
   return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+/* „Má nárok“ se vede OBECNĚ, ne podle druhů: všechny rukavice = „Rukavice“,
+   montérky pánské i dámské = „Montérky“, různé obuvi = „Obuv“.
+   Do evidenčního listu patří jeden řádek na OOPP, ne na každý druh.
+   Slova jsou bez diakritiky a v pořadí, v jakém se hledá (konkrétnější první). */
+const GENERIC_ITEM_TYPES = [
+  {label: 'Rukavice', words: ['rukavic']},
+  {label: 'Rukávník', words: ['rukavnik', 'rukavniky']},
+  {label: 'Chrániče sluchu', words: ['sluch', 'spunt', 'hlusnic', 'zatkov', 'musl']},
+  {label: 'Respirátor', words: ['respir', 'polomask', 'maska', 'masky', 'ffp']},
+  {label: 'Brýle', words: ['bryl']},
+  {label: 'Obličejový štít', words: ['stit']},
+  {label: 'Přilba', words: ['prilb', 'helma', 'helmy']},
+  {label: 'Vesta', words: ['vest']},
+  {label: 'Obuv', words: ['obuv', 'bot', 'holin', 'sand', 'polobot']},
+  {label: 'Montérky', words: ['monterk', 'pracovni kalhot', 'pracovni souprav']},
+  {label: 'Kalhoty', words: ['kalhot']},
+  {label: 'Kombinéza', words: ['kombinez']},
+  {label: 'Pracovní oděv', words: ['odev']},
+  {label: 'Bunda', words: ['bund']},
+  {label: 'Mikina', words: ['mikin']},
+  {label: 'Triko', words: ['trik', 'trick']},
+  {label: 'Košile', words: ['kosil']},
+  {label: 'Zástěra', words: ['zaster']},
+  {label: 'Pláštěnka', words: ['plasten']},
+  {label: 'Kukla', words: ['kukl']},
+  {label: 'Ponožky', words: ['ponoz']},
+  {label: 'Chrániče kolen', words: ['kolen']},
+  {label: 'Chrániče loktů', words: ['lokt']}
+];
+
+// Malá písmena a bez diakritiky — „Montérky“ i „monterky“ najdou totéž.
+function normGenericText(s){
+  const text = String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+  return text.normalize ? text.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : text;
+}
+
+// Obecný název pro „má nárok“: „Nitrilové rukavice letní“ → „Rukavice“.
+// Co v seznamu typů není (např. „Ochranný krém“), zůstane celé.
+function genericClaimName(name){
+  const raw = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+  if(!raw) return '';
+  const key = normGenericText(raw);
+  for(let i = 0; i < GENERIC_ITEM_TYPES.length; i++){
+    const words = GENERIC_ITEM_TYPES[i].words;
+    for(let j = 0; j < words.length; j++){
+      if(key.indexOf(words[j]) !== -1) return GENERIC_ITEM_TYPES[i].label;
+    }
+  }
+  return raw;
+}
+
 // Položka „má nárok“: buď {name, lifetime}, nebo starý prostý text → sjednotí na objekt.
+// Název se vždy převede na obecný („Rukavice nitrilové“ → „Rukavice“) — evidenční
+// list má jeden řádek na OOPP, ne na každý druh. Neznámé názvy zůstanou celé.
 function normalizeClaim(c){
   if(c == null) return null;
-  if(typeof c === 'string'){
-    const name = c.replace(/\s+/g, ' ').trim();
-    if(!name) return null;
+  const isText = typeof c === 'string';
+  const raw = isText ? c : String(c.name || '');
+  const trimmed = raw.replace(/\s+/g, ' ').trim();
+  if(!trimmed) return null;
+  const name = genericClaimName(trimmed) || trimmed;
+  let lifetime = isText ? '' : String(c.lifetime || '').replace(/\s+/g, ' ').trim();
+  if(!lifetime){
     const it = itemByName(name);
-    return {name: name, lifetime: it ? lifetimeLabel(it) : ''};
+    lifetime = it ? lifetimeLabel(it) : genericClaimLifetime(name);
   }
-  const name = String(c.name || '').replace(/\s+/g, ' ').trim();
-  if(!name) return null;
-  return {name: name, lifetime: String(c.lifetime || '').replace(/\s+/g, ' ').trim()};
+  return {name: name, lifetime: lifetime};
 }
 
 // db.functions = [{id, name, claims:[{name,lifetime}, …], canIssue:[idPředmětu, …]}]
 // claims   = „má nárok“ (dle zákona) — název + životnost, tisk do evidenčního listu (PDF)
 // canIssue = „může nafasovat“ — id předmětů, rolovací menu ve výdeji
+// Vrací true, když se něco převedlo (volající pak data uloží).
 function ensureFunctions(){
   if(!Array.isArray(db.functions)) db.functions = [];
+  let changed = false;
   db.functions.forEach(function(f){
     if(!f || typeof f !== 'object') return;
-    if(!Array.isArray(f.canIssue)) f.canIssue = Array.isArray(f.items) ? f.items.slice() : [];
+    if(!Array.isArray(f.canIssue)){
+      f.canIssue = Array.isArray(f.items) ? f.items.slice() : [];
+      changed = true;
+    }
     // „má nárok“ je nově {name, lifetime}. Stará data: id předmětů → název + životnost.
     if(!Array.isArray(f.claims)){
       f.claims = (Array.isArray(f.items) ? f.items : []).map(function(id){
         const it = db.items.find(function(x){ return x.id === id; });
         return it ? {name: it.name, lifetime: lifetimeLabel(it)} : {name: String(id), lifetime: ''};
       });
+      changed = true;
     }
-    f.claims = f.claims.map(normalizeClaim).filter(Boolean);
-    if(typeof f.name !== 'string') f.name = String(f.name || '');
+    const before = JSON.stringify(f.claims);
+    const claims = f.claims.map(normalizeClaim).filter(Boolean);
+    // „má nárok“ držíme obecně: všechny druhy rukavic = jedny „Rukavice“,
+    // pánské i dámské montérky = „Montérky“. Starší data se tím sloučí.
+    const merged = [];
+    const seenClaim = {};
+    claims.forEach(function(c){
+      const name = genericClaimName(c.name) || c.name;
+      const key = normalizeFunctionName(name);
+      if(!key) return;
+      if(seenClaim[key]){
+        if(!seenClaim[key].lifetime && c.lifetime) seenClaim[key].lifetime = c.lifetime;
+        return;
+      }
+      const rec = {name: name, lifetime: c.lifetime || ''};
+      seenClaim[key] = rec;
+      merged.push(rec);
+    });
+    f.claims = merged;
+    if(JSON.stringify(f.claims) !== before) changed = true;
+    if(typeof f.name !== 'string'){
+      f.name = String(f.name || '');
+      changed = true;
+    }
   });
+  return changed;
 }
 
 function functionById(id){
@@ -1170,6 +1257,39 @@ function itemByName(name){
   const key = normalizeFunctionName(name);
   if(!key) return null;
   return db.items.find(function(x){ return normalizeFunctionName(x.name) === key; }) || null;
+}
+
+// Předměty sloučené do obecných položek pro „má nárok“:
+// „Rukavice nitrilové“ + „Rukavice letní“ + „Rukavice protiřezné“ → jedna „Rukavice“.
+// Vrací [{key, name, lifetime, items:[předmět, …]}] v pořadí číselníku.
+function genericItemGroups(){
+  const groups = {};
+  const order = [];
+  (db.items || []).forEach(function(it){
+    if(!it) return;
+    const name = genericClaimName(it.name);
+    const key = normalizeFunctionName(name);
+    if(!key) return;
+    if(!groups[key]){
+      groups[key] = {key: key, name: name, lifetime: '', items: []};
+      order.push(key);
+    }
+    const g = groups[key];
+    g.items.push(it);
+    const life = lifetimeLabel(it);
+    if(!g.lifetime && life) g.lifetime = life;
+  });
+  return order.map(function(k){ return groups[k]; });
+}
+
+// Životnost k obecnému názvu („Rukavice“ → životnost prvního druhu rukavic).
+function genericClaimLifetime(name){
+  const key = normalizeFunctionName(name);
+  if(!key) return '';
+  const it = (db.items || []).find(function(x){
+    return normalizeFunctionName(genericClaimName(x.name)) === key;
+  });
+  return it ? lifetimeLabel(it) : '';
 }
 
 // „Má nárok“ zaměstnance: OOPP z číselníku jeho funkce. Když funkce nárok nemá,
@@ -1410,7 +1530,7 @@ function resizeSignature(){
   sigCtx.lineWidth = 2.2;
   sigCtx.lineCap = 'round';
   sigCtx.lineJoin = 'round';
-  sigCtx.strokeStyle = '#1f2937';
+  sigCtx.strokeStyle = '#231f20';
   if(saved){
     const img = new Image();
     img.onload = function(){ sigCtx.drawImage(img, 0, 0, rect.width, rect.height); };
@@ -1753,7 +1873,7 @@ function renderEmployees(){
         (e.personalNumber ? '<div class="sig-hint">os. č. ' + escapeHtml(e.personalNumber) + '</div>' : '') +
         '<div class="sig-hint only-mobile">▸ ' + count + ' ' + czPlural(count, 'výdej', 'výdeje', 'výdejů') + '</div>' +
         '</td><td class="opt">' + escapeHtml(employeeFunctionName(e) || '—') + '</td><td class="opt">' + count + '</td>' +
-        '<td class="opt" style="text-align:right;white-space:nowrap;color:#64748b">▸</td>' +
+        '<td class="opt" style="text-align:right;white-space:nowrap;color:#5b6b83">▸</td>' +
         '<td style="text-align:right;white-space:nowrap">' +
         '<button class="btn outline small" data-edit="' + e.id + '">Upravit</button> ' +
         '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button></td></tr>';
@@ -2123,24 +2243,34 @@ function renderFunctionClaims(){
     box.innerHTML = '<div class="sig-hint">Zatím žádná položka — vyberte z předmětů výše nebo napište vlastní název.</div>';
     return;
   }
+  // u obecné položky („Rukavice“) se v bublině ukáže, které druhy pod ni patří
+  const groups = {};
+  genericItemGroups().forEach(function(g){ groups[g.key] = g; });
   box.innerHTML = functionClaims.map(function(c, i){
-    return '<span class="claim-tag">' + escapeHtml(c.name) +
+    const g = groups[normalizeFunctionName(c.name)];
+    const kinds = (g && g.items.length > 1)
+      ? g.items.map(function(it){ return it.name; }).join(', ')
+      : '';
+    return '<span class="claim-tag"' + (kinds ? ' title="' + escapeHtml('Zahrnuje: ' + kinds) + '"' : '') + '>' +
+      escapeHtml(c.name) +
       (c.lifetime ? '<span class="claim-life">' + escapeHtml(c.lifetime) + '</span>' : '') +
       '<button type="button" class="claim-x" data-claim-i="' + i + '" aria-label="Odebrat">✕</button></span>';
   }).join('');
 }
 
-// Rolovací seznam „vybrat z předmětů“ — už přidané položky se vynechají.
+// Rolovací seznam „vybrat z předmětů“ — obecné položky (všechny druhy rukavic =
+// jedny „Rukavice“), už přidané se vynechají.
 function renderFunctionSelect(){
   const sel = document.getElementById('funcClaimSelect');
   if(!sel) return;
   const added = {};
   functionClaims.forEach(function(c){ added[normalizeFunctionName(c.name)] = true; });
   let opts = '<option value="">＋ vybrat z předmětů (přidá se hned)…</option>';
-  db.items.forEach(function(it){
-    if(added[normalizeFunctionName(it.name)]) return;
-    const life = lifetimeLabel(it);
-    opts += '<option value="' + it.id + '">' + escapeHtml(it.name) + (life ? ' — ' + escapeHtml(life) : '') + '</option>';
+  genericItemGroups().forEach(function(g){
+    if(added[g.key]) return;
+    const kinds = g.items.length > 1 ? ' (' + g.items.length + ' druhů)' : '';
+    opts += '<option value="' + escapeHtml(g.key) + '">' + escapeHtml(g.name) +
+      (g.lifetime ? ' — ' + escapeHtml(g.lifetime) : '') + kinds + '</option>';
   });
   sel.innerHTML = opts;
 }
@@ -2148,17 +2278,16 @@ function renderFunctionSelect(){
 function addFunctionClaimFromSelect(){
   const sel = document.getElementById('funcClaimSelect');
   if(!sel || !sel.value) return;
-  const it = db.items.find(function(x){ return x.id === sel.value; });
-  if(!it){ sel.value = ''; return; }
-  const name = String(it.name || '').replace(/\s+/g, ' ').trim();
-  const lifetime = lifetimeLabel(it);
-  const key = normalizeFunctionName(name);
+  const key = sel.value;
+  const group = genericItemGroups().find(function(g){ return g.key === key; });
+  if(!group){ sel.value = ''; return; }
   if(functionClaims.some(function(c){ return normalizeFunctionName(c.name) === key; })){
     toast('Tato položka už v seznamu je.');
     sel.value = '';
     return;
   }
-  functionClaims.push({name: name, lifetime: lifetime});
+  functionClaims.push({name: group.name, lifetime: group.lifetime});
+  sel.value = '';
   renderFunctionClaims();
   renderFunctionSelect();
 }
@@ -2166,8 +2295,10 @@ function addFunctionClaimFromSelect(){
 function addFunctionClaim(){
   const input = document.getElementById('funcClaimInput');
   const lifeInput = document.getElementById('funcClaimLifetime');
-  const name = (input ? input.value : '').replace(/\s+/g, ' ').trim();
-  if(!name) return;
+  const typed = (input ? input.value : '').replace(/\s+/g, ' ').trim();
+  if(!typed) return;
+  // i vlastní název se vede obecně: „Montérky pánské“ → „Montérky“
+  const name = genericClaimName(typed) || typed;
   let lifetime = (lifeInput ? lifeInput.value : '').replace(/\s+/g, ' ').trim();
   const key = normalizeFunctionName(name);
   if(functionClaims.some(function(c){ return normalizeFunctionName(c.name) === key; })){
@@ -2177,28 +2308,39 @@ function addFunctionClaim(){
   // životnost se doplní z předmětu, když název odpovídá a uživatel ji nevyplnil
   if(!lifetime){
     const it = itemByName(name);
-    if(it) lifetime = lifetimeLabel(it);
+    lifetime = it ? lifetimeLabel(it) : genericClaimLifetime(name);
   }
   functionClaims.push({name: name, lifetime: lifetime});
   if(input) input.value = '';
   if(lifeInput) lifeInput.value = '';
   renderFunctionClaims();
+  renderFunctionSelect();
 }
 
 function removeFunctionClaim(i){
   functionClaims.splice(i, 1);
   renderFunctionClaims();
+  renderFunctionSelect();
 }
 
 function copyClaimToCanIssue(){
   const keys = functionClaims.map(function(c){ return normalizeFunctionName(c.name); }).filter(Boolean);
   if(keys.length === 0){ toast('Nejprve přidejte položky do „má nárok“.'); return; }
   const box = document.getElementById('funcCanIssue');
+  let n = 0;
   if(box) box.querySelectorAll('input.func-item').forEach(function(cb){
     const it = db.items.find(function(x){ return x.id === cb.value; });
-    if(it && keys.indexOf(normalizeFunctionName(it.name)) !== -1) cb.checked = true;
+    if(!it) return;
+    // obecný název („Rukavice“) označí všechny druhy rukavic
+    const exact = normalizeFunctionName(it.name);
+    const generic = normalizeFunctionName(genericClaimName(it.name));
+    if((keys.indexOf(exact) !== -1 || keys.indexOf(generic) !== -1) && !cb.checked){
+      cb.checked = true;
+      n++;
+    }
   });
-  toast('Doplněno z „má nárok“ (dle názvu).');
+  toast(n ? 'Doplněno z „má nárok“ (' + n + ' ' + czPlural(n, 'předmět', 'předměty', 'předmětů') + ', včetně všech druhů).'
+          : 'Nic nového k doplnění — všechny odpovídající předměty už jsou označené.');
 }
 
 function renderFunctionList(){
@@ -2214,7 +2356,7 @@ function renderFunctionList(){
       return it ? it.name : null;
     }).filter(Boolean);
   };
-  const dash = '<span style="color:#94a3b8">—</span>';
+  const dash = '<span style="color:#8fa0b6">—</span>';
   list.innerHTML = '<table><thead><tr><th>Funkce</th><th>Má nárok</th><th>Může nafasovat</th><th class="opt">Zaměstnanců</th><th></th></tr></thead><tbody>' +
     db.functions.map(function(f){
       const claims = (f.claims || []).map(normalizeClaim).filter(Boolean);
@@ -2705,7 +2847,7 @@ function makeSigPad(canvas){
     ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1f2937';
+    ctx.strokeStyle = '#231f20';
     if(saved){
       const img = new Image();
       img.onload = function(){ ctx.drawImage(img, 0, 0, rect.width, rect.height); };
@@ -5724,7 +5866,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -6000,8 +6142,10 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   if(migrateItemSizes()) save();
-  ensureFunctions();
+  // převod „má nárok“ na obecné položky (Rukavice, Montérky, Obuv…) se hned uloží
+  const functionsConverted = ensureFunctions();
   if(migrateFunctions()) save();
+  else if(functionsConverted) save();
   // duplicity, které na nových zařízeních vznikly dřívějšími verzemi, se sloučí
   const dupItems = dedupeItems();
   if(dupItems){

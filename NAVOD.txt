@@ -55,6 +55,14 @@ Záložka Data — rozklikávací karty
   ukládání je automatické do zařízení a podpisy se po nahrání do cloudu
   samy mažou, takže není co nastavovat.
 
+Vzhled aplikace
+- Barvy jsou sladěné s firemní modrou SWISS-FORM (swissform.cz): hlavička,
+  tlačítka i spodní menu jsou v této modré, podklad je světlý do modrošeda.
+- Na úvodní obrazovce i v hlavičce je název aplikace TEXTEM — žádný obrázek
+  loga. Nemůže se tak stát, že by se po aktualizaci na tabletu zobrazilo
+  staré logo z paměti zařízení; napořád ostré je i na malém displeji.
+- Obrázkové logo zůstává jen na tištěném předávacím protokolu (A4).
+
 Import seznamu zaměstnanců
 - Přesunut do Záložky Data → karta „📥 Import seznamu zaměstnanců“ (dřív
   byl v Záložce Zaměstnanci). Načte JSON se seznamem (např.
@@ -221,6 +229,23 @@ Objednávky materiálu
 - Odeslané objednávky se ukládají do seznamu (i do cloudu) včetně stavu;
   tlačítkem „📤 Znovu odeslat“ je možné objednávku poslat znovu,
   mazání je chráněné heslem správce.
+
+Funkce a pozice — „Má nárok" a „Může nafasovat"
+- „Má nárok" se vede OBECNĚ, ne podle druhů: různé druhy rukavic
+  (letní, zimní, nitrilové, protiřezné…) jsou v nároku jedna položka
+  „Rukavice", pánské i dámské montérky jedna položka „Montérky".
+  Stejně obuv, brýle, přilba, vesta, respirátor, chrániče sluchu…
+  Důvod: evidenční list (PDF) má jeden řádek na OOPP, ne na každý druh.
+- Když jste dřív měli v nároku vypsané jednotlivé druhy, po aktualizaci
+  se samy sloučí na obecné položky — nic se nemusí přepisovat. Co
+  aplikace nezná (např. „Ochranný krém"), zůstane celým názvem.
+- Rozdělení na druhy zůstává tam, kde patří — v předmětech a v „Může
+  nafasovat": tam zaškrtnete konkrétní druhy, které daná pozice dostane.
+  Tlačítko „＋ doplnit z „má nárok"" označí všechny druhy k obecné
+  položce („Rukavice" = všechny druhy rukavic).
+- U obecné položky v nároku je v bublině (kurzor nad ní) vidět, které
+  druhy pod ni patří, a v seznamu „＋ vybrat z předmětů" je u ní počet
+  druhů, např. „Rukavice — 14 dní / dle potřeby (3 druhů)".
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:
