@@ -71,8 +71,10 @@ main::-webkit-scrollbar{display:none}
 /* krátká stavová poznámka v hlavičce sbalené karty (např. Cloud) */
 .acc-note{flex:0 1 auto;max-width:48%;font-size:.72rem;line-height:1.3;text-align:right;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 label{display:block;font-size:.82rem;font-weight:600;margin:12px 0 5px;color:#334155}
-input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
-input:focus,select:focus{outline:none;border-color:#17324d}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#17324d}
+textarea{resize:vertical;min-height:110px;line-height:1.45;font-family:inherit}
+textarea[readonly]{background:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.5}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border:none;border-radius:8px;background:#17324d;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer}
 .btn:active{transform:scale(.98)}
 .btn.secondary{background:#64748b}
@@ -255,18 +257,22 @@ tr.clickable:hover{background:#f1f5f9}
 .proto-kicker{font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:#17324d;font-weight:700;margin:0 0 1mm}
 .proto-head h1{font-size:23pt;font-weight:800;letter-spacing:.02em;margin:0;color:#000;background:none;text-transform:none}
 .proto-no{font-size:10pt;color:#333;margin-top:1.5mm}
-.proto-table{width:100%;border-collapse:collapse;margin:0 0 6mm;table-layout:fixed}
-.proto-table th,.proto-table td{border:1px solid #000;padding:3.5mm 4mm;vertical-align:top;text-align:left;background:#fff;color:#000;font-size:10.5pt;font-weight:400;line-height:1.3}
-.proto-table th{background:#eef2f7;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;width:50%}
-.proto-table td{font-weight:600;min-height:12mm}
+/* Údaje protokolu jsou pod sebou (jeden údaj = jeden řádek), aby se to dalo
+   po vytištění snadno přečíst — žádné dva sloupce vedle sebe. */
+.proto-rows{width:100%;border-collapse:collapse;margin:0 0 8mm;table-layout:fixed}
+.proto-rows th,.proto-rows td{border:1px solid #000;padding:3mm 4mm;text-align:left;vertical-align:top;background:#fff;color:#000}
+.proto-rows th{width:48mm;background:#eef2f7;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#17324d;line-height:1.25}
+.proto-rows td{font-size:11pt;font-weight:600;line-height:1.35}
+.proto-rows td .sub{display:block;font-size:9pt;font-weight:400;color:#333;margin-top:1mm}
 .proto-note{margin:0 0 6mm;font-size:10pt;color:#000}
 .proto-note .lbl{font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;color:#17324d;font-weight:700;display:block;margin-bottom:1.5mm}
-.proto-sigs{display:flex;gap:12mm;margin-top:18mm}
-.proto-sig{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}
+/* Podpisy jsou také pod sebou — každý na vlastním řádku. */
+.proto-sigs{margin-top:10mm}
+.proto-sig{margin-top:9mm}
+.proto-sigs .proto-sig:first-child{margin-top:0}
 .proto-sig-label{font-size:9.5pt;font-weight:700;color:#000;margin-bottom:2mm}
-.proto-sig-line{width:100%;height:26mm;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:1mm}
-.proto-sig-line img{height:23mm;max-width:100%;object-fit:contain}
-.proto-sig-name{margin-top:2.5mm;font-size:9.5pt;font-weight:600;color:#000;width:100%}
+.proto-sig-line{width:100%;height:22mm;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:flex-start;padding-bottom:1mm}
+.proto-sig-line img{height:20mm;max-width:100%;object-fit:contain}
 .proto-sig-nosig{font-size:8pt;color:#94a3b8;font-weight:400}
 .proto-foot{position:absolute;left:16mm;right:16mm;bottom:10mm;display:flex;justify-content:space-between;gap:6mm;font-size:8pt;color:#333;border-top:1px solid #666;padding-top:2mm}
 @media print{
@@ -311,6 +317,7 @@ tr.clickable:hover{background:#f1f5f9}
     <button data-tab="issue" class="active">Výdej</button>
     <button data-tab="employees">Zaměstnanci</button>
     <button data-tab="protocols">Předávky</button>
+    <button data-tab="orders">Objednávky</button>
     <button data-tab="items">Předměty</button>
     <button data-tab="data">Data</button>
   </nav>
@@ -428,12 +435,12 @@ tr.clickable:hover{background:#f1f5f9}
         <input type="hidden" id="protocolTo">
         <div id="protocolToList" class="emp-suggest hidden"></div>
         <label>Předmět předávky</label>
-        <select id="protocolItem"></select>
-        <div class="row" style="margin-top:8px">
-          <input type="number" id="protocolQty" min="1" step="1" value="1" placeholder="množství" style="flex:0 0 90px">
-          <select id="protocolSize" title="Velikost" style="flex:0 0 110px"></select>
-          <input type="text" id="protocolNote" class="grow" placeholder="poznámka (např. inventární číslo)" autocomplete="off">
-        </div>
+        <input type="text" id="protocolItemText" placeholder="napište, co se předává (nemusí být z číselníku OOPP)" autocomplete="off">
+        <label>Místo předání</label>
+        <select id="protocolPlace">
+          <option value="N.Role">N.Role</option>
+          <option value="Nejdek">Nejdek</option>
+        </select>
         <label>Podpis předávajícího</label>
         <div class="sig-box"><canvas id="protocolFromCanvas" class="proto-canvas"></canvas></div>
         <div class="row" style="margin-top:8px">
@@ -451,6 +458,51 @@ tr.clickable:hover{background:#f1f5f9}
       <div class="card">
         <h2>Seznam předávacích protokolů</h2>
         <div id="protocolList"></div>
+      </div>
+    </section>
+
+    <section id="tab-orders" class="tab-content">
+      <div class="card">
+        <h2>Nová objednávka materiálu</h2>
+        <p class="desc">Napište, co potřebujete. Aplikace text převede do objednávkového formátu a odešle ho e-mailem na zadanou adresu.</p>
+        <label>Datum</label>
+        <input type="date" id="orderDate">
+        <label>Objednává</label>
+        <div class="row">
+          <input type="search" id="orderByFilter" class="grow" placeholder="Hledat jméno nebo osobní číslo…" autocomplete="off" inputmode="search" enterkeyhint="search">
+        </div>
+        <input type="hidden" id="orderBy">
+        <div id="orderByList" class="emp-suggest hidden"></div>
+        <label>Místo</label>
+        <select id="orderPlace">
+          <option value="N.Role">N.Role</option>
+          <option value="Nejdek">Nejdek</option>
+        </select>
+        <label>Co potřebuji</label>
+        <textarea id="orderText" placeholder="Každou položku na samostatný řádek…"></textarea>
+        <div class="sig-hint">Např.: „Pracovní rukavice vel. 10 – 2 pár“ na jednom řádku, další položka na dalším.</div>
+        <label>Odeslat na e-mail</label>
+        <input type="text" id="orderEmail" placeholder="objednavky@swissform.cz" autocomplete="off" inputmode="email">
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnSendOrder">📤 Odeslat objednávku</button>
+          <button class="btn outline" id="btnPreviewOrder">👁 Náhled</button>
+          <button class="btn secondary" id="btnCopyOrder">📋 Kopírovat</button>
+        </div>
+        <label style="margin-top:14px">Náhled odesílaného textu</label>
+        <textarea id="orderPreview" rows="10" readonly placeholder="Náhled se zobrazí po stisku „Náhled“."></textarea>
+        <details style="margin-top:14px">
+          <summary style="cursor:pointer;font-size:.84rem;font-weight:600;color:#334155">Pokročilé — automatické odesílání přes službu</summary>
+          <label>URL odesílací služby (nepovinné)</label>
+          <input type="text" id="orderEndpoint" placeholder="https://…" autocomplete="off" inputmode="url">
+          <div class="sig-hint">
+            Když je adresa vyplněná, aplikace pošle objednávku na tuto adresu (POST, JSON) a e-mail odešle služba.
+            Bez vyplnění se otevře poštovní klient s předvyplněnou zprávou (Gmail, Outlook…), kde se jen stiskne Odeslat.
+          </div>
+        </details>
+      </div>
+      <div class="card">
+        <h2>Odeslané objednávky</h2>
+        <div id="orderList"></div>
       </div>
     </section>
 
@@ -760,7 +812,7 @@ try{ localStorage.removeItem('oopp_caps'); }catch(e){}
 
 // jednotný tvar dat — starší zálohy nemají tombstones/functions
 function normalizeDbShape(d){
-  const out = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: [], tombstones: []}, d || {});
+  const out = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: [], orders: [], tombstones: []}, d || {});
   ['employees', 'items', 'issues', 'functions', 'protocols', 'tombstones'].forEach(function(k){
     if(!Array.isArray(out[k])) out[k] = [];
   });
@@ -917,7 +969,7 @@ function recSig(rec){
 
 function trackRecChanges(){
   const now = Date.now();
-  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols', 'orders'].forEach(function(kind){
     const alive = {};
     (db[kind] || []).forEach(function(r){
       if(!r || !r.id) return;
@@ -1423,6 +1475,7 @@ function showTab(name){
   });
   if(name === 'issue'){ populateIssueForm(); resizeSignature(); }
   if(name === 'protocols'){ populateProtocolForm(); resizeProtocolSigs(); }
+  if(name === 'orders') populateOrderForm();
   if(name === 'employees'){
     renderEmployees();
     if(currentEmployeeId) refreshEmployeeDetail();
@@ -2643,27 +2696,9 @@ function selectProtocolPerson(which, id){
   closeProtocolSuggestions(which);
 }
 
-function refreshProtocolSize(){
-  const itemSel = document.getElementById('protocolItem');
-  const sizeSel = document.getElementById('protocolSize');
-  const it = db.items.find(function(x){ return x.id === itemSel.value; });
-  const sizes = sizesForItem(it);
-  if(sizes.length === 0){
-    sizeSel.innerHTML = '<option value="">vel.</option>';
-    sizeSel.disabled = true;
-  } else {
-    sizeSel.innerHTML = sizeOptions(sizes, sizeSel.value || '');
-    sizeSel.disabled = false;
-  }
-}
-
 function populateProtocolForm(){
   const date = document.getElementById('protocolDate');
   if(!date.value) date.value = todayIso();
-  const itemSel = document.getElementById('protocolItem');
-  const prev = itemSel.value;
-  itemSel.innerHTML = itemOptions(prev, null);
-  refreshProtocolSize();
   ['from', 'to'].forEach(closeProtocolSuggestions);
 }
 
@@ -2695,6 +2730,17 @@ function freeUploadedProtocolSignatures(){
   return freed;
 }
 
+function protoItemLabel(p){
+  // Předmět je volný text; starší záznamy měly předmět z číselníku + množství/velikost.
+  const base = (p && (p.itemText || p.itemName)) || '';
+  const extra = [];
+  if(p && !p.itemText && p.qty != null && p.qty !== ''){
+    extra.push(String(p.qty) + ' ' + (p.unit || 'ks'));
+  }
+  if(p && p.size) extra.push('vel. ' + p.size);
+  return base + (extra.length ? ' (' + extra.join(', ') + ')' : '');
+}
+
 function saveProtocol(){
   const fromId = protocolHidden('from').value;
   const toId = protocolHidden('to').value;
@@ -2704,23 +2750,18 @@ function saveProtocol(){
   const from = db.employees.find(function(e){ return e.id === fromId; });
   const to = db.employees.find(function(e){ return e.id === toId; });
   if(!from || !to){ toast('Zaměstnanec nenalezen.'); return; }
-  const itemId = document.getElementById('protocolItem').value;
-  if(!itemId){ toast('Vyberte předmět předávky.'); return; }
-  const it = db.items.find(function(x){ return x.id === itemId; });
-  const qty = parseInt(document.getElementById('protocolQty').value, 10);
-  if(!qty || qty < 1){ toast('Zadejte množství.'); return; }
+  const itemText = document.getElementById('protocolItemText').value.trim();
+  if(!itemText){ toast('Napište, co se předává.'); return; }
   initProtocolSigs();
   const sigFrom = padFrom.getData();
   const sigTo = padTo.getData();
   const p = touchRec({
     id: uid(),
     date: document.getElementById('protocolDate').value || todayIso(),
+    place: document.getElementById('protocolPlace').value || 'N.Role',
     fromId: from.id, fromName: from.name, fromFunc: employeeFunctionName(from),
     toId: to.id, toName: to.name, toFunc: employeeFunctionName(to),
-    itemId: itemId, itemName: it ? it.name : itemId,
-    qty: qty, unit: it ? (it.unit || 'ks') : 'ks',
-    size: document.getElementById('protocolSize').value || '',
-    note: document.getElementById('protocolNote').value.trim(),
+    itemText: itemText,
     sigFrom: sigFrom, sigFromHas: !!sigFrom, sigFromPending: !!sigFrom,
     sigTo: sigTo, sigToHas: !!sigTo, sigToPending: !!sigTo,
     createdAt: Date.now()
@@ -2729,8 +2770,7 @@ function saveProtocol(){
   save();
   padFrom.clear();
   padTo.clear();
-  document.getElementById('protocolNote').value = '';
-  document.getElementById('protocolQty').value = '1';
+  document.getElementById('protocolItemText').value = '';
   protocolHidden('from').value = '';
   protocolHidden('to').value = '';
   protocolInput('from').value = '';
@@ -2760,15 +2800,14 @@ function renderProtocols(){
     return '<tr>' +
       '<td class="nowrap">' + formatDate(p.date) + '</td>' +
       '<td>' + escapeHtml(p.fromName) + ' → ' + escapeHtml(p.toName) + '</td>' +
-      '<td>' + escapeHtml(p.itemName || '') +
-        (p.size ? ' <span class="sig-hint">vel. ' + escapeHtml(p.size) + '</span>' : '') + '</td>' +
-      '<td class="nowrap">' + escapeHtml(String(p.qty == null ? '' : p.qty)) + ' ' + escapeHtml(p.unit || '') + '</td>' +
+      '<td>' + escapeHtml(protoItemLabel(p)) + '</td>' +
+      '<td class="nowrap">' + escapeHtml(p.place || '—') + '</td>' +
       '<td class="nowrap" style="text-align:right">' +
         '<button class="btn outline small" data-printproto="' + p.id + '">🖨 Tisk</button> ' +
         '<button class="btn danger small" data-delproto="' + p.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button>' +
       '</td></tr>';
   }).join('');
-  box.innerHTML = '<table><thead><tr><th>Datum</th><th>Předávající → Přebírající</th><th>Předmět</th><th>Množství</th><th></th></tr></thead><tbody>' +
+  box.innerHTML = '<table><thead><tr><th>Datum</th><th>Předávající → Přebírající</th><th>Předmět</th><th>Místo</th><th></th></tr></thead><tbody>' +
     rows + '</tbody></table>';
 }
 
@@ -2790,20 +2829,20 @@ function protoPersonCell(p, key){
   return escapeHtml(name) + (fn ? '<div style="font-weight:400;font-size:9pt;color:#333">' + escapeHtml(fn) + '</div>' : '');
 }
 
-function protoSigBlock(name, data, noSigHint){
-  if(data){
-    return '<div class="proto-sig-line"><img src="' + data + '" alt="Podpis"></div>' +
-      '<div class="proto-sig-name">' + escapeHtml(name) + '</div>';
-  }
-  return '<div class="proto-sig-line"><span class="proto-sig-nosig">' + (noSigHint || 'bez podpisu') + '</span></div>' +
-    '<div class="proto-sig-name">' + escapeHtml(name) + '</div>';
+function protoSigBlock(role, name, data, noSigHint){
+  const label = role + (name ? ' — ' + name : '');
+  return '<div class="proto-sig">' +
+    '<div class="proto-sig-label">' + escapeHtml(label) + '</div>' +
+    (data
+      ? '<div class="proto-sig-line"><img src="' + data + '" alt="Podpis"></div>'
+      : '<div class="proto-sig-line"><span class="proto-sig-nosig">' + escapeHtml(noSigHint || 'bez podpisu') + '</span></div>') +
+    '</div>';
 }
 
 function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
   const no = String(p.id || '').slice(-6).toUpperCase();
-  const item = escapeHtml(p.itemName || '—');
-  const size = p.size ? ' <span style="font-weight:400">(vel. ' + escapeHtml(p.size) + ')</span>' : '';
-  const qty = escapeHtml(String(p.qty == null ? '' : p.qty)) + ' ' + escapeHtml(p.unit || '');
+  const item = escapeHtml(protoItemLabel(p) || '—');
+  const place = p.place ? escapeHtml(p.place) : '………………………………';
   const note = p.note
     ? '<div class="proto-note"><span class="lbl">Poznámka</span>' + escapeHtml(p.note) + '</div>'
     : '';
@@ -2816,24 +2855,19 @@ function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
         '<div class="proto-no">č. ' + no + ' · ' + formatDate(p.date) + '</div>' +
       '</div>' +
     '</div>' +
-    '<table class="proto-table">' +
-      '<tr><th>Předávající (vydává)</th><th>Přebírající (přijímá)</th></tr>' +
-      '<tr><td>' + protoPersonCell(p, 'from') + '</td><td>' + protoPersonCell(p, 'to') + '</td></tr>' +
-      '<tr><th>Předmět předávky</th><th>Množství</th></tr>' +
-      '<tr><td>' + item + size + '</td><td>' + qty + '</td></tr>' +
+    '<table class="proto-rows">' +
+      '<tr><th>Datum</th><td>' + formatDate(p.date) + '</td></tr>' +
+      '<tr><th>Předávající (vydává)</th><td>' + protoPersonCell(p, 'from') + '</td></tr>' +
+      '<tr><th>Přebírající (přijímá)</th><td>' + protoPersonCell(p, 'to') + '</td></tr>' +
+      '<tr><th>Předmět předávky</th><td>' + item + '</td></tr>' +
+      '<tr><th>Místo předání</th><td>' + place + '</td></tr>' +
     '</table>' +
     note +
     '<div class="proto-sigs">' +
-      '<div class="proto-sig">' +
-        '<div class="proto-sig-label">Podpis předávajícího</div>' +
-        protoSigBlock(p.fromName || '', sigFrom, missingFrom ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
-      '</div>' +
-      '<div class="proto-sig">' +
-        '<div class="proto-sig-label">Podpis přebírajícího</div>' +
-        protoSigBlock(p.toName || '', sigTo, missingTo ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
-      '</div>' +
+      protoSigBlock('Podpis předávajícího', p.fromName || '', sigFrom, missingFrom ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
+      protoSigBlock('Podpis přebírajícího', p.toName || '', sigTo, missingTo ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
     '</div>' +
-    '<div class="proto-foot"><span>Místo předání: ………………………………</span><span>Datum: ' + formatDate(p.date) + '</span></div>' +
+    '<div class="proto-foot"><span>Místo předání: ' + (p.place ? escapeHtml(p.place) : '………………………………') + '</span><span>Datum: ' + formatDate(p.date) + '</span></div>' +
     '</div>';
 }
 
@@ -2863,6 +2897,312 @@ async function printProtocol(id){
   area.innerHTML = buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo);
   sigMissingNote((missingFrom ? 1 : 0) + (missingTo ? 1 : 0));
   printWhenReady(area);
+}
+
+/* ---------- Objednávky materiálu ----------
+   Uživatel napíše, co potřebuje, aplikace text převede do objednávkového
+   formátu (buildOrderText) a odešle ho e-mailem na zadanou adresu.
+   Až dorazí přesný firemní formát, mění se JEN funkce buildOrderText() —
+   zbytek aplikace (formulář, odesílání, historie) zůstává stejný. */
+const ORDER_EMAIL_KEY = 'oopp_order_email';
+const ORDER_ENDPOINT_KEY = 'oopp_order_endpoint';
+const ORDER_PLACES = ['N.Role', 'Nejdek'];
+
+function orderSetting(key){
+  try{ return localStorage.getItem(key) || ''; }catch(e){ return ''; }
+}
+function setOrderSetting(key, value){
+  try{ localStorage.setItem(key, value || ''); }catch(e){}
+}
+
+// Rozdělí napsaný text na jednotlivé položky (každá na vlastním řádku).
+function orderLinesOf(text){
+  return String(text || '').split(/\r?\n/).map(function(l){ return l.trim(); })
+    .filter(function(l){ return l.length > 0; });
+}
+
+// FORMÁT OBJEDNÁVKY — tady se případně upraví podle dodaného vzoru.
+function buildOrderText(o){
+  const lines = [];
+  lines.push('OBJEDNÁVKA MATERIÁLU');
+  lines.push('');
+  lines.push('Datum: ' + formatDate(o.date));
+  if(o.byName){
+    lines.push('Objednává: ' + o.byName + (o.byFunc ? ' (' + o.byFunc + ')' : ''));
+  }
+  if(o.byNumber) lines.push('Osobní číslo: ' + o.byNumber);
+  lines.push('Místo: ' + (o.place || ''));
+  lines.push('');
+  lines.push('Položky:');
+  orderLinesOf(o.text).forEach(function(l){ lines.push('- ' + l); });
+  lines.push('');
+  lines.push('Odesláno z aplikace SWISSFORM – Evidence OOPP');
+  return lines.join('\n');
+}
+
+function orderSubject(o){
+  return 'Objednávka materiálu – ' + (o.place || '') + ' – ' + formatDate(o.date);
+}
+
+function orderBox(){ return document.getElementById('orderByList'); }
+function orderInput(){ return document.getElementById('orderByFilter'); }
+
+function renderOrderSuggestions(){
+  const input = orderInput();
+  const box = orderBox();
+  if(!input || !box) return;
+  const q = input.value.trim();
+  const matches = issueEmployeeMatches(q);
+  if(!q || matches.length === 0){
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+  box.innerHTML = matches.slice(0, 60).map(function(e){
+    return '<div class="emp-suggest-item" data-id="' + e.id + '">' +
+      escapeHtml(issueEmployeeLabel(e)) +
+      (e.personalNumber ? '<div class="sig-hint">os. č. ' + escapeHtml(e.personalNumber) + '</div>' : '') +
+      '</div>';
+  }).join('');
+  box.classList.remove('hidden');
+}
+
+function closeOrderSuggestions(){
+  const box = orderBox();
+  if(box){ box.classList.add('hidden'); box.innerHTML = ''; }
+}
+
+function selectOrderPerson(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  document.getElementById('orderBy').value = id;
+  orderInput().value = issueEmployeeLabel(e);
+  closeOrderSuggestions();
+}
+
+function populateOrderForm(){
+  const date = document.getElementById('orderDate');
+  if(date && !date.value) date.value = todayIso();
+  const email = document.getElementById('orderEmail');
+  if(email && !email.value) email.value = orderSetting(ORDER_EMAIL_KEY);
+  const endpoint = document.getElementById('orderEndpoint');
+  if(endpoint && !endpoint.value) endpoint.value = orderSetting(ORDER_ENDPOINT_KEY);
+  closeOrderSuggestions();
+}
+
+// Z právě vyplněného formuláře sestaví záznam objednávky (bez uložení).
+// needEmail === false dovolí udělat náhled i bez vyplněné adresy.
+function readOrderForm(needEmail){
+  const text = document.getElementById('orderText').value.trim();
+  if(!text){ toast('Napište, co potřebujete.'); return null; }
+  const byId = document.getElementById('orderBy').value;
+  const by = db.employees.find(function(e){ return e.id === byId; }) || null;
+  const byName = by ? by.name : orderInput().value.replace(/\s*\(.*\)\s*$/, '').trim();
+  if(!byName){ toast('Napište, kdo objednává.'); return null; }
+  const email = document.getElementById('orderEmail').value.trim();
+  if(needEmail !== false && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('Zadejte platný e-mail, na který se má objednávka poslat.');
+    return null;
+  }
+  return {
+    date: document.getElementById('orderDate').value || todayIso(),
+    place: document.getElementById('orderPlace').value || ORDER_PLACES[0],
+    byId: by ? by.id : '',
+    byName: byName,
+    byFunc: by ? employeeFunctionName(by) : '',
+    byNumber: by ? (by.personalNumber || '') : '',
+    text: text,
+    email: email
+  };
+}
+
+function previewOrder(){
+  const o = readOrderForm(false);
+  if(!o) return;
+  document.getElementById('orderPreview').value = buildOrderText(o);
+  toast('Náhled je připravený.');
+}
+
+// Zkopíruje text do schránky (u starších prohlížečů záložní cestou přes textarea).
+function copyPlainText(text){
+  const fallback = function(){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(function(){ return true; })
+      .catch(function(){ return fallback(); });
+  }
+  return Promise.resolve(fallback());
+}
+
+function copyOrder(){
+  const ta = document.getElementById('orderPreview');
+  let text = '';
+  const o = readOrderForm(false);
+  if(o) text = buildOrderText(o);
+  if(!text) text = ta.value;              // poslední náhled
+  if(!text){ toast('Nejdřív napište, co potřebujete.'); return; }
+  ta.value = text;
+  copyPlainText(text).then(function(ok){
+    toast(ok ? 'Text objednávky zkopírován.' : 'Kopírování není dostupné — text je v náhledu.');
+  });
+}
+
+// Odešle objednávku. Když je v nastavení URL odesílací služby, pošle se tam
+// (POST s JSON); jinak se otevře poštovní klient s předvyplněnou zprávou.
+async function sendOrder(){
+  const o = readOrderForm();
+  if(!o) return;
+  const body = buildOrderText(o);
+  const subject = orderSubject(o);
+  document.getElementById('orderPreview').value = body;
+  setOrderSetting(ORDER_EMAIL_KEY, o.email);
+  setOrderSetting(ORDER_ENDPOINT_KEY, document.getElementById('orderEndpoint').value.trim());
+
+  const rec = touchRec({
+    id: uid(),
+    date: o.date,
+    place: o.place,
+    byId: o.byId, byName: o.byName, byFunc: o.byFunc, byNumber: o.byNumber,
+    text: o.text, email: o.email, subject: subject, body: body,
+    status: 'neodesláno', createdAt: Date.now()
+  });
+  db.orders.push(rec);
+  save();
+
+  const endpoint = document.getElementById('orderEndpoint').value.trim();
+  let sent = false;
+  if(endpoint){
+    try{
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({to: o.email, subject: subject, body: body, text: body, order: rec})
+      });
+      sent = !!(res && res.ok);
+    }catch(e){ sent = false; }
+  }
+  if(sent){
+    rec.status = 'odesláno';
+    rec.sentAt = Date.now();
+    save();
+    renderOrders();
+    toast('Objednávka odeslána na ' + o.email + '.');
+    document.getElementById('orderText').value = '';
+    return;
+  }
+
+  // Záložní cesta: předvyplněný e-mail v poštovním klientovi.
+  // Text se navíc zkopíruje do schránky, aby se dal vložit i ručně.
+  let copied = false;
+  try{ copied = await copyPlainText(body); }catch(e){}
+  rec.handedAt = Date.now();
+  save();
+  renderOrders();
+  const href = 'mailto:' + encodeURIComponent(o.email) +
+    '?subject=' + encodeURIComponent(subject) +
+    '&body=' + encodeURIComponent(body);
+  try{ window.location.href = href; }catch(e){}
+  toast(copied
+    ? 'Otevřel se e-mail s objednávkou — zkontrolujte ji a odešlete. Text je i ve schránce.'
+    : 'Otevřel se e-mail s objednávkou — zkontrolujte ji a odešlete.');
+  document.getElementById('orderText').value = '';
+}
+
+function ordersSorted(){
+  return (db.orders || []).slice().sort(function(a, b){
+    const da = a.date || '', db2 = b.date || '';
+    if(da !== db2) return da < db2 ? 1 : -1;        // nejnovější nahoře
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+
+function orderStatusText(o){
+  if(o.status === 'odesláno') return '✅ odesláno';
+  if(o.handedAt) return '📧 otevřen e-mail';
+  return '⏳ neodesláno';
+}
+
+function renderOrders(){
+  const box = document.getElementById('orderList');
+  if(!box) return;
+  const list = ordersSorted();
+  if(list.length === 0){
+    box.innerHTML = '<div class="empty">Zatím žádná objednávka.</div>';
+    return;
+  }
+  const rows = list.map(function(o){
+    const items = orderLinesOf(o.text);
+    const what = items.length > 1
+      ? escapeHtml(items[0]) + ' <span class="sig-hint">(+' + (items.length - 1) + ')</span>'
+      : escapeHtml(items[0] || '');
+    return '<tr>' +
+      '<td class="nowrap">' + formatDate(o.date) + '</td>' +
+      '<td>' + escapeHtml(o.byName || '') + '</td>' +
+      '<td class="nowrap">' + escapeHtml(o.place || '—') + '</td>' +
+      '<td>' + what + '</td>' +
+      '<td class="nowrap">' + orderStatusText(o) + '</td>' +
+      '<td class="nowrap" style="text-align:right">' +
+        '<button class="btn outline small" data-sendorder="' + o.id + '">📤 Znovu odeslat</button> ' +
+        '<button class="btn danger small" data-delorder="' + o.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button>' +
+      '</td></tr>';
+  }).join('');
+  box.innerHTML = '<table><thead><tr><th>Datum</th><th>Objednává</th><th>Místo</th><th>Co</th><th>Stav</th><th></th></tr></thead><tbody>' +
+    rows + '</tbody></table>';
+}
+
+// Znovu odešle už uloženou objednávku (text i příjemce se vezmou ze záznamu).
+async function resendOrder(id){
+  const o = (db.orders || []).find(function(x){ return x.id === id; });
+  if(!o) return;
+  const endpoint = orderSetting(ORDER_ENDPOINT_KEY);
+  if(endpoint){
+    try{
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({to: o.email, subject: o.subject, body: o.body, text: o.body, order: o})
+      });
+      if(res && res.ok){
+        o.status = 'odesláno';
+        o.sentAt = Date.now();
+        o.updatedAt = Date.now();
+        save();
+        renderOrders();
+        toast('Objednávka odeslána na ' + o.email + '.');
+        return;
+      }
+    }catch(e){}
+  }
+  let copied = false;
+  try{ copied = await copyPlainText(o.body || ''); }catch(e){}
+  const href = 'mailto:' + encodeURIComponent(o.email || '') +
+    '?subject=' + encodeURIComponent(o.subject || '') +
+    '&body=' + encodeURIComponent(o.body || '');
+  try{ window.location.href = href; }catch(e){}
+  toast(copied ? 'Otevřel se e-mail s objednávkou (text je i ve schránce).' : 'Otevřel se e-mail s objednávkou.');
+}
+
+function deleteOrder(id){
+  const o = (db.orders || []).find(function(x){ return x.id === id; });
+  if(!o) return;
+  if(!askAdminPassword('smazání objednávky')) return;
+  if(!confirm('Smazat objednávku z ' + formatDate(o.date) + ' (' + (o.byName || '') + ')?')) return;
+  db.orders = (db.orders || []).filter(function(x){ return x.id !== id; });
+  markDeleted('orders', id);
+  save();
+  renderOrders();
+  toast('Objednávka smazána.');
 }
 
 /* ---------- Výdeje zaměstnance (tabulka v seznamu zaměstnanců) ---------- */
@@ -3776,8 +4116,8 @@ async function connectDataDir(dir){
       // Data ze souboru jsou hlavní, ale když soubor vznikl starší verzí aplikace
       // a nějaký číselník v něm úplně chybí (např. funkce/pozice), ponechá se
       // to, co je v zařízení — nic se tím neztratí a hned se to dopíše do souboru.
-      const merged = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: []}, existing);
-      ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(key){
+      const merged = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: [], orders: []}, existing);
+      ['employees', 'items', 'issues', 'functions', 'protocols', 'orders'].forEach(function(key){
         if(!Array.isArray(existing[key])) merged[key] = Array.isArray(db[key]) ? db[key] : [];
       });
       db = merged;
@@ -3975,7 +4315,7 @@ function renderDataInfo(){
   document.getElementById('dataStats').textContent =
     'Zaměstnanců: ' + db.employees.length + '  •  Předmětů: ' + db.items.length +
     '  •  Funkcí: ' + db.functions.length + '  •  Výdejů: ' + db.issues.length +
-    '  •  Protokolů: ' + db.protocols.length;
+    '  •  Protokolů: ' + db.protocols.length + '  •  Objednávek: ' + (db.orders || []).length;
 }
 
 /* ---------- Spotřeba předmětů (záložka Data) — jen pro čtení ---------- */
@@ -4122,7 +4462,7 @@ function clearAll(){
   if(!confirm('Opravdu smazat VŠECHNA data? Tuto akci nelze vrátit.')) return;
   if(!confirm('Jste si jistí? Data budou nenávratně smazána.')) return;
   // mazání se musí do cloudu propsat jako „smazáno“, jinak by se data z jiného zařízení vrátila
-  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols', 'orders'].forEach(function(kind){
     (db[kind] || []).forEach(function(r){ if(r && r.id) markDeleted(kind, r.id); });
   });
   db = normalizeDbShape({tombstones: db.tombstones, initialized: true});
@@ -4235,6 +4575,7 @@ function cloudDataOnly(d, opts){
       }
       return copy;
     }), function(r){ return r && r.id; }),
+    orders: sortById(src.orders, function(r){ return r && r.id; }),
     tombstones: sortById(src.tombstones, function(t){ return t && (t.kind + '|' + t.id); }),
     initialized: true
   };
@@ -4660,7 +5001,7 @@ function cloudDropDeleted(data){
   data.tombstones = mergeCloudTombstones(data.tombstones, []);
   const dead = {};
   data.tombstones.forEach(function(t){ dead[t.kind + '|' + t.id] = t.at || 0; });
-  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols', 'orders'].forEach(function(kind){
     data[kind] = (data[kind] || []).filter(function(r){
       if(!r || !r.id) return false;
       const at = dead[kind + '|' + r.id];
@@ -4687,6 +5028,7 @@ function cloudMergeData(local, remote){
     issues: mergeCloudList(mine.issues, theirs.issues),
     functions: mergeCloudList(mine.functions, theirs.functions),
     protocols: mergeCloudList(mine.protocols, theirs.protocols),
+    orders: mergeCloudList(mine.orders, theirs.orders),
     tombstones: mergeCloudTombstones(mine.tombstones, theirs.tombstones),
     initialized: true
   });
@@ -4695,7 +5037,8 @@ function cloudMergeData(local, remote){
 function cloudDataIsEmpty(d){
   if(!d) return true;
   return !(d.employees || []).length && !(d.items || []).length &&
-    !(d.issues || []).length && !(d.functions || []).length && !(d.protocols || []).length;
+    !(d.issues || []).length && !(d.functions || []).length && !(d.protocols || []).length &&
+    !(d.orders || []).length;
 }
 
 function cloudFormatTime(ts){
@@ -5059,7 +5402,9 @@ function cloudCountsNote(){
     (db.employees || []).length + ' zaměstnanců',
     (db.items || []).length + ' předmětů',
     (db.functions || []).length + ' funkcí',
-    (db.issues || []).length + ' výdejů'
+    (db.issues || []).length + ' výdejů',
+    (db.protocols || []).length + ' protokolů',
+    (db.orders || []).length + ' objednávek'
   ];
   const signed = (db.issues || []).filter(function(i){ return i && i.hasSignature; }).length;
   if(signed) parts.push(signed + ' podepsaných (podpisy v cloudu)');
@@ -5073,7 +5418,9 @@ function cloudCountsOf(d){
     (src.employees || []).length + ' zaměstnanců',
     (src.items || []).length + ' předmětů',
     (src.functions || []).length + ' funkcí',
-    (src.issues || []).length + ' výdejů'
+    (src.issues || []).length + ' výdejů',
+    (src.protocols || []).length + ' protokolů',
+    (src.orders || []).length + ' objednávek'
   ].join(' • ');
 }
 
@@ -5250,6 +5597,7 @@ function renderAll(){
   renderDataInfo();
   renderConsumption();
   renderProtocols();
+  renderOrders();
   updateAdminUI();
   if(currentEmployeeId) refreshEmployeeDetail();
 }
@@ -5258,7 +5606,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v40';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -5600,10 +5948,45 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   bindProtocolSuggestion('from');
   bindProtocolSuggestion('to');
-  document.getElementById('protocolItem').addEventListener('change', refreshProtocolSize);
   document.getElementById('btnClearProtoFrom').addEventListener('click', function(){ initProtocolSigs(); padFrom.clear(); });
   document.getElementById('btnClearProtoTo').addEventListener('click', function(){ initProtocolSigs(); padTo.clear(); });
   document.getElementById('btnSaveProtocol').addEventListener('click', saveProtocol);
+
+  // Objednávky: výběr zaměstnance (kdo objednává) a odeslání e-mailem
+  const orderByInput = orderInput();
+  const orderByList = orderBox();
+  orderByInput.addEventListener('input', function(){
+    document.getElementById('orderBy').value = '';
+    renderOrderSuggestions();
+  });
+  orderByInput.addEventListener('focus', renderOrderSuggestions);
+  orderByInput.addEventListener('keydown', function(ev){
+    if(orderByList.classList.contains('hidden')) return;
+    const items = Array.from(orderByList.querySelectorAll('.emp-suggest-item'));
+    if(!items.length) return;
+    let idx = items.findIndex(function(el){ return el.classList.contains('active'); });
+    if(ev.key === 'ArrowDown'){ ev.preventDefault(); idx = (idx + 1) % items.length; }
+    else if(ev.key === 'ArrowUp'){ ev.preventDefault(); idx = (idx <= 0 ? items.length - 1 : idx - 1); }
+    else if(ev.key === 'Enter'){ ev.preventDefault(); if(idx >= 0) selectOrderPerson(items[idx].dataset.id); return; }
+    else if(ev.key === 'Escape'){ closeOrderSuggestions(); return; }
+    else return;
+    items.forEach(function(el){ el.classList.remove('active'); });
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({block: 'nearest'});
+  });
+  orderByList.addEventListener('click', function(ev){
+    const item = ev.target.closest ? ev.target.closest('.emp-suggest-item') : null;
+    if(item) selectOrderPerson(item.dataset.id);
+  });
+  document.getElementById('btnSendOrder').addEventListener('click', sendOrder);
+  document.getElementById('btnPreviewOrder').addEventListener('click', previewOrder);
+  document.getElementById('btnCopyOrder').addEventListener('click', copyOrder);
+  document.getElementById('orderEmail').addEventListener('change', function(){
+    setOrderSetting(ORDER_EMAIL_KEY, this.value.trim());
+  });
+  document.getElementById('orderEndpoint').addEventListener('change', function(){
+    setOrderSetting(ORDER_ENDPOINT_KEY, this.value.trim());
+  });
   const issueFilter = document.getElementById('issueEmployeeFilter');
   const issueList = document.getElementById('issueEmployeeList');
   issueFilter.addEventListener('input', function(){
@@ -5822,6 +6205,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if(printProtoBtn){ printProtocol(printProtoBtn.dataset.printproto); return; }
     const delProtoBtn = e.target.closest('button[data-delproto]');
     if(delProtoBtn){ deleteProtocol(delProtoBtn.dataset.delproto); return; }
+    const resendOrderBtn = e.target.closest('button[data-sendorder]');
+    if(resendOrderBtn){ resendOrder(resendOrderBtn.dataset.sendorder); return; }
+    const delOrderBtn = e.target.closest('button[data-delorder]');
+    if(delOrderBtn){ deleteOrder(delOrderBtn.dataset.delorder); return; }
   });
 
   initDatePicker();
