@@ -56,6 +56,20 @@ main::-webkit-scrollbar{display:none}
 .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .card h2{font-size:1.1rem;margin-bottom:4px}
 .card .desc{font-size:.82rem;color:#64748b;margin-bottom:14px}
+/* Rozklikávací karty (záložka Data): karta je <details>/<summary>, takže
+   otevírání zvládne prohlížeč sám — bez knihovny a bez vlastního skriptu.
+   Otevřený stav si aplikace pamatuje v tomto zařízení (viz initAccordions). */
+.card.acc-card{padding:0}
+.card.acc-card > details > summary{display:flex;align-items:center;gap:10px;padding:16px 18px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;user-select:none;border-radius:12px}
+.card.acc-card > details > summary::-webkit-details-marker{display:none}
+.card.acc-card > details > summary:hover{background:#f8fafc}
+.card.acc-card > details > summary > h2{flex:1;min-width:0;margin:0}
+.card.acc-card > details[open] > summary{border-bottom:1px solid #eef2f7}
+.card.acc-card > details > summary::after{content:'▾';flex:0 0 auto;font-size:.9rem;line-height:1;color:#64748b}
+.card.acc-card > details:not([open]) > summary::after{content:'▸'}
+.card.acc-card > details > .acc-body{padding:14px 18px 18px}
+/* krátká stavová poznámka v hlavičce sbalené karty (např. Cloud) */
+.acc-note{flex:0 1 auto;max-width:48%;font-size:.72rem;line-height:1.3;text-align:right;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 label{display:block;font-size:.82rem;font-weight:600;margin:12px 0 5px;color:#334155}
 input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
 input:focus,select:focus{outline:none;border-color:#17324d}
@@ -353,16 +367,6 @@ tr.clickable:hover{background:#f1f5f9}
           <button class="btn outline hidden" id="btnCancelEditEmployee">Zrušit</button>
         </div>
       </div>
-      <div class="card" id="empImportCard">
-        <h2>Import seznamu zaměstnanců</h2>
-        <p class="desc">Načtěte JSON se seznamem (např. <strong>OOPP_zamestnanci.json</strong>). Stávající zaměstnanci zůstanou, noví se doplní a duplicity se přeskočí — rozpoznávají se podle osobního čísla, jinak podle jména.</p>
-        <div class="row">
-          <button class="btn" id="btnImportEmployees">🔒 Importovat seznam (JSON)</button>
-          <input type="file" id="importEmployeesFile" accept=".json,application/json" class="hidden">
-        </div>
-        <div class="sig-hint" style="margin-top:8px">Import je chráněný heslem správce. Formát: {"employees":[{"personalNumber":"00318","name":"Lukáš Dvořák","department":"Mechanik"}]} — nebo jen pole jmen. <strong>department</strong> = název funkce; když v číselníku funkcí není, založí se nová (bez nároku).</div>
-      </div>
-
       <div class="card hidden" id="empDetail">
         <button class="btn outline small" id="btnBackToList">← Zpět na seznam</button>
         <h2 id="empDetailTitle" style="margin-top:12px"></h2>
@@ -433,192 +437,214 @@ tr.clickable:hover{background:#f1f5f9}
 
     <section id="tab-data" class="tab-content">
       <!-- Přehled spotřeby předmětů: jen pro čtení, dostupný i bez přihlášení správce. -->
-      <div class="card" id="consumptionCard">
-        <h2>📊 Spotřeba předmětů <span class="ro-badge">jen pro čtení</span></h2>
-        <p class="desc">Kolik se od jednotlivých předmětů vydalo. Počítá se ze všech uložených výdejů (i těch stažených z cloudu) — údaje se nedají přepsat, slouží jen k přehledu.</p>
-        <div class="row cons-filters">
-          <select id="consPeriod" title="Období">
-            <option value="all">Celá historie</option>
-            <option value="365">Posledních 12 měsíců</option>
-            <option value="ytd">Tento rok</option>
-          </select>
-          <input type="search" id="consFilter" placeholder="Hledat předmět…" autocomplete="off">
-        </div>
-        <div class="cons-summary" id="consSummary"></div>
-        <div id="consTable"></div>
-        <div class="row cons-tools" id="consTools"></div>
-        <div class="sig-hint" id="consHint" style="margin-top:8px"></div>
+      <div class="card acc-card" id="consumptionCard">
+        <details class="acc" data-acc="consumption" open>
+          <summary><h2>📊 Spotřeba předmětů <span class="ro-badge">jen pro čtení</span></h2></summary>
+          <div class="acc-body">
+            <p class="desc">Kolik se od jednotlivých předmětů vydalo. Počítá se ze všech uložených výdejů (i těch stažených z cloudu) — údaje se nedají přepsat, slouží jen k přehledu.</p>
+            <div class="row cons-filters">
+              <select id="consPeriod" title="Období">
+                <option value="all">Celá historie</option>
+                <option value="365">Posledních 12 měsíců</option>
+                <option value="ytd">Tento rok</option>
+              </select>
+              <input type="search" id="consFilter" placeholder="Hledat předmět…" autocomplete="off">
+            </div>
+            <div class="cons-summary" id="consSummary"></div>
+            <div id="consTable"></div>
+            <div class="row cons-tools" id="consTools"></div>
+            <div class="sig-hint" id="consHint" style="margin-top:8px"></div>
+          </div>
+        </details>
       </div>
-      <div class="card" id="dataLogin">
-        <h2>🔒 Přihlášení k datům</h2>
-        <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
-        <label>Uživatel</label>
-        <input type="text" id="dataUser" placeholder="uživatel" autocomplete="off">
-        <label>Heslo</label>
-        <input type="password" id="dataPass" placeholder="heslo">
-        <div style="margin-top:12px"><button class="btn" id="btnDataLogin">Přihlásit</button></div>
-        <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
+      <div class="card acc-card" id="dataLogin">
+        <details class="acc" data-acc="login" open>
+          <summary><h2>🔒 Přihlášení k datům</h2></summary>
+          <div class="acc-body">
+            <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
+            <label>Uživatel</label>
+            <input type="text" id="dataUser" placeholder="uživatel" autocomplete="off">
+            <label>Heslo</label>
+            <input type="password" id="dataPass" placeholder="heslo">
+            <div style="margin-top:12px"><button class="btn" id="btnDataLogin">Přihlásit</button></div>
+            <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
+          </div>
+        </details>
       </div>
       <div id="dataContent" class="hidden">
-        <div class="card" id="storageCard">
-          <h2 id="storageTitle">Úložiště (složka na SD kartě / USB)</h2>
-          <div id="storageFolderBody">
-            <p class="desc" id="storageStatus"></p>
-            <div class="row">
-              <button class="btn" id="btnConnectFile">📁 Vybrat složku</button>
-              <button class="btn outline" id="btnReconnectFile">🔗 Znovu připojit</button>
-              <button class="btn danger hidden" id="btnDisconnectFile">Odpojit</button>
+        <!-- Karta „Úložiště (složka na SD kartě / USB)“ byla zrušena: data se
+             ukládají automaticky do tohoto zařízení a podpisy se po nahrání
+             do cloudu ze zařízení samy mažou, takže není co nastavovat. -->
+        <div class="card acc-card" id="cloudCard">
+          <details class="acc" data-acc="cloud">
+            <summary><h2>☁ Cloud — společná databáze (Firebase)</h2><span class="acc-note" id="cloudSummaryNote"></span></summary>
+            <div class="acc-body">
+              <p class="desc">Doporučeno: <strong>Firebase</strong> (Firestore + přihlášení emailem/heslem). V cloudu jsou <strong>zaměstnanci, předměty, funkce/pozice, výdeje i obrázky podpisů</strong> — knížku s podpisy vytisknete z tabletu i z počítače. Data zůstanou soukromá (přístup jen po přihlášení). Zařízení drží i lokální kopii pro offline režim.</p>
+              <label>Poskytovatel</label>
+              <select id="cloudProvider">
+                <option value="firebase">Firebase — databáze + podpisy, heslo (doporučeno)</option>
+                <option value="supabase">Supabase — databáze + podpisy (zdarma)</option>
+                <option value="jsonbin">JSONBin.io — jen data, podpisy v dokumentu</option>
+                <option value="custom">Vlastní adresa (firemní server, Google Apps Script…)</option>
+              </select>
+              <div id="cloudUrlWrap">
+                <label id="cloudUrlLabel">ID projektu (Project ID)</label>
+                <input type="text" id="cloudUrl" placeholder="např. oopp-evidence" autocomplete="off" spellcheck="false">
+              </div>
+              <label id="cloudKeyLabel">Web API klíč</label>
+              <input type="password" id="cloudKey" placeholder="apiKey z nastavení projektu" autocomplete="off">
+              <div id="cloudDocWrap">
+                <label id="cloudDocLabel">ID dokumentu</label>
+                <input type="text" id="cloudDoc" placeholder="bin ID / doc_id" autocomplete="off" spellcheck="false">
+              </div>
+              <div id="cloudFirebaseWrap" class="hidden">
+                <label>Přihlašovací email</label>
+                <input type="email" id="cloudEmail" placeholder="firemní email" autocomplete="off" spellcheck="false">
+                <label>Heslo</label>
+                <input type="password" id="cloudPass" placeholder="heslo k Firebase účtu" autocomplete="off">
+              </div>
+              <div class="sig-hint" id="cloudHint" style="margin-top:10px"></div>
+              <div class="row" style="margin-top:12px">
+                <button class="btn" id="btnCloudSave">Uložit nastavení</button>
+                <button class="btn secondary" id="btnCloudTest" title="Ověří přihlášení a spojení s databází">🧪 Otestovat připojení</button>
+                <button class="btn secondary" id="btnCloudLogin">🔑 Přihlásit</button>
+                <button class="btn secondary" id="btnCloudSync" title="Sloučí data ze všech zařízení (nic se nepřepíše)">⟳ Synchronizovat</button>
+                <button class="btn outline" id="btnCloudPush" title="Odešle místní změny — v cloudu se nejdřív sloučí s ostatními zařízeními">⬆ Nahrát do cloudu</button>
+                <button class="btn outline" id="btnCloudPull" title="Načte změny z cloudu — k místním datům se jen přidají">⬇ Stáhnout z cloudu</button>
+                <button class="btn outline" id="btnCloudSigsFree" title="Nahraje podpisy z tohoto zařízení do cloudu a uvolní je — zůstane jen „✔ podepsáno“">🧹 Uvolnit podpisy z tohoto zařízení</button>
+              </div>
+              <div class="sig-hint" id="cloudSigInfo" style="margin-top:8px"></div>
+              <div class="cloud-auto-info" id="cloudAutoInfo" style="margin-top:14px">
+                <span class="sync-ic" aria-hidden="true">⟳</span>
+                <span><strong>Synchronizace je automatická</strong> — po každé změně, při startu, po návratu do aplikace a každé 2 minuty. Nic se nezaškrtává; ruční tlačítka výše použijte jen výjimečně.</span>
+              </div>
+              <p class="desc" id="cloudStatus" style="margin-top:10px"></p>
+              <div style="margin-top:10px;padding:12px;border:1px solid #86efac;border-radius:8px;background:#f0fdf4">
+                <strong>Data z více zařízení se vždy jen slučují.</strong>
+                <div class="sig-hint" style="margin-top:6px">Synchronizace nic nemaže ani nepřepisuje — záznamy z jiných telefonů a PC se k těm místním přidají. Když stejný záznam upraví dvě zařízení, platí ta novější úprava; smazání se pamatuje, aby se záznam z druhého zařízení nevrátil.</div>
+              </div>
             </div>
-            <div class="sig-hint" style="margin-top:8px">Data a podpisy se ukládají do souboru <strong>OOPP_data.json</strong> ve vybrané složce (bez limitu velikosti). Přesun na jiný počítač: použijte „Stáhnout zálohu“ / „Importovat zálohu“ níže.</div>
-            <div class="sig-hint" style="margin-top:8px">Když se prohlížeč po startu zeptá na přístup ke složce, zvolte <strong>„Povolit při každé návštěvě“</strong>. Příště se složka připojí sama a nic se už neptá.</div>
-          </div>
-          <div id="storageAndroidBody" class="hidden">
-            <p class="desc">Data (zaměstnanci, předměty, funkce/pozice, výdeje i podpisy) se ukládají v tomto zařízení do paměti aplikace. Nemusíte nic nastavovat — zůstanou tam i po zavření a aplikace funguje offline.</p>
-            <p class="desc" style="margin-top:8px">O společnou databázi na více telefonech a počítačích se stará <strong>☁ Cloud</strong> níže — stačí jednou zadat přihlašovací email a heslo a seznamy se na všech zařízeních slučují samy.</p>
-            <div class="sig-hint" style="margin-top:8px">Výběr složky na SD kartě / USB je jen pro počítač (OOPP.exe nebo Chrome/Edge). V telefonu použijte „⬇ Stáhnout zálohu (JSON)“ v sekci Záloha dat.</div>
-          </div>
+          </details>
         </div>
-        <div class="card" id="cloudCard">
-          <h2>☁ Cloud — společná databáze (Firebase)</h2>
-          <p class="desc">Doporučeno: <strong>Firebase</strong> (Firestore + přihlášení emailem/heslem). V cloudu jsou <strong>zaměstnanci, předměty, funkce/pozice, výdeje i obrázky podpisů</strong> — knížku s podpisy vytisknete z tabletu i z počítače. Data zůstanou soukromá (přístup jen po přihlášení). Zařízení drží i lokální kopii pro offline režim.</p>
-          <label>Poskytovatel</label>
-          <select id="cloudProvider">
-            <option value="firebase">Firebase — databáze + podpisy, heslo (doporučeno)</option>
-            <option value="supabase">Supabase — databáze + podpisy (zdarma)</option>
-            <option value="jsonbin">JSONBin.io — jen data, podpisy v dokumentu</option>
-            <option value="custom">Vlastní adresa (firemní server, Google Apps Script…)</option>
-          </select>
-          <div id="cloudUrlWrap">
-            <label id="cloudUrlLabel">ID projektu (Project ID)</label>
-            <input type="text" id="cloudUrl" placeholder="např. oopp-evidence" autocomplete="off" spellcheck="false">
-          </div>
-          <label id="cloudKeyLabel">Web API klíč</label>
-          <input type="password" id="cloudKey" placeholder="apiKey z nastavení projektu" autocomplete="off">
-          <div id="cloudDocWrap">
-            <label id="cloudDocLabel">ID dokumentu</label>
-            <input type="text" id="cloudDoc" placeholder="bin ID / doc_id" autocomplete="off" spellcheck="false">
-          </div>
-          <div id="cloudFirebaseWrap" class="hidden">
-            <label>Přihlašovací email</label>
-            <input type="email" id="cloudEmail" placeholder="firemní email" autocomplete="off" spellcheck="false">
-            <label>Heslo</label>
-            <input type="password" id="cloudPass" placeholder="heslo k Firebase účtu" autocomplete="off">
-          </div>
-          <div class="sig-hint" id="cloudHint" style="margin-top:10px"></div>
-          <div class="row" style="margin-top:12px">
-            <button class="btn" id="btnCloudSave">Uložit nastavení</button>
-            <button class="btn secondary" id="btnCloudTest" title="Ověří přihlášení a spojení s databází">🧪 Otestovat připojení</button>
-            <button class="btn secondary" id="btnCloudLogin">🔑 Přihlásit</button>
-            <button class="btn secondary" id="btnCloudSync" title="Sloučí data ze všech zařízení (nic se nepřepíše)">⟳ Synchronizovat</button>
-            <button class="btn outline" id="btnCloudPush" title="Odešle místní změny — v cloudu se nejdřív sloučí s ostatními zařízeními">⬆ Nahrát do cloudu</button>
-            <button class="btn outline" id="btnCloudPull" title="Načte změny z cloudu — k místním datům se jen přidají">⬇ Stáhnout z cloudu</button>
-            <button class="btn outline" id="btnCloudSigsFree" title="Nahraje podpisy z tohoto zařízení do cloudu a uvolní je — zůstane jen „✔ podepsáno“">🧹 Uvolnit podpisy z tohoto zařízení</button>
-          </div>
-          <div class="sig-hint" id="cloudSigInfo" style="margin-top:8px"></div>
-          <div class="cloud-auto-info" id="cloudAutoInfo" style="margin-top:14px">
-            <span class="sync-ic" aria-hidden="true">⟳</span>
-            <span><strong>Synchronizace je automatická</strong> — po každé změně, při startu, po návratu do aplikace a každé 2 minuty. Nic se nezaškrtává; ruční tlačítka výše použijte jen výjimečně.</span>
-          </div>
-          <p class="desc" id="cloudStatus" style="margin-top:10px"></p>
-          <div style="margin-top:10px;padding:12px;border:1px solid #86efac;border-radius:8px;background:#f0fdf4">
-            <strong>Data z více zařízení se vždy jen slučují.</strong>
-            <div class="sig-hint" style="margin-top:6px">Synchronizace nic nemaže ani nepřepisuje — záznamy z jiných telefonů a PC se k těm místním přidají. Když stejný záznam upraví dvě zařízení, platí ta novější úprava; smazání se pamatuje, aby se záznam z druhého zařízení nevrátil.</div>
-          </div>
+        <div class="card acc-card">
+          <details class="acc" data-acc="functions">
+            <summary><h2>Funkce a pozice</h2></summary>
+            <div class="acc-body">
+              <p class="desc">Ke každé funkci/pozici nastavte: <strong>„Má nárok“</strong> (OOPP povinné dle zákona — tiskne se do evidenčního listu/PDF) a <strong>„Může nafasovat“</strong> (OOPP dostupné k výdeji pro tuto pozici — rolovací menu ve výdeji, včetně věcí nad rámec zákona).</p>
+              <label>Název funkce</label>
+              <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
+              <label>Má nárok (dle zákona)</label>
+              <div class="row" style="margin-top:2px">
+                <select id="funcClaimSelect" class="grow">
+                  <option value="">＋ vybrat z předmětů (přidá se hned)…</option>
+                </select>
+              </div>
+              <div class="sig-hint" style="margin-top:4px">nebo přidejte vlastní název a životnost:</div>
+              <div class="row" style="margin-top:2px">
+                <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
+                <input type="text" id="funcClaimLifetime" list="lifetimeOptions" placeholder="životnost (volitelné)" autocomplete="off" style="max-width:180px">
+                <button type="button" class="btn outline" id="btnFuncAddClaim">＋ přidat</button>
+              </div>
+              <datalist id="lifetimeOptions">
+                <option value="14 dní / dle potřeby">
+                <option value="1 měsíc">
+                <option value="3 měsíce">
+                <option value="6 měsíců">
+                <option value="12 měsíců">
+                <option value="24 měsíců">
+                <option value="36 měsíců">
+              </datalist>
+              <div id="funcClaims" style="margin-top:8px"></div>
+              <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                <label style="margin:0">Může nafasovat</label>
+                <button type="button" class="btn outline small" id="btnFuncCopyIssue">＋ doplnit z „má nárok“</button>
+              </div>
+              <div id="funcCanIssue" class="func-items"></div>
+              <div class="sig-hint" style="margin-top:4px">„Může nafasovat“ tvoří rolovací menu ve výdeji pro tuto pozici — zahrňte povinné OOPP i případné další.</div>
+              <div style="margin-top:12px" class="row">
+                <button class="btn" id="btnAddFunction">Přidat funkci</button>
+                <button class="btn outline hidden" id="btnCancelEditFunction">Zrušit</button>
+              </div>
+              <div id="functionList" style="margin-top:16px"></div>
+            </div>
+          </details>
         </div>
-        <div class="card">
-          <h2>Funkce a pozice</h2>
-          <p class="desc">Ke každé funkci/pozici nastavte: <strong>„Má nárok“</strong> (OOPP povinné dle zákona — tiskne se do evidenčního listu/PDF) a <strong>„Může nafasovat“</strong> (OOPP dostupné k výdeji pro tuto pozici — rolovací menu ve výdeji, včetně věcí nad rámec zákona).</p>
-          <label>Název funkce</label>
-          <input type="text" id="funcName" placeholder="např. Mechanik / údržba">
-          <label>Má nárok (dle zákona)</label>
-          <div class="row" style="margin-top:2px">
-            <select id="funcClaimSelect" class="grow">
-              <option value="">＋ vybrat z předmětů (přidá se hned)…</option>
-            </select>
-          </div>
-          <div class="sig-hint" style="margin-top:4px">nebo přidejte vlastní název a životnost:</div>
-          <div class="row" style="margin-top:2px">
-            <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
-            <input type="text" id="funcClaimLifetime" list="lifetimeOptions" placeholder="životnost (volitelné)" autocomplete="off" style="max-width:180px">
-            <button type="button" class="btn outline" id="btnFuncAddClaim">＋ přidat</button>
-          </div>
-          <datalist id="lifetimeOptions">
-            <option value="14 dní / dle potřeby">
-            <option value="1 měsíc">
-            <option value="3 měsíce">
-            <option value="6 měsíců">
-            <option value="12 měsíců">
-            <option value="24 měsíců">
-            <option value="36 měsíců">
-          </datalist>
-          <div id="funcClaims" style="margin-top:8px"></div>
-          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <label style="margin:0">Může nafasovat</label>
-            <button type="button" class="btn outline small" id="btnFuncCopyIssue">＋ doplnit z „má nárok“</button>
-          </div>
-          <div id="funcCanIssue" class="func-items"></div>
-          <div class="sig-hint" style="margin-top:4px">„Může nafasovat“ tvoří rolovací menu ve výdeji pro tuto pozici — zahrňte povinné OOPP i případné další.</div>
-          <div style="margin-top:12px" class="row">
-            <button class="btn" id="btnAddFunction">Přidat funkci</button>
-            <button class="btn outline hidden" id="btnCancelEditFunction">Zrušit</button>
-          </div>
-          <div id="functionList" style="margin-top:16px"></div>
+        <div class="card acc-card">
+          <details class="acc" data-acc="backup">
+            <summary><h2>Záloha dat</h2></summary>
+            <div class="acc-body">
+              <p class="desc" id="dataStats"></p>
+              <p class="desc">Data se ukládají automaticky do tohoto zařízení (aplikace funguje i offline) a současně se slučují v cloudu. Obrázky podpisů se po nahrání do cloudu ze zařízení automaticky mažou, aby nezabíraly místo — v zařízení zůstane jen „✔ podepsáno“ a podpis se při náhledu nebo tisku zase dotáhne z cloudu.</p>
+              <div class="row">
+                <button class="btn" id="btnExportBackup">⬇ Stáhnout zálohu (JSON)</button>
+                <button class="btn outline" id="btnImportBackup">⬆ Importovat zálohu</button>
+                <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+              </div>
+            </div>
+          </details>
         </div>
-        <div class="card">
-          <h2>Záloha dat</h2>
-          <p class="desc" id="dataStats"></p>
-          <div class="row">
-            <button class="btn" id="btnExportBackup">⬇ Stáhnout zálohu (JSON)</button>
-            <button class="btn outline" id="btnImportBackup">⬆ Importovat zálohu</button>
-            <input type="file" id="importFile" accept=".json,application/json" class="hidden">
-          </div>
+        <div class="card acc-card" id="empImportCard">
+          <details class="acc" data-acc="emp-import">
+            <summary><h2>📥 Import seznamu zaměstnanců</h2></summary>
+            <div class="acc-body">
+              <p class="desc">Načtěte JSON se seznamem (např. <strong>OOPP_zamestnanci.json</strong>). Stávající zaměstnanci zůstanou, noví se doplní a duplicity se přeskočí — rozpoznávají se podle osobního čísla, jinak podle jména.</p>
+              <div class="row">
+                <button class="btn" id="btnImportEmployees">🔒 Importovat seznam (JSON)</button>
+                <input type="file" id="importEmployeesFile" accept=".json,application/json" class="hidden">
+              </div>
+              <div class="sig-hint" style="margin-top:8px">Import je chráněný heslem správce. Formát: {"employees":[{"personalNumber":"00318","name":"Lukáš Dvořák","department":"Mechanik"}]} — nebo jen pole jmen. <strong>department</strong> = název funkce; když v číselníku funkcí není, založí se nová (bez nároku).</div>
+            </div>
+          </details>
         </div>
-        <div class="card" id="installCard">
-          <h2>Instalace do telefonu / tabletu</h2>
-          <p class="desc">Aplikaci lze nainstalovat přímo z prohlížeče na plochu zařízení — bez obchodu Play/App Store a bez veřejného seznamu aplikací. Po instalaci funguje i offline.</p>
-          <div class="row">
-            <button class="btn hidden" id="btnInstall2">⬇ Nainstalovat aplikaci</button>
-            <button class="btn secondary" id="btnForceUpdate" title="Smaže offline paměť aplikace a načte nejnovější verzi">⟳ Aktualizovat aplikaci</button>
-          </div>
-          <div class="sig-hint" id="installHint" style="margin-top:8px"></div>
-          <div class="sig-hint" id="appVersion" style="margin-top:8px"></div>
-          <div class="sig-hint" style="margin-top:10px;line-height:1.6">
-            <strong>Android (Chrome):</strong> menu ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.<br>
-            <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
-            <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
-            Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
-            <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
-            <strong>Otevírá se aplikace s adresním řádkem prohlížeče?</strong> Je to jen zástupce (shortcut), ne nainstalovaná aplikace — nainstalujte ji znovu přes menu ⋮ → „Instalovat aplikaci“; pak se otevírá bez adresního řádku a aktualizuje se sama.
-          </div>
+        <div class="card acc-card" id="installCard">
+          <details class="acc" data-acc="install">
+            <summary><h2>Instalace do telefonu / tabletu</h2></summary>
+            <div class="acc-body">
+              <p class="desc">Aplikaci lze nainstalovat přímo z prohlížeče na plochu zařízení — bez obchodu Play/App Store a bez veřejného seznamu aplikací. Po instalaci funguje i offline.</p>
+              <div class="row">
+                <button class="btn hidden" id="btnInstall2">⬇ Nainstalovat aplikaci</button>
+                <button class="btn secondary" id="btnForceUpdate" title="Smaže offline paměť aplikace a načte nejnovější verzi">⟳ Aktualizovat aplikaci</button>
+              </div>
+              <div class="sig-hint" id="installHint" style="margin-top:8px"></div>
+              <div class="sig-hint" id="appVersion" style="margin-top:8px"></div>
+              <div class="sig-hint" style="margin-top:10px;line-height:1.6">
+                <strong>Android (Chrome):</strong> menu ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.<br>
+                <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
+                <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
+                Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
+                <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
+                <strong>Otevírá se aplikace s adresním řádkem prohlížeče?</strong> Je to jen zástupce (shortcut), ne nainstalovaná aplikace — nainstalujte ji znovu přes menu ⋮ → „Instalovat aplikaci“; pak se otevírá bez adresního řádku a aktualizuje se sama.
+              </div>
+            </div>
+          </details>
         </div>
-        <div class="card" id="shareCard">
-          <h2>Sdílecí kód (QR)</h2>
-          <p class="desc">Naskenujte kód fotoaparátem nebo čtečkou QR — otevře se odkaz ke stažení aplikace (APK) pro Android. Kód můžete ukázat kolegovi, vytisknout nebo přiložit k předávacímu protokolu.</p>
-          <div class="share-qr" id="shareQr"></div>
-          <div class="share-url" id="shareUrl"></div>
-          <div class="row">
-            <button class="btn outline" id="btnCopyShare" title="Zkopíruje odkaz do schránky">📋 Kopírovat odkaz</button>
-            <button class="btn secondary" id="btnOpenShare" title="Otevře odkaz ke stažení">⬇ Otevřít odkaz</button>
-          </div>
-          <div class="sig-hint" style="margin-top:8px">Odkaz míří vždy na nejnovější verzi v sekci Releases, proto se QR kód při novém buildu nemění. Funguje i bez internetu — je nakreslený přímo v aplikaci.</div>
+        <div class="card acc-card" id="shareCard">
+          <details class="acc" data-acc="share">
+            <summary><h2>Sdílecí kód (QR)</h2></summary>
+            <div class="acc-body">
+              <p class="desc">Naskenujte kód fotoaparátem nebo čtečkou QR — otevře se odkaz ke stažení aplikace (APK) pro Android. Kód můžete ukázat kolegovi, vytisknout nebo přiložit k předávacímu protokolu.</p>
+              <div class="share-qr" id="shareQr"></div>
+              <div class="share-url" id="shareUrl"></div>
+              <div class="row">
+                <button class="btn outline" id="btnCopyShare" title="Zkopíruje odkaz do schránky">📋 Kopírovat odkaz</button>
+                <button class="btn secondary" id="btnOpenShare" title="Otevře odkaz ke stažení">⬇ Otevřít odkaz</button>
+              </div>
+              <div class="sig-hint" style="margin-top:8px">Odkaz míří vždy na nejnovější verzi v sekci Releases, proto se QR kód při novém buildu nemění. Funguje i bez internetu — je nakreslený přímo v aplikaci.</div>
+            </div>
+          </details>
         </div>
-        <div class="card danger-zone">
-          <h2>Nebezpečná zóna</h2>
-          <p class="desc">Smazání všech dat je nevratné. Před tím si stáhněte zálohu.</p>
-          <button class="btn danger" id="btnClearAll">Smazat všechna data</button>
+        <div class="card acc-card danger-zone">
+          <details class="acc" data-acc="danger">
+            <summary><h2>Nebezpečná zóna</h2></summary>
+            <div class="acc-body">
+              <p class="desc">Smazání všech dat je nevratné. Před tím si stáhněte zálohu.</p>
+              <button class="btn danger" id="btnClearAll">Smazat všechna data</button>
+            </div>
+          </details>
         </div>
       </div>
     </section>
   </main>
-  <div class="file-setup hidden" id="fileSetup">
-    <div class="file-setup-card">
-      <h2>Kde ukládat data?</h2>
-      <p>Vyberte složku na SD kartě, USB nebo přímo složku, kde je aplikace (OOPP.exe). Ukládá se do ní soubor <strong>OOPP_data.json</strong> — zaměstnanci, předměty, funkce/pozice, výdeje i podpisy. Pokud tam soubor už je, bude se do něj zapisovat; pokud ne, vytvoří se.</p>
-      <p class="sig-hint">Prohlížeč se jednou zeptá na přístup ke složce — zvolte <strong>„Povolit při každé návštěvě“</strong>, aby se příště připojila automaticky a už se neptal.</p>
-      <button class="btn" id="btnFileSetupPick">📁 Vybrat složku</button>
-      <button class="btn outline" id="btnFileSetupSkip">Použít vnitřní úložiště</button>
-    </div>
-  </div>
   <!-- Rychlé přihlášení ke cloudu: e-mail a heslo se zadají jednou na tomto zařízení
        a zůstanou uložené jen v něm. Do souboru index.html se nikdy nedávají —
        web i repozitář jsou veřejné a kdokoli by se pak dostal k datům OOPP. -->
@@ -2656,12 +2682,6 @@ function ooppAndroidBack(){
   if(sig && !sig.classList.contains('hidden')){ hideSignature(); return true; }
   const picker = document.getElementById('issueDatePicker');
   if(picker && !picker.classList.contains('hidden')){ closeDatePicker(); return true; }
-  const setup = document.getElementById('fileSetup');
-  if(setup && !setup.classList.contains('hidden')){
-    setup.classList.add('hidden');
-    try{ localStorage.setItem('oopp_fs_dismissed', '1'); }catch(e){}
-    return true;
-  }
   if(currentEmployeeId){ closeEmployeeDetail(); return true; }
   return false;
 }
@@ -3353,6 +3373,11 @@ async function connectDataDir(dir){
   }
 }
 
+/* ---------- Volitelná složka na SD kartě / USB (už se nepoužívá) ----------
+   Ukládání do složky bylo z aplikace odstraněno: data se ukládají automaticky
+   do zařízení (localStorage) a slučují se v cloudu, podpisy se po nahrání do
+   cloudu ze zařízení mažou. Funkce níže jsou jen nevyužívaný pomocný kód —
+   žádné tlačítko je už nevolá (dataDirHandle tedy zůstává null). */
 async function pickDataDir(){
   if(!supportsFS()){ toast('Výběr složky tady není dostupný — použijte OOPP.exe nebo Chrome/Edge na počítači.'); return; }
   try{
@@ -3469,6 +3494,11 @@ async function disconnectDataDir(){
 }
 
 function updateStorageUI(){
+  // Karta „Úložiště (složka na SD kartě / USB)“ už v aplikaci není — data se
+  // ukládají automaticky do zařízení a podpisy se po nahrání do cloudu samy
+  // mažou, takže tu není co nastavovat. Funkce zůstává kvůli starším místům,
+  // která ji volají (start, odemčení dat, připojení složky).
+  if(!document.getElementById('storageCard')) return;
   const status = document.getElementById('storageStatus');
   const disconnectBtn = document.getElementById('btnDisconnectFile');
   const reconnectBtn = document.getElementById('btnReconnectFile');
@@ -4236,9 +4266,18 @@ function cloudFormatTime(ts){
 function cloudSetStatus(msg, kind){
   cloudStatusMsg = msg || '';
   const el = document.getElementById('cloudStatus');
-  if(!el) return;
-  el.textContent = cloudStatusMsg;
-  el.style.color = kind === 'err' ? '#dc2626' : (kind === 'warn' ? '#b45309' : '#166534');
+  const color = kind === 'err' ? '#dc2626' : (kind === 'warn' ? '#b45309' : '#166534');
+  if(el){
+    el.textContent = cloudStatusMsg;
+    el.style.color = color;
+  }
+  // Karta Cloud je rozklikávací — stav se proto ukazuje i v její hlavičce,
+  // aby byl vidět i ve sbaleném stavu.
+  const note = document.getElementById('cloudSummaryNote');
+  if(note){
+    note.textContent = cloudStatusMsg;
+    note.style.color = color;
+  }
 }
 
 /* ---------- Malý indikátor synchronizace v hlavičce ---------- */
@@ -4772,7 +4811,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -5006,6 +5045,35 @@ function openShareUrl(){
   if(!win) location.href = SHARE_APK_URL;
 }
 
+/* ---------- Rozklikávací karty v záložce Data ----------
+   Každá karta je <details class="acc" data-acc="…">, takže otevírání řeší sám
+   prohlížeč (funguje i offline a bez knihoven). Otevřený stav si aplikace
+   pamatuje jen v tomto zařízení — po přepnutí záložky nebo po restartu tak
+   zůstane otevřené to, co uživatel naposledy potřeboval. */
+const ACC_KEY = 'oopp_acc_v1';
+
+function accSavedState(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(ACC_KEY) || '{}');
+    return (raw && typeof raw === 'object') ? raw : {};
+  }catch(e){ return {}; }
+}
+
+function initAccordions(){
+  const saved = accSavedState();
+  document.querySelectorAll('details.acc[data-acc]').forEach(function(det){
+    const key = det.getAttribute('data-acc');
+    if(Object.prototype.hasOwnProperty.call(saved, key)){
+      det.open = !!saved[key];
+    }
+    det.addEventListener('toggle', function(){
+      const state = accSavedState();
+      state[key] = det.open;
+      try{ localStorage.setItem(ACC_KEY, JSON.stringify(state)); }catch(e){}
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   if(isDesktopShell()) document.documentElement.classList.add('desktop-shell');
   if(!db.initialized){
@@ -5036,13 +5104,8 @@ document.addEventListener('DOMContentLoaded', function(){
   renderAll();
   resizeSignature();
   updateStorageUI();
-  idbGet('dataDir').then(function(dir){
-    if(dir){
-      autoReconnectDataDir();
-    } else if(supportsFS() && !localStorage.getItem('oopp_fs_dismissed')){
-      document.getElementById('fileSetup').classList.remove('hidden');
-    }
-  }).catch(function(){});
+  // Záložka Data: karty jsou rozklikávací, otevřený stav si aplikace pamatuje.
+  initAccordions();
 
   document.querySelectorAll('nav button').forEach(function(b){
     b.addEventListener('click', function(){ showTab(b.dataset.tab); });
@@ -5239,14 +5302,6 @@ document.addEventListener('DOMContentLoaded', function(){
   window.addEventListener('focus', function(){ cloudAutoTick(false); });
   setInterval(function(){ cloudAutoTick(true); }, 2 * 60 * 1000);
 
-  document.getElementById('btnConnectFile').addEventListener('click', pickDataDir);
-  document.getElementById('btnReconnectFile').addEventListener('click', reconnectDataDir);
-  document.getElementById('btnDisconnectFile').addEventListener('click', disconnectDataDir);
-  document.getElementById('btnFileSetupPick').addEventListener('click', pickDataDir);
-  document.getElementById('btnFileSetupSkip').addEventListener('click', function(){
-    document.getElementById('fileSetup').classList.add('hidden');
-    try{ localStorage.setItem('oopp_fs_dismissed', '1'); }catch(e){}
-  });
   document.getElementById('btnDataLogin').addEventListener('click', tryDataLogin);
   document.getElementById('btnLogout').addEventListener('click', logoutAdmin);
   document.getElementById('dataPass').addEventListener('keydown', function(e){

@@ -104,6 +104,11 @@ je zapnutá vždy (po každé změně, při startu, po návratu do aplikace a ka
 - **Bez vyskakovacích hlášek** — automatická synchronizace data jen tiše sloučí
   (žádná hláška „načtena data z jiného zařízení“). Výsledek je vidět v kartě
   Cloud a malým indikátorem v hlavičce.
+- **Karta Cloud je rozklikávací** (jako všechny karty v záložce Data) a stav
+  poslední synchronizace je vidět i v její hlavičce — kvůli kontrole ji tedy
+  nemusíte otevírat. Výběr složky na SD kartě / USB už v aplikaci není: data
+  se ukládají automaticky do zařízení a podpisy se po nahrání do cloudu
+  ze zařízení mažou.
 - **Číselník předmětů** — výchozí seznam předmětů se zakládá jen tehdy, když je
   cloud úplně prázdný (první zařízení, které data zakládá). Na dalším zařízení
   se předměty vezmou z cloudu, takže se při instalaci na nový tablet/PC

@@ -12,22 +12,20 @@ Jak spustit
    spusťte přímo OOPP.exe.
 2. Aplikace se otevře v okně. F11 = celá obrazovka, Esc = zpět z celé obrazovky.
 
-První spuštění (Windows — OOPP.exe)
-- Aplikace se zeptá, kam ukládat data. Vyberte složku na SD kartě / USB,
-  nebo přímo složku, kde je OOPP.exe (data pak cestují spolu s aplikací).
-  Do složky se ukládá soubor OOPP_data.json — zaměstnanci, předměty,
-  funkce/pozice, výdeje i podpisy. Když tam soubor už je, zapisuje se do něj,
-  když ne, vytvoří se.
-- Volbu lze kdykoli změnit v záložce Data → „Připojit složku".
-- Po restartu se složka připojí sama. Když prohlížeč přístup zablokuje,
-  stačí do aplikace jednou klepnout — přístup se obnoví a ukládání do
-  souboru pokračuje.
-- V telefonu / tabletu (APK i prohlížeč) se na složku NIC neptá: data drží
-  zařízení samo a o společná data se stará cloud. Kdykoli je můžete zálohovat
-  v Záložce Data → „Stáhnout zálohu (JSON)“.
+První spuštění (Windows — OOPP.exe, ale i telefon a tablet)
+- Na nic se neptá a nic se nenastavuje: data (zaměstnanci, předměty,
+  funkce/pozice, výdeje i podpisy) se ukládají automaticky do zařízení,
+  takže aplikace funguje i bez internetu.
+- O společná data na více zařízeních se stará cloud (Záložka Data →
+  „☁ Cloud“): stačí se jednou přihlásit emailem a heslem.
+- Obrázky podpisů se do zařízení neukládají natrvalo — po nahrání do
+  cloudu se z něj automaticky smažou, aby nezabíraly místo. V zařízení
+  zůstane jen zelená fajfka „✔ podepsáno“ (podrobně níže u cloudu).
 
 Záloha / přenos dat
 - Záložka Data (heslo admin) → „Stáhnout zálohu" / „Importovat zálohu".
+- Data se ukládají automaticky do zařízení, není potřeba nic nastavovat;
+  zálohu (JSON) použijte při přenosu na jiný počítač nebo pro archiv.
 - Přihlášení správce: uživatel „admin", heslo „admin".
 - Po přihlášení zůstáváte přihlášeni i po zavření aplikace, takže se heslo
   u dalších úprav (předměty, funkce, mazání, import) neopakuje.
@@ -44,6 +42,25 @@ Přehled spotřeby předmětů (záložka Data)
 - Počítá se vždy znovu ze všech uložených výdejů, včetně výdejů
   stažených z cloudu. Tlačítko „⬇ Stáhnout CSV" (pro Excel) vidí jen
   přihlášený správce.
+
+Záložka Data — rozklikávací karty
+- Všechny karty v Záložce Data jsou rozklikávací: klepnutím na název kartu
+  otevřete, dalším klepnutím zavřete. Otevřené je tak jen to, co zrovna
+  potřebujete (spotřeba, cloud, funkce, záloha, import, instalace…).
+- Aplikace si pamatuje, které karty jste měli otevřené — po přepnutí na
+  jinou záložku i po restartu zůstanou otevřené stejné karty.
+- U karty „☁ Cloud“ je stav poslední synchronizace vidět i v hlavičce karty,
+  takže ji kvůli kontrole nemusíte otevírat.
+- Karta „Úložiště“ (výběr složky na SD kartě / USB) už v aplikaci není:
+  ukládání je automatické do zařízení a podpisy se po nahrání do cloudu
+  samy mažou, takže není co nastavovat.
+
+Import seznamu zaměstnanců
+- Přesunut do Záložky Data → karta „📥 Import seznamu zaměstnanců“ (dřív
+  byl v Záložce Zaměstnanci). Načte JSON se seznamem (např.
+  OOPP_zamestnanci.json): stávající zaměstnanci zůstanou, noví se doplní
+  a duplicity se přeskočí (podle osobního čísla, jinak podle jména).
+  Import je chráněný heslem správce.
 
 Cloud — společná databáze (Firebase) a hosting na GitHubu
 - Projekt „swissformoopp" je v aplikaci UŽ PŘEDNASTAVENÝ: ID projektu i Web API
@@ -79,7 +96,7 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
 - Synchronizace je ZAPNUTÁ VŽDY — nic se nezaškrtává. V hlavičce nahoře je
   malé kolečko: při synchronizaci se točí, po dokončení na chvíli zezelená
   fajfkou „✔“ a při výpadku internetu zčervená „!“. Podrobná hláška je
-  v Záložce Data → „☁ Cloud“ (řádek pod tlačítky).
+  v Záložce Data → „☁ Cloud“ (v hlavičce karty i v řádku pod tlačítky).
 - Data z více zařízení se VŽDY JEN SLUČUJÍ (přidávají) — nikdy se
   nepřepisují ani nemažou. Když na tabletu v dílně vznikne výdej a zároveň
   na PC v kanceláři jiný, po synchronizaci mají obě zařízení i cloud oba
@@ -145,9 +162,9 @@ Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
   nové APK je potřeba jen výjimečně.
 - V APK navíc funguje tisk přes tiskárnu Androidu (i „Uložit jako PDF“)
   a exporty (PDF, CSV, záloha) se ukládají do složky Stahování.
-- Úložiště v APK: aplikace se na žádnou složku neptá (výběr složky na SD
-  kartě je jen pro počítač). Data jsou v zařízení a synchronizují se do
-  cloudu — v Záložce Data → karta „Úložiště v zařízení“ je to i vysvětlené.
+- Úložiště: aplikace se na žádnou složku neptá — v APK ani na počítači.
+  Data se ukládají automaticky do zařízení a synchronizují se do cloudu;
+  podpisy se po nahrání do cloudu ze zařízení mažou (šetří místo).
 
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:
