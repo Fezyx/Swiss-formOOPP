@@ -33,6 +33,18 @@ Záloha / přenos dat
   u dalších úprav (předměty, funkce, mazání, import) neopakuje.
   Odhlásíte se tlačítkem „Odhlásit" vpravo nahoře v hlavičce.
 
+Přehled spotřeby předmětů (záložka Data)
+- Karta „📊 Spotřeba předmětů" je hned nahoře v záložce Data a je vidět
+  I BEZ PŘIHLÁŠENÍ — pro nepřihlášené je jen ke čtení, nic se v ní nedá
+  přepsat ani smazat.
+- U každého předmětu ukazuje, kolik se ho vydalo, kolik bylo výdejů,
+  kolika zaměstnancům a kdy naposledy.
+- Filtr „Období" (celá historie / posledních 12 měsíců / tento rok)
+  a vyhledávání podle názvu předmětu.
+- Počítá se vždy znovu ze všech uložených výdejů, včetně výdejů
+  stažených z cloudu. Tlačítko „⬇ Stáhnout CSV" (pro Excel) vidí jen
+  přihlášený správce.
+
 Cloud — společná databáze (Firebase) a hosting na GitHubu
 - Projekt „swissformoopp" je v aplikaci UŽ PŘEDNASTAVENÝ: ID projektu i Web API
   klíč jsou v souboru index.html (CLOUD_PRESET), takže se na novém zařízení
@@ -50,15 +62,40 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
   podpisů — tablet v dílně a počítač v kanceláři tak vidí totéž a knížku
   s podpisy vytisknete z obou zařízení. Data jsou soukromá (přístup jen
   po přihlášení emailem a heslem).
+- Podpisy jsou uložené v cloudu, v zařízení po nich zůstává jen zelená
+  fajfka „✔ podepsáno“ — každý tablet/PC tak v sobě nedrží podpisy ze všech
+  ostatních zařízení. Podpis se stáhne až ve chvíli, kdy je potřeba
+  (klepnutí na fajfku = náhled, tisk knížky, export PDF), a po vytištění
+  nebo zavření náhledu se z paměti zase uvolní. Tisk s podpisy proto
+  potřebuje internet; bez něj se v knížce vytiskne poznámka „podpis
+  v cloudu“ a aplikace upozorní, kolik podpisů nenačetla.
+- Obrázek podpisu se v seznamu výdejů ukáže jen u podpisu, který vznikl na
+  tomto zařízení a ještě nebyl nahrán do cloudu. Jakmile je podpis
+  v cloudu, je v seznamu vždy zelené „✔ podepsáno“ — ani po náhledu nebo
+  tisku se tam obrázek nevrátí (v paměti vydrží jen do zavření náhledu).
 - Data se ukládají i do zařízení, takže aplikace funguje i bez internetu;
   změny se odešlou, až se připojení obnoví (po každé změně, při startu,
   po návratu do aplikace a každé 2 minuty).
+- Synchronizace je ZAPNUTÁ VŽDY — nic se nezaškrtává. V hlavičce nahoře je
+  malé kolečko: při synchronizaci se točí, po dokončení na chvíli zezelená
+  fajfkou „✔“ a při výpadku internetu zčervená „!“. Podrobná hláška je
+  v Záložce Data → „☁ Cloud“ (řádek pod tlačítky).
 - Data z více zařízení se VŽDY JEN SLUČUJÍ (přidávají) — nikdy se
   nepřepisují ani nemažou. Když na tabletu v dílně vznikne výdej a zároveň
   na PC v kanceláři jiný, po synchronizaci mají obě zařízení i cloud oba
   výdeje. Když stejný záznam upraví dvě zařízení, platí novější úprava
   (každý záznam má v sobě razítko poslední změny). Smazaný záznam se
   z druhého zařízení nevrátí (mazání se pamatuje).
+- Předměty se na novém zařízení už NEZAKLÁDAJÍ znovu — číselník se vezme
+  z cloudu, takže se při instalaci na další tablet/PC nepřidá druhá kopie
+  předmětů. Kdyby v datech zůstaly duplicity z dřívějších verzí (stejný
+  název předmětu dvakrát), aplikace je při startu sama sloučí do jednoho
+  záznamu (doplní chybějící údaje a přesměruje výdeje i „může nafasovat“)
+  a hláškou upozorní, kolik kopií zmizelo.
+- Automatická synchronizace se nijak neozývá: nové záznamy z cloudu se tiše
+  přidají k místním datům a žádná vyskakovací hláška o „načtených datech
+  z jiného zařízení“ se neukazuje. Stav poslední synchronizace je vidět
+  v záložce Data → „☁ Cloud“.
 - Tlačítka v záložce Data → „☁ Cloud": „⟳ Synchronizovat" = načte cizí
   změny a odešle místní, „⬆ Nahrát do cloudu" = odešle místní změny
   (v cloudu se nejdřív sloučí s ostatními zařízeními), „⬇ Stáhnout

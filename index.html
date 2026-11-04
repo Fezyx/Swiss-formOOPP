@@ -34,6 +34,16 @@ header .sub{font-size:.8rem;opacity:.8;text-align:right}
 .head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .admin-badge{display:flex;align-items:center;gap:8px}
 .admin-badge-who{font-size:.8rem;opacity:.85;white-space:nowrap}
+/* Malý indikátor synchronizace: místo dlouhých hlášek stačí v hlavičce kolečko.
+   busy = točí se, done = na chvíli zelené ✔, err = červené !, idle = tlumený oblak. */
+.sync-pill{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:1rem;line-height:1;flex:0 0 auto;opacity:.55;transition:opacity .25s,background .25s;cursor:default}
+.sync-pill.idle{opacity:.55}
+.sync-pill.busy{opacity:1;background:rgba(255,255,255,.26)}
+.sync-pill.done{opacity:1;background:#16a34a}
+.sync-pill.err{opacity:1;background:#dc2626}
+.sync-pill .sync-ic{display:block;pointer-events:none}
+.sync-pill.busy .sync-ic{animation:splashSpin .9s linear infinite}
+@media (prefers-reduced-motion: reduce){.sync-pill.busy .sync-ic{animation:none}}
 .btn.light{background:#fff;color:#17324d}
 nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);flex:0 0 auto;z-index:10}
 nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#475569;border-bottom:3px solid transparent}
@@ -74,10 +84,25 @@ tr.clickable:hover{background:#f1f5f9}
 .sig-box{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
 #signatureCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
 .sig-hint{font-size:.76rem;color:#94a3b8;margin-top:4px}
+/* Informace o automatické synchronizaci v kartě Cloud (místo zaškrtávacího políčka). */
+.cloud-auto-info{display:flex;align-items:flex-start;gap:8px;font-size:.8rem;line-height:1.4;color:#166534;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px}
+.cloud-auto-info .sync-ic{font-size:1rem;line-height:1.2;color:#16a34a}
 /* sdílecí QR kód (Data → Sdílecí kód) — kreslí se jako SVG, funguje offline */
 .share-qr{width:232px;max-width:100%;aspect-ratio:1/1;margin:0 auto 12px;padding:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px}
 .share-qr svg{display:block;width:100%;height:100%}
 .share-url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:12px}
+/* Spotřeba předmětů (záložka Data) — přehled jen pro čtení */
+.ro-badge{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;color:#166534;background:#dcfce7;border:1px solid #86efac}
+.cons-filters{margin:10px 0 4px}
+.cons-filters select{flex:0 0 220px;max-width:220px}
+.cons-filters input{flex:1 1 160px;min-width:140px}
+.cons-summary{margin:12px 0 8px;font-size:.84rem;color:#334155}
+.cons-summary strong{color:#17324d}
+.cons-table{font-size:.86rem}
+.cons-table th,.cons-table td{padding:8px 6px}
+.cons-table .nowrap{white-space:nowrap}
+.cons-table th.num,.cons-table td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cons-tools{margin-top:12px}
 /* zaškrtávací seznam nároku na OOPP u funkce */
 .func-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;max-height:300px;overflow:auto}
 .func-items label{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;font-size:.9rem;font-weight:400;color:#334155}
@@ -91,6 +116,10 @@ tr.clickable:hover{background:#f1f5f9}
 .issue-table th,.issue-table td{padding:8px 6px;vertical-align:top}
 .issue-table .nowrap{white-space:nowrap}
 .sig-thumb{height:34px;width:auto;max-width:88px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+/* podepsáno, ale podpis je jen v cloudu (v zařízení se nedrží) */
+.btn.outline.sig-ok{color:#166534;border-color:#86efac;background:#f0fdf4;font-weight:600}
+.btn.outline.sig-ok:hover{background:#dcfce7}
+.bk-sig-cloud{font-size:7pt;color:#555}
 .sig-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;z-index:60}
 .sig-overlay img{background:#fff;border-radius:10px;padding:10px;max-width:100%;max-height:62vh;object-fit:contain}
 .sig-overlay-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;color:#e2e8f0;font-size:.85rem}
@@ -229,6 +258,7 @@ tr.clickable:hover{background:#f1f5f9}
     <div class="head-right">
       <div class="sub">osobní ochranné pracovní prostředky</div>
       <div class="head-actions">
+        <span class="sync-pill idle hidden" id="syncPill" role="status" aria-live="polite" title="Cloud připojen — synchronizace je automatická"><span class="sync-ic" aria-hidden="true">☁</span></span>
         <div class="admin-badge hidden" id="adminBadge">
           <span class="admin-badge-who">👤 přihlášen jako admin</span>
           <button class="btn light small" id="btnLogout" title="Odhlásit správce">Odhlásit</button>
@@ -402,6 +432,23 @@ tr.clickable:hover{background:#f1f5f9}
     </section>
 
     <section id="tab-data" class="tab-content">
+      <!-- Přehled spotřeby předmětů: jen pro čtení, dostupný i bez přihlášení správce. -->
+      <div class="card" id="consumptionCard">
+        <h2>📊 Spotřeba předmětů <span class="ro-badge">jen pro čtení</span></h2>
+        <p class="desc">Kolik se od jednotlivých předmětů vydalo. Počítá se ze všech uložených výdejů (i těch stažených z cloudu) — údaje se nedají přepsat, slouží jen k přehledu.</p>
+        <div class="row cons-filters">
+          <select id="consPeriod" title="Období">
+            <option value="all">Celá historie</option>
+            <option value="365">Posledních 12 měsíců</option>
+            <option value="ytd">Tento rok</option>
+          </select>
+          <input type="search" id="consFilter" placeholder="Hledat předmět…" autocomplete="off">
+        </div>
+        <div class="cons-summary" id="consSummary"></div>
+        <div id="consTable"></div>
+        <div class="row cons-tools" id="consTools"></div>
+        <div class="sig-hint" id="consHint" style="margin-top:8px"></div>
+      </div>
       <div class="card" id="dataLogin">
         <h2>🔒 Přihlášení k datům</h2>
         <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
@@ -465,10 +512,13 @@ tr.clickable:hover{background:#f1f5f9}
             <button class="btn secondary" id="btnCloudSync" title="Sloučí data ze všech zařízení (nic se nepřepíše)">⟳ Synchronizovat</button>
             <button class="btn outline" id="btnCloudPush" title="Odešle místní změny — v cloudu se nejdřív sloučí s ostatními zařízeními">⬆ Nahrát do cloudu</button>
             <button class="btn outline" id="btnCloudPull" title="Načte změny z cloudu — k místním datům se jen přidají">⬇ Stáhnout z cloudu</button>
+            <button class="btn outline" id="btnCloudSigsFree" title="Nahraje podpisy z tohoto zařízení do cloudu a uvolní je — zůstane jen „✔ podepsáno“">🧹 Uvolnit podpisy z tohoto zařízení</button>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
-            <input type="checkbox" id="cloudAuto" style="width:auto"> Synchronizovat automaticky (po každé změně, při startu a každé 2 minuty)
-          </label>
+          <div class="sig-hint" id="cloudSigInfo" style="margin-top:8px"></div>
+          <div class="cloud-auto-info" id="cloudAutoInfo" style="margin-top:14px">
+            <span class="sync-ic" aria-hidden="true">⟳</span>
+            <span><strong>Synchronizace je automatická</strong> — po každé změně, při startu, po návratu do aplikace a každé 2 minuty. Nic se nezaškrtává; ruční tlačítka výše použijte jen výjimečně.</span>
+          </div>
           <p class="desc" id="cloudStatus" style="margin-top:10px"></p>
           <div style="margin-top:10px;padding:12px;border:1px solid #86efac;border-radius:8px;background:#f0fdf4">
             <strong>Data z více zařízení se vždy jen slučují.</strong>
@@ -630,7 +680,36 @@ function load(){
   return normalizeDbShape({});
 }
 
-/* ---------- Verzování záznamů a mazání (kvůli sloučení mezi zařízeními) ---------- */
+/* ---------- Výchozí číselník předmětů ----------
+   Výchozí předměty se zakládají JEN tehdy, když je jisté, že v cloudu žádná
+   data nejsou (nebo v aplikaci bez cloudu). Na novém tabletu/PC se tak číselník
+   vezme z cloudu a nepřidá se druhá kopie předmětů — to byla příčina
+   zdvojených předmětů po každé instalaci na nové zařízení.
+   Id jsou PEVNÁ (ne náhodná) a updatedAt/createdAt = 1 (malé, ale nenulové):
+   stejný předmět má na všech zařízeních stejné id a při sloučení vždy vyhraje
+   skutečný záznam z cloudu, takže se nepřepíše to, co uživatel jinde upravil. */
+const SEED_ITEMS = [
+  {id: 'predmet-pracovni-rukavice', name: 'Pracovní rukavice', unit: 'pár', sizeMin: '6', sizeMax: '12'},
+  {id: 'predmet-ochranne-bryle', name: 'Ochranné brýle', unit: 'ks', sizeMin: '', sizeMax: ''},
+  {id: 'predmet-ochranna-prilba', name: 'Ochranná přilba', unit: 'ks', sizeMin: '', sizeMax: ''},
+  {id: 'predmet-reflexni-vesta', name: 'Reflexní vesta', unit: 'ks', sizeMin: '', sizeMax: ''},
+  {id: 'predmet-respirator-maska', name: 'Respirátor / maska', unit: 'ks', sizeMin: '', sizeMax: ''},
+  {id: 'predmet-ochranna-obuv', name: 'Ochranná obuv', unit: 'pár', sizeMin: '34', sizeMax: '48'},
+  {id: 'predmet-chranice-sluchu', name: 'Chrániče sluchu', unit: 'ks', sizeMin: '', sizeMax: ''}
+];
+
+// Založí výchozí předměty, jen když je číselník prázdný. Volá se pouze tehdy,
+// když je jisté, že v cloudu žádná data nejsou (samostatné použití bez cloudu
+// nebo úplně první nahrání do prázdného cloudu) — jinak by na novém zařízení
+// vznikla další kopie předmětů vedle těch, které už jsou v cloudu.
+function seedDefaultItemsIfEmpty(){
+  if((db.items || []).length) return 0;
+  db.items = SEED_ITEMS.map(function(it){
+    return Object.assign({}, it, {updatedAt: 1, createdAt: 1});
+  });
+  return db.items.length;
+}
+
 // Každý záznam má updatedAt — při sloučení vyhraje novější. Mazání se zapisuje
 // jako „tombstone“, aby smazaný záznam z druhého zařízení znovu nevznikl.
 function touchRec(rec){
@@ -667,6 +746,66 @@ function applySignatureMap(map){
     if(i && !i.signature && map[i.id]){ i.signature = map[i.id]; i.hasSignature = true; n++; }
   });
   return n;
+}
+
+/* Úklid: podpis, který už je jednou nahraný v cloudu (sigPending === false), se
+   v datech zařízení nemá držet. Starší verze aplikace ho tam mohly nechat nebo
+   stáhnout — tady se zahodí a zůstane jen příznak hasSignature (zelená fajfka
+   „✔ podepsáno“). Nic se neztratí: obrázek je v cloudu a při náhledu / tisku /
+   PDF se zase dotáhne (sigPrefetch). Volá se po každém sloučení dat a při startu. */
+function freeUploadedSignatures(){
+  if(!cloudSeparatesSignatures(cloudConfig())) return 0;
+  let freed = 0;
+  (db.issues || []).forEach(function(i){
+    if(i && i.signature && i.hasSignature && i.sigPending === false){
+      delete i.signature;
+      freed++;
+    }
+  });
+  if(freed){
+    cloudApplying = true;             // jen místní úklid, do cloudu se nic neposílá
+    try{ save(); }finally{ cloudApplying = false; }
+  }
+  return freed;
+}
+
+/* ---------- Podpisy: uložené v cloudu, v zařízení jen dočasně ----------
+   Obrázek podpisu se ukládá do cloudu (kolekce oopp_sig). V zařízení zůstává
+   jen příznak hasSignature — zelená fajfka „podepsáno“. Když je podpis potřeba
+   (náhled, tisk, PDF), stáhne se do paměti (sigCache) a po zavření náhledu nebo
+   po vytištění se zase zahodí, aby se zařízení neplnila podpisy ze všech
+   ostatních telefonů a počítačů. */
+const sigCache = {};        // idVýdeje → dataURL, jen v paměti, nikdy se neukládá
+const sigFetchTried = {};   // ochrana proti opakovanému stahování jednoho podpisu
+let sigCacheTimer = null;
+let sigOverlayIssueId = null;
+
+// Podpis k zobrazení: buď čeká v zařízení (ještě nenahraný do cloudu), nebo v paměti.
+function sigFor(issue){
+  if(!issue) return '';
+  return issue.signature || sigCache[issue.id] || '';
+}
+
+function sigCacheClear(issueIds){
+  const ids = issueIds ? [].concat(issueIds) : Object.keys(sigCache);
+  let had = false;
+  ids.forEach(function(id){
+    if(sigCache[id]) had = true;
+    delete sigCache[id];
+    delete sigFetchTried[id];
+  });
+  // Obrázky se stáhly jen do paměti, ale v tabulce už byly nakreslené. Po uvolnění
+  // je potřeba seznam překreslit — jinak tam obrázek zůstane viset a vypadá to,
+  // jako by podpisy byly uložené v zařízení. Správně se zase ukáže „✔ podepsáno“.
+  if(had && currentEmployeeId){
+    try{ refreshEmployeeDetail(); }catch(e){}
+  }
+}
+
+// Dočasná paměť se sama uvolní, i kdyby se náhled/ tisk nedokončil.
+function sigCacheScheduleClear(ms){
+  clearTimeout(sigCacheTimer);
+  sigCacheTimer = setTimeout(function(){ sigCacheClear(); }, ms || 120000);
 }
 
 // Každá změna záznamu musí mít updatedAt — jinak by při sloučení mohl starý
@@ -1242,10 +1381,12 @@ function unlockData(){
   document.getElementById('dataLoginError').textContent = '';
   renderDataInfo();
   renderFunctions();
+  renderConsumption();
   updateStorageUI();
 }
 
 function showDataLogin(){
+  renderConsumption();
   if(isAdmin()){ unlockData(); return; }
   document.getElementById('dataLogin').classList.remove('hidden');
   document.getElementById('dataContent').classList.add('hidden');
@@ -2069,7 +2210,100 @@ function migrateItemSizes(){
   return changed;
 }
 
-// Které OOPP smí vybraný zaměstnanec nafasovat (podle funkce jeho pozice).
+// Název předmětu pro porovnání — bez diakritiky, malá písmena, jednoduché mezery.
+// „Ochranná obuv“ a „ochranna obuv“ je tedy stejný předmět.
+function normalizeItemName(s){
+  let out = String(s == null ? '' : s);
+  try{ out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }catch(e){}
+  return out.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+// Sloučí duplicitní předměty (stejný název = jeden předmět) a kopie smaže.
+// Duplicity vznikaly na nových zařízeních (výchozí číselník s náhodnými id),
+// takže je potřeba je jednou pro vždy uklidit i v datech, která už existují:
+//  - ponechá se záznam s nejmenším id (stejně na všech zařízeních, aby se
+//    zařízení neshodila, které id má zmizet),
+//  - chybějící údaje se z kopií doplní do ponechaného předmětu,
+//  - výdeje (itemId) i seznamy „může nafasovat“ se přesměrují na ponechané id,
+//  - kopie se zapíše jako smazaná (tombstone), aby se nevrátila z cloudu ani
+//    z jiného zařízení.
+// Vrací počet smazaných kopií.
+function dedupeItems(){
+  const groups = Object.create(null);
+  const order = [];
+  (db.items || []).forEach(function(it){
+    if(!it || !it.id) return;
+    const key = normalizeItemName(it.name);
+    if(!key) return;
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(it);
+  });
+  const remap = Object.create(null);    // id kopie → id ponechaného předmětu
+  function mapped(id){
+    return Object.prototype.hasOwnProperty.call(remap, id) ? remap[id] : '';
+  }
+  let merged = 0;
+  order.forEach(function(key){
+    const list = groups[key];
+    if(list.length < 2) return;
+    list.sort(function(a, b){
+      const x = String(a.id), y = String(b.id);
+      return x < y ? -1 : (x > y ? 1 : 0);
+    });
+    const keep = list[0];
+    list.slice(1).forEach(function(dup){
+      ['unit', 'price', 'lifetimeText', 'lifetimeMonths', 'sizeMin', 'sizeMax'].forEach(function(f){
+        const mine = keep[f];
+        const theirs = dup[f];
+        const keepEmpty = mine === undefined || mine === null || mine === '';
+        if(keepEmpty && theirs !== undefined && theirs !== null && theirs !== '') keep[f] = theirs;
+      });
+      if(!String(keep.name || '').trim()) keep.name = dup.name;
+      remap[dup.id] = keep.id;
+      merged++;
+    });
+    if(!keep.unit) keep.unit = 'ks';
+    touchRec(keep);
+  });
+  if(!merged) return 0;
+
+  // odkazy na smazané kopie přesměrovat na ponechaný předmět
+  (db.issues || []).forEach(function(issue){
+    let hit = false;
+    (issue.items || []).forEach(function(row){
+      const to = row && row.itemId ? mapped(row.itemId) : '';
+      if(to){
+        row.itemId = to;
+        hit = true;
+      }
+    });
+    if(hit) touchRec(issue);
+  });
+  (db.functions || []).forEach(function(f){
+    if(!Array.isArray(f.canIssue)) return;
+    const seen = Object.create(null);
+    const next = [];
+    let hit = false;
+    f.canIssue.forEach(function(id){
+      const mappedTo = mapped(id) || id;
+      if(mappedTo !== id) hit = true;
+      if(seen[mappedTo]){ hit = true; return; }
+      seen[mappedTo] = true;
+      next.push(mappedTo);
+    });
+    if(hit){
+      f.canIssue = next;
+      touchRec(f);
+    }
+  });
+
+  db.items = (db.items || []).filter(function(it){ return !(it && mapped(it.id)); });
+  Object.keys(remap).forEach(function(id){ markDeleted('items', id); });
+  save();
+  return merged;
+}
+
+
 // null = bez funkce → všechny předměty; prázdné pole = pozice nic nemá nastaveno.
 function issueItemFilter(){
   const id = document.getElementById('issueEmployee').value;
@@ -2151,6 +2385,7 @@ function saveIssue(){
   }
   if(items.length === 0){ toast('Přidejte alespoň jednu položku.'); return; }
   const signature = getSignatureData();
+  const cfg = cloudConfig();
   const issue = touchRec({
     id: uid(),
     employeeId: employee.id,
@@ -2161,6 +2396,11 @@ function saveIssue(){
     note: '',
     signature: signature,
     hasSignature: !!signature,
+    // Podpis zůstává v zařízení jen do nahrání do cloudu; pak se uvolní
+    // a zůstane z něj fajfka „podepsáno“ (viz cloudSyncSignatures).
+    sigPending: !!signature,
+    sigDevice: signature ? (cfg.deviceId || '') : '',
+    sigAt: signature ? Date.now() : 0,
     createdAt: Date.now()
   });
   db.issues.push(issue);
@@ -2236,37 +2476,45 @@ function refreshEmployeeDetail(){
   const entEl = document.getElementById('empDetailEntitlement');
   if(entEl) entEl.textContent = entLine;
   renderEmployeeIssues(e.id, issues);
-  ensureSignaturesForEmployee(e.id);
 }
 
-// Podpisy se v Supabase drží zvlášť — při otevření zaměstnance se chybějící dotáhnou.
-let sigFetchTimer = null;
-const sigFetchTried = {};
-function ensureSignaturesForEmployee(employeeId){
+/* Podpisy se dotahují až ve chvíli, kdy je opravdu potřeba (náhled, tisk, PDF).
+   Do dat zařízení se přitom neukládají — jen do paměti (sigCache), a po
+   vytištění / zavření náhledu se zase uvolní. */
+async function sigPrefetch(issueIds){
   const cfg = cloudConfig();
-  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)) return;
-  const missing = (db.issues || []).filter(function(i){
-    return i.employeeId === employeeId && i.hasSignature && !i.signature && !sigFetchTried[i.id];
+  const ids = (issueIds || []).filter(function(id){
+    const issue = db.issues.find(function(i){ return i.id === id; });
+    return issue && !sigFor(issue);
   });
-  if(!missing.length) return;
-  missing.forEach(function(i){ sigFetchTried[i.id] = true; });
-  clearTimeout(sigFetchTimer);
-  sigFetchTimer = setTimeout(async function(){
-    try{
-      const got = await sigDownload(cfg, missing.map(function(i){ return i.id; }));
-      let n = 0;
-      Object.keys(got).forEach(function(id){
-        delete sigFetchTried[id];
-        const issue = db.issues.find(function(i){ return i.id === id; });
-        if(issue && !issue.signature){ issue.signature = got[id]; issue.hasSignature = true; n++; }
-      });
-      if(n){
-        cloudApplying = true;
-        try{ save(); }finally{ cloudApplying = false; }
-        if(currentEmployeeId === employeeId) refreshEmployeeDetail();
-      }
-    }catch(e){}
-  }, 400);
+  if(!ids.length) return {fetched: 0, missing: 0};
+  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)){
+    return {fetched: 0, missing: ids.length};
+  }
+  const got = await sigDownload(cfg, ids);
+  Object.keys(got).forEach(function(id){ sigCache[id] = got[id]; });
+  sigCacheScheduleClear();
+  return {fetched: Object.keys(got).length, missing: ids.length - Object.keys(got).length};
+}
+
+// Dotáhne podpisy pro všechny výdeje jednoho zaměstnance (tisk knížky, PDF).
+// Vrací počet podpisů, které z cloudu nepřišly (0 = vše načteno).
+async function sigPrefetchForEmployee(employeeId){
+  const ids = (db.issues || []).filter(function(i){
+    return i.employeeId === employeeId && (i.hasSignature || i.signature);
+  }).map(function(i){ return i.id; });
+  const need = ids.filter(function(id){
+    const issue = db.issues.find(function(i){ return i.id === id; });
+    return issue && !sigFor(issue);
+  });
+  if(!need.length) return 0;
+  toast('Dotahuji podpisy z cloudu (' + need.length + ')…', 4000);
+  try{
+    const r = await sigPrefetch(ids);
+    return r.missing || 0;
+  }catch(e){
+    return need.length;
+  }
 }
 
 // Řádková tabulka: datum | co | kolik | uložený podpis
@@ -2282,10 +2530,14 @@ function renderEmployeeIssues(id, issues){
   issues.forEach(function(issue){
     const items = (issue.items && issue.items.length) ? issue.items : [{name: '—', qty: '', unit: '', size: ''}];
     const span = items.length > 1 ? ' rowspan="' + items.length + '"' : '';
-    const sigCell = issue.signature
-      ? '<img class="sig-thumb" src="' + issue.signature + '" alt="Podpis" title="Zobrazit podpis" data-sig="' + issue.id + '">'
+    // Obrázek se v seznamu ukáže jen u podpisu, který vznikl v tomto zařízení a ještě
+    // není v cloudu. Podpisy stažené z cloudu (náhled, tisk, PDF) procházejí jen
+    // pamětí (sigCache) a do seznamu se nekreslí — tam zůstává fajfka „✔ podepsáno“.
+    const sigData = issue.signature || '';
+    const sigCell = sigData
+      ? '<img class="sig-thumb" src="' + sigData + '" alt="Podpis" title="Zobrazit podpis" data-sig="' + issue.id + '">'
       : (issue.hasSignature
-          ? '<button class="btn outline small" data-fetchsig="' + issue.id + '">⬇ stáhnout podpis</button>'
+          ? '<button class="btn outline small sig-ok" data-viewsig="' + issue.id + '" title="Podpis je v cloudu — klepnutím se načte">✔ podepsáno</button>'
           : '<span class="sig-hint">bez podpisu</span>');
     items.forEach(function(it, idx){
       rows += '<tr>';
@@ -2303,23 +2555,52 @@ function renderEmployeeIssues(id, issues){
   });
   box.innerHTML = '<table class="issue-table"><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>' +
     rows + '</tbody></table>' +
-    '<div class="sig-hint">Seřazeno od nejnovějšího. Klepnutím na podpis se zvětší.</div>';
+    '<div class="sig-hint">Seřazeno od nejnovějšího. Podpisy jsou uložené v cloudu — klepnutím na ✔ se podpis načte a zvětší (v zařízení se neukládá).</div>';
 }
 
 function showSignature(issueId){
   const issue = db.issues.find(function(i){ return i.id === issueId; });
-  if(!issue || !issue.signature) return;
+  const src = sigFor(issue);
+  if(!issue || !src) return;
   const overlay = document.getElementById('sigOverlay');
   if(!overlay) return;
-  document.getElementById('sigOverlayImg').src = issue.signature;
+  document.getElementById('sigOverlayImg').src = src;
   document.getElementById('sigOverlayLabel').textContent =
     (issue.employeeName || '') + ' • ' + formatDate(issue.date);
   overlay.classList.remove('hidden');
+  sigOverlayIssueId = issueId;
 }
 
 function hideSignature(){
   const overlay = document.getElementById('sigOverlay');
   if(overlay) overlay.classList.add('hidden');
+  const img = document.getElementById('sigOverlayImg');
+  if(img) img.removeAttribute('src');          // obrázek ať nezůstává v paměti
+  if(sigOverlayIssueId){ sigCacheClear([sigOverlayIssueId]); sigOverlayIssueId = null; }
+}
+
+// Klepnutí na „✔ podepsáno“: podpis se dočasně stáhne z cloudu a ukáže se.
+// Po zavření náhledu se z paměti zase uvolní (v datech zařízení nezůstane).
+async function viewSignature(issueId){
+  const issue = db.issues.find(function(i){ return i.id === issueId; });
+  if(!issue) return;
+  if(sigFor(issue)){ showSignature(issueId); return; }
+  if(!issue.hasSignature){ toast('Tento výdej nemá podpis.'); return; }
+  if(sigFetchTried[issueId]) return;
+  sigFetchTried[issueId] = true;
+  toast('Stahuji podpis z cloudu…');
+  try{
+    const r = await sigPrefetch([issueId]);
+    if(!r.fetched){
+      toast('Podpis se nepodařilo načíst — zkontrolujte připojení k internetu.');
+      return;
+    }
+    showSignature(issueId);
+  }catch(e){
+    toast('Podpis se nepodařilo stáhnout: ' + e.message);
+  }finally{
+    delete sigFetchTried[issueId];
+  }
 }
 
 function csvCell(v){
@@ -2342,7 +2623,7 @@ function exportCSV(id){
         it.size || '',
         it.qty,
         it.unit || '',
-        issue.signature ? 'ano' : 'ne',
+        issue.hasSignature ? 'ano' : 'ne',
         issue.note || ''
       ].map(csvCell).join(';'));
     }
@@ -2386,12 +2667,21 @@ function ooppAndroidBack(){
 }
 window.__ooppBack = ooppAndroidBack;
 
-// Po zavření tisku vrátit tiskovou plochu do výchozího stavu (knížka má vlastní sazbu stránek).
+// Po zavření tisku vrátit tiskovou plochu do výchozího stavu (knížka má vlastní sazbu stránek)
+// a zahodit podpisy, které se do paměti stáhly kvůli tisku.
 function resetPrintArea(){
   const area = document.getElementById('printArea');
   if(area) area.className = 'print-area';
+  sigCacheClear();
 }
 window.addEventListener('afterprint', resetPrintArea);
+
+// Kolik podpisů se kvůli tisku nepodařilo načíst z cloudu (upozornění pro obsluhu).
+function sigMissingNote(missing){
+  if(!missing) return;
+  toast('Pozor: ' + missing + ' ' + czPlural(missing, 'podpis se', 'podpisy se', 'podpisů se') +
+    ' nepodařilo načíst z cloudu — připojte se k internetu a vytiskněte znovu.', 7000);
+}
 
 // Počkat, až se v tiskové ploše načtou obrázky (podpisy) — jinak se na papíře neobjeví.
 function printWhenReady(area){
@@ -2413,28 +2703,35 @@ function printWhenReady(area){
   setTimeout(go, 1500);   // pojistka, kdyby se obrázek vůbec nenačetl
 }
 
-function printIssue(id){
+async function printIssue(id){
   const issue = db.issues.find(function(i){ return i.id === id; });
   if(!issue) return;
+  if(!sigFor(issue) && issue.hasSignature){
+    try{ await sigPrefetch([id]); }catch(e){}
+    if(!sigFor(issue)) sigMissingNote(1);
+  }
   const area = document.getElementById('printArea');
   let rows = issue.items.map(function(it){
     return '<tr><td>' + escapeHtml(it.name) + (it.size ? ' (vel. ' + escapeHtml(it.size) + ')' : '') + '</td><td>' + it.qty + ' ' + escapeHtml(it.unit || '') + '</td></tr>';
   }).join('');
+  const sigData = sigFor(issue);
   area.className = 'print-area';
   area.innerHTML = printDocHeader('Potvrzení o výdeji OOPP') +
     '<p class="meta"><strong>Zaměstnanec:</strong> ' + escapeHtml(issue.employeeName) + (issue.department ? ' (' + escapeHtml(issue.department) + ')' : '') + '</p>' +
     '<p class="meta"><strong>Datum:</strong> ' + formatDate(issue.date) + '</p>' +
     '<table><thead><tr><th>Předmět</th><th>Množství</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     (issue.note ? '<p class="meta"><strong>Poznámka:</strong> ' + escapeHtml(issue.note) + '</p>' : '') +
-    (issue.signature
-      ? '<div class="sign"><strong>Podpis příjemce:</strong><br><img src="' + issue.signature + '" style="width:240px;height:auto;border-bottom:1px solid #000"></div>'
-      : '<p class="meta">Podpis: bez podpisu</p>');
-  doPrint();
+    (sigData
+      ? '<div class="sign"><strong>Podpis příjemce:</strong><br><img src="' + sigData + '" style="width:240px;height:auto;border-bottom:1px solid #000"></div>'
+      : '<p class="meta">Podpis: ' + (issue.hasSignature ? 'uložen v cloudu — nepodařilo se načíst' : 'bez podpisu') + '</p>');
+  printWhenReady(area);
 }
 
-function printEmployeeHistory(id){
+async function printEmployeeHistory(id){
   const e = db.employees.find(function(x){ return x.id === id; });
   if(!e) return;
+  const missing = await sigPrefetchForEmployee(id);
+  sigMissingNote(missing);
   const issues = db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){
     const da = a.date || '', dbb = b.date || '';
     if(da !== dbb) return da < dbb ? -1 : 1;          // tisk chronologicky
@@ -2460,7 +2757,8 @@ function printEmployeeHistory(id){
           '<td>' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
         if(idx === 0){
           html += '<td rowspan="' + items.length + '">' +
-            (issue.signature ? '<img src="' + issue.signature + '" style="width:110px;height:auto">' : '—') + '</td>';
+            (sigFor(issue) ? '<img src="' + sigFor(issue) + '" style="width:110px;height:auto">'
+              : (issue.hasSignature ? 'v cloudu' : '—')) + '</td>';
         }
         html += '</tr>';
       });
@@ -2502,7 +2800,8 @@ function bookletEntry(issue){
     date: issue.date ? formatDate(issue.date) : '',
     oopLines: oopLines,
     oop: oopLines.join(', '),
-    signature: issue.signature || '',
+    signature: sigFor(issue),
+    hasSignature: !!(issue.hasSignature || issue.signature),
     height: Math.max(1, wrapped) * BK_ROW_MM
   };
 }
@@ -2516,7 +2815,9 @@ function bookletCellsHtml(entry, mid){
     : escapeHtml(entry.oop || '');
   return '<td class="bk-date' + cls + '">' + escapeHtml(entry.date) + '</td>' +
     '<td>' + oopHtml + '</td>' +
-    '<td class="bk-sig">' + (entry.signature ? '<img src="' + entry.signature + '" alt="podpis">' : '') + '</td>';
+    '<td class="bk-sig">' + (entry.signature
+      ? '<img src="' + entry.signature + '" alt="podpis">'
+      : (entry.hasSignature ? '<span class="bk-sig-cloud">podpis v cloudu</span>' : '')) + '</td>';
 }
 
 // Změří skutečnou výšku každého řádku (mm) — text se láme podle šířky sloupce,
@@ -2692,7 +2993,9 @@ function buildBookletStage(id){
 }
 
 // Vytiskne celou knížku zaměstnance: přední strana (evidenční list) + listy s výdeji.
-function printEmployeeBooklet(id){
+// Podpisy se předem stáhnou z cloudu do paměti — po vytištění se zase uvolní.
+async function printEmployeeBooklet(id){
+  const missing = await sigPrefetchForEmployee(id);
   const stage = buildBookletStage(id);
   if(!stage){ toast('Zaměstnanec nenalezen.'); return; }
   const area = document.getElementById('printArea');
@@ -2700,6 +3003,7 @@ function printEmployeeBooklet(id){
   area.innerHTML = stage.innerHTML;
   document.body.removeChild(stage);
   printWhenReady(area);
+  sigMissingNote(missing);
 }
 
 /* ---------- Export knížky do PDF ----------
@@ -2852,6 +3156,9 @@ async function exportEmployeePdf(id){
   toast('Generuji PDF…');
   let stage = null;
   try{
+    // podpisy jen pro tohoto zaměstnance a jen do paměti (po exportu se uvolní)
+    const missing = await sigPrefetchForEmployee(id);
+    if(missing) sigMissingNote(missing);
     stage = buildBookletStage(id);
     if(!stage) throw new Error('knížku nelze sestavit');
     const pageEls = Array.prototype.slice.call(stage.querySelectorAll('.bk-page'));
@@ -2868,6 +3175,7 @@ async function exportEmployeePdf(id){
   }finally{
     pdfExportBusy = false;
     if(btn) btn.disabled = false;
+    sigCacheClear();          // podpisy stažené kvůli PDF už v paměti netřeba
   }
 }
 
@@ -3028,6 +3336,8 @@ async function connectDataDir(dir){
       db = merged;
       migrateItemSizes();
       migrateFunctions();
+      dedupeItems();              // stejný předmět v souboru i v zařízení = jeden záznam
+      freeUploadedSignatures();   // podpisy, které už jsou v cloudu, se v zařízení nedrží
       closeEmployeeDetail();
       renderAll();
       save();   // sladí lokální cache i cloud s načteným souborem
@@ -3210,6 +3520,115 @@ function renderDataInfo(){
     '  •  Funkcí: ' + db.functions.length + '  •  Výdejů: ' + db.issues.length;
 }
 
+/* ---------- Spotřeba předmětů (záložka Data) — jen pro čtení ---------- */
+// Přehled se počítá vždy znovu z uložených výdejů (i z těch stažených z cloudu).
+// Nic se tady needituje: bez přihlášení správce je karta pouze ke čtení,
+// správce navíc může přehled vyexportovat do CSV.
+
+// Začátek zvoleného období jako timestamp (0 = celá historie).
+function consPeriodStart(value){
+  const now = new Date();
+  if(value === 'ytd') return new Date(now.getFullYear(), 0, 1).getTime();
+  if(value === '365'){ const d = new Date(now); d.setDate(d.getDate() - 365); return d.getTime(); }
+  return 0;
+}
+
+// Datum výdeje (YYYY-MM-DD) jako timestamp; když datum chybí, použije se čas vytvoření.
+function issueTime(issue){
+  const t = Date.parse(String((issue && issue.date) || '') + 'T00:00:00');
+  if(!isNaN(t)) return t;
+  return (issue && issue.createdAt) || 0;
+}
+
+function consumptionStats(){
+  const periodEl = document.getElementById('consPeriod');
+  const filterEl = document.getElementById('consFilter');
+  const from = consPeriodStart(periodEl ? periodEl.value : 'all');
+  const filter = ((filterEl && filterEl.value) || '').trim().toLowerCase();
+  const map = {};       // klíč = název předmětu bez ohledu na velikost písmen
+  const totals = {};    // jednotka → vydané množství
+  let issueCount = 0;
+  (db.issues || []).forEach(function(issue){
+    const when = issueTime(issue);
+    if(from && when < from) return;
+    issueCount += 1;
+    (issue.items || []).forEach(function(row){
+      const name = String((row && row.name) || '').trim() || '(bez názvu)';
+      const unit = String((row && row.unit) || 'ks');
+      const qty = Number(row && row.qty) || 0;
+      const key = name.toLowerCase();
+      let rec = map[key];
+      if(!rec){ rec = map[key] = {name: name, unit: unit, qty: 0, issues: 0, employees: {}, lastTs: 0, lastDate: ''}; }
+      rec.qty += qty;
+      rec.issues += 1;
+      if(!rec.unit) rec.unit = unit;
+      if(issue.employeeId) rec.employees[issue.employeeId] = 1;
+      if(when > rec.lastTs){ rec.lastTs = when; rec.lastDate = String(issue.date || ''); }
+      totals[unit] = (totals[unit] || 0) + qty;
+    });
+  });
+  let rows = Object.keys(map).map(function(k){ return map[k]; });
+  if(filter) rows = rows.filter(function(r){ return r.name.toLowerCase().indexOf(filter) !== -1; });
+  rows.sort(function(a, b){ return (b.qty - a.qty) || a.name.localeCompare(b.name, 'cs'); });
+  rows.forEach(function(r){ r.empCount = Object.keys(r.employees).length; });
+  return {rows: rows, issues: issueCount, totals: totals};
+}
+
+function renderConsumption(){
+  const box = document.getElementById('consTable');
+  if(!box) return;
+  const stats = consumptionStats();
+  const sumEl = document.getElementById('consSummary');
+  if(sumEl){
+    const totalsText = Object.keys(stats.totals).sort().map(function(u){
+      return stats.totals[u] + ' ' + escapeHtml(u);
+    }).join(' + ');
+    sumEl.innerHTML = stats.rows.length
+      ? 'Vydáno: <strong>' + (totalsText || '0') + '</strong> • ' +
+        '<strong>' + stats.rows.length + '</strong> ' + czPlural(stats.rows.length, 'předmět', 'předměty', 'předmětů') + ' • ' +
+        '<strong>' + stats.issues + '</strong> ' + czPlural(stats.issues, 'výdej', 'výdeje', 'výdejů')
+      : '';
+  }
+  if(!stats.rows.length){
+    box.innerHTML = '<div class="empty">Zatím žádné výdeje — spotřeba se počítá z uložených výdejů.</div>';
+  } else {
+    box.innerHTML = '<table class="cons-table"><thead><tr>' +
+      '<th>Předmět</th><th class="num">Vydáno</th><th class="opt">Výdejů</th><th class="opt">Zaměstnanců</th><th>Naposledy</th>' +
+      '</tr></thead><tbody>' +
+      stats.rows.map(function(r){
+        return '<tr><td>' + escapeHtml(r.name) + '</td>' +
+          '<td class="num"><strong>' + r.qty + '</strong> ' + escapeHtml(r.unit || 'ks') + '</td>' +
+          '<td class="opt">' + r.issues + '</td>' +
+          '<td class="opt">' + r.empCount + '</td>' +
+          '<td class="nowrap">' + escapeHtml(formatDate(r.lastDate) || '—') + '</td></tr>';
+      }).join('') +
+      '</tbody></table>';
+  }
+  // Export do CSV nabízíme jen správci — běžný uživatel má kartu opravdu jen ke čtení.
+  const tools = document.getElementById('consTools');
+  if(tools){
+    tools.innerHTML = isAdmin() ? '<button class="btn outline small" data-cons-csv="1">⬇ Stáhnout CSV</button>' : '';
+  }
+  const hint = document.getElementById('consHint');
+  if(hint){
+    hint.textContent = isAdmin()
+      ? 'Přehled se počítá vždy znovu z uložených výdejů. Data se nedají přepsat, jen prohlížet a exportovat.'
+      : 'Přehled je jen pro čtení. Předměty, funkce, úložiště a cloud se upravují po přihlášení správce níže.';
+  }
+}
+
+function exportConsumptionCsv(){
+  const stats = consumptionStats();
+  if(!stats.rows.length){ toast('Žádná data k exportu.'); return; }
+  const lines = ['Předmět;Vydané množství;Jednotka;Počet výdejů;Zaměstnanců;Poslední výdej'];
+  stats.rows.forEach(function(r){
+    lines.push([r.name, r.qty, r.unit || 'ks', r.issues, r.empCount, r.lastDate || ''].map(csvCell).join(';'));
+  });
+  const csv = '\uFEFF' + lines.join('\r\n');
+  downloadBlob(csv, 'OOPP_spotreba_' + new Date().toISOString().slice(0, 10) + '.csv', 'text/csv;charset=utf-8');
+  toast('Přehled spotřeby uložen do CSV.');
+}
+
 function exportBackup(){
   const json = JSON.stringify(db, null, 2);
   downloadBlob(json, 'OOPP_zaloha_' + new Date().toISOString().slice(0, 10) + '.json', 'application/json');
@@ -3229,6 +3648,7 @@ function importBackup(file){
       db = normalizeDbShape(data);
       migrateItemSizes();
       migrateFunctions();
+      dedupeItems();   // ze starší zálohy se duplicitní předměty sloučí
       save();
       closeEmployeeDetail();
       renderAll();
@@ -3307,6 +3727,9 @@ function cloudConfig(){
   });
   // Na úplně novém zařízení zapnout automatickou synchronizaci (jakmile se zadá heslo).
   if(!stored && CLOUD_PRESET.provider) cfg.auto = true;
+  // Synchronizace je vždy automatická — i když ji někdo dřív zaškrtávacím políčkem vypnul.
+  // (Dřívější verze ukládaly auto:false; tady se to srovná samo a uloží.)
+  if(!cfg.auto){ cfg.auto = true; saveCloudConfig(cfg); }
   if(!cfg.deviceId){ cfg.deviceId = uid(); saveCloudConfig(cfg); }
   return cfg;
 }
@@ -3551,10 +3974,8 @@ async function cloudQuickLogin(){
   // Propojit s poli v Data → ☁ Cloud, aby bylo vidět, co je uložené.
   const cardEmail = document.getElementById('cloudEmail');
   const cardPass = document.getElementById('cloudPass');
-  const cardAuto = document.getElementById('cloudAuto');
   if(cardEmail) cardEmail.value = email;
   if(cardPass) cardPass.value = pass;
-  if(cardAuto) cardAuto.checked = true;
 
   const btn = document.getElementById('btnQcLogin');
   const btnLabel = btn ? btn.textContent : '';
@@ -3572,7 +3993,7 @@ async function cloudQuickLogin(){
     }catch(e){}
     const user = await fbEnsureAuth();
     cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : email) + '.', 'ok');
-    toast('Cloud připojen — slučuji data ze všech zařízení.');
+    toast('Cloud připojen.');
     closeCloudQuick();
     updateCloudBanner();
     renderCloudUI();
@@ -3717,10 +4138,14 @@ function cloudApplyData(data, incomingSignatures){
     }
     db = normalizeDbShape(data);
     applySignatureMap(sigs);
+    // podpisy, které už jsou v cloudu, v zařízení nedržíme — jen fajfka
+    freeUploadedSignatures();
     db.initialized = true;
     pruneTombstones();
     migrateItemSizes();
     migrateFunctions();
+    // po stažení dat ze cloudu znovu sloučit případné duplicitní předměty
+    dedupeItems();
     save();
     // otevřený detail zaměstnance necháme otevřený — automatická synchronizace ho nemá zavírat
     renderAll();
@@ -3816,6 +4241,61 @@ function cloudSetStatus(msg, kind){
   el.style.color = kind === 'err' ? '#dc2626' : (kind === 'warn' ? '#b45309' : '#166534');
 }
 
+/* ---------- Malý indikátor synchronizace v hlavičce ---------- */
+// Místo dlouhých hlášek stačí v hlavičce malé kolečko: při synchronizaci se točí,
+// po dokončení na chvíli zeleně „✔“, při chybě červeně „!“, jinak je tlumený oblak.
+// Když cloud není nastavený, indikátor je schovaný (není co synchronizovat).
+let syncPillTimer = 0;
+
+function syncPill(state){
+  const el = document.getElementById('syncPill');
+  if(!el) return;
+  clearTimeout(syncPillTimer);
+  el.classList.remove('busy', 'done', 'err', 'idle');
+  const icon = el.querySelector('.sync-ic');
+  if(state === 'busy'){
+    el.classList.add('busy');
+    el.title = 'Synchronizuji s cloudem…';
+    el.setAttribute('aria-label', 'Synchronizuji s cloudem');
+    el.setAttribute('aria-busy', 'true');
+    if(icon) icon.textContent = '⟳';
+    return;
+  }
+  el.removeAttribute('aria-busy');
+  if(state === 'done'){
+    el.classList.add('done');
+    el.title = 'Synchronizováno s cloudem';
+    el.setAttribute('aria-label', 'Synchronizováno s cloudem');
+    if(icon) icon.textContent = '✔';
+    syncPillTimer = setTimeout(function(){ syncPill('idle'); }, 2000);
+    return;
+  }
+  if(state === 'err'){
+    el.classList.add('err');
+    el.title = 'Synchronizace se nezdařila — zkontrolujte připojení k internetu';
+    el.setAttribute('aria-label', 'Synchronizace se nezdařila');
+    if(icon) icon.textContent = '!';
+    syncPillTimer = setTimeout(function(){ syncPill('idle'); }, 6000);
+    return;
+  }
+  el.classList.add('idle');
+  el.title = 'Cloud připojen — synchronizace je automatická';
+  el.setAttribute('aria-label', 'Cloud připojen, synchronizace je automatická');
+  if(icon) icon.textContent = '☁';
+}
+
+// Ukázat/schovat indikátor podle toho, jestli je cloud nastavený.
+function syncPillVisibility(){
+  const el = document.getElementById('syncPill');
+  if(!el) return;
+  let ready = false;
+  try{ ready = cloudReady(cloudConfig()); }catch(e){}
+  el.classList.toggle('hidden', !ready);
+  if(ready && !el.classList.contains('busy') && !el.classList.contains('done') && !el.classList.contains('err')){
+    syncPill('idle');
+  }
+}
+
 function cloudShowConflict(show){
   const box = document.getElementById('cloudConflict');
   if(box) box.classList.toggle('hidden', !show);
@@ -3845,18 +4325,15 @@ async function sigHttp(cfg, method, query, payload){
   try{ return JSON.parse(text); }catch(e){ return null; }
 }
 
-async function sigRemoteIds(cfg){
+// Rychlá zkouška úložiště podpisů (bez stahování celé kolekce).
+async function sigProbe(cfg){
   if(cfg.provider === 'firebase'){
     await fbEnsureAuth();
-    const snap = await fbFs().collection('oopp_sig').get();
-    const ids = {};
-    snap.forEach(function(d){ ids[d.id] = true; });
-    return ids;
+    await fbFs().collection('oopp_sig').limit(1).get();
+    return true;
   }
-  const rows = await sigHttp(cfg, 'GET', '?select=issue_id', null);
-  const ids = {};
-  (Array.isArray(rows) ? rows : []).forEach(function(r){ if(r && r.issue_id) ids[r.issue_id] = true; });
-  return ids;
+  await sigHttp(cfg, 'GET', '?select=issue_id&limit=1', null);
+  return true;
 }
 
 async function sigDownload(cfg, ids){
@@ -3864,13 +4341,17 @@ async function sigDownload(cfg, ids){
     await fbEnsureAuth();
     const fs = fbFs();
     const out = {};
-    for(let i = 0; i < ids.length; i++){
-      const id = ids[i];
-      const snap = await fs.doc('oopp_sig/' + id).get();
-      if(snap && snap.exists){
-        const d = snap.data();
-        if(d && typeof d.data === 'string' && d.data) out[id] = d.data;
-      }
+    // po deseti souběžně — tisk jich obvykle potřebuje pár desítek
+    for(let i = 0; i < ids.length; i += 10){
+      const snaps = await Promise.all(ids.slice(i, i + 10).map(function(id){
+        return fs.doc('oopp_sig/' + id).get();
+      }));
+      snaps.forEach(function(snap){
+        if(snap && snap.exists){
+          const d = snap.data();
+          if(d && typeof d.data === 'string' && d.data) out[snap.id] = d.data;
+        }
+      });
     }
     return out;
   }
@@ -3891,8 +4372,13 @@ async function sigUpload(cfg, map){
     await fbEnsureAuth();
     const fs = fbFs();
     const ids = Object.keys(map || {});
-    for(let i = 0; i < ids.length; i++){
-      await fs.doc('oopp_sig/' + ids[i]).set({data: map[ids[i]], updated_at: new Date().toISOString()});
+    // dávky kvůli rychlosti (první nahrání starších podpisů může být větší)
+    for(let i = 0; i < ids.length; i += 100){
+      const batch = fs.batch();
+      ids.slice(i, i + 100).forEach(function(id){
+        batch.set(fs.doc('oopp_sig/' + id), {data: map[id], updated_at: new Date().toISOString()});
+      });
+      await batch.commit();
     }
     return ids.length;
   }
@@ -3907,34 +4393,35 @@ async function sigUpload(cfg, map){
   return rows.length;
 }
 
-// Stáhne chybějící podpisy k výdejům a nahraje nové. Volá se po každém sloučení dat.
+// Nahraje podpisy, které v tomto zařízení ještě nejsou v cloudu, a hned je
+// z místních dat uvolní — v zařízení zůstane jen příznak hasSignature (fajfka).
+// Opačným směrem se nic nestahuje: podpisy se dotahují až při zobrazení nebo
+// tisku (sigPrefetch), takže každé zařízení nedrží podpisy ze všech ostatních.
 async function cloudSyncSignatures(cfg, opts){
   if(!cloudSeparatesSignatures(cfg)) return {skipped: true};
   const o = opts || {};
-  const local = signatureMap();
-  const remoteIds = await sigRemoteIds(cfg);
-  const result = {downloaded: 0, uploaded: 0, remote: Object.keys(remoteIds).length};
-
-  const missing = Object.keys(remoteIds).filter(function(id){ return !local[id]; });
-  if(missing.length){
-    const got = await sigDownload(cfg, missing);
-    result.downloaded = applySignatureMap(got);
-    if(result.downloaded){
-      cloudApplying = true;
-      try{ save(); }finally{ cloudApplying = false; }
-      if(currentEmployeeId) refreshEmployeeDetail();
+  if(o.upload === false) return {uploaded: 0, freed: 0};
+  const pending = signatureMap();
+  const result = {uploaded: 0, freed: 0};
+  if(Object.keys(pending).length){
+    // Když nahrání selže (offline), funkce skončí výjimkou a podpisy v zařízení
+    // zůstanou — nic se neztratí, zkusí se to při další synchronizaci.
+    result.uploaded = await sigUpload(cfg, pending);
+  }
+  (db.issues || []).forEach(function(i){
+    if(i && i.signature){
+      delete i.signature;         // obrázek už je v cloudu → zbytečně by zabíral místo
+      i.hasSignature = true;
+      i.sigPending = false;
+      result.freed++;
     }
+  });
+  if(result.freed){
+    cloudApplying = true;
+    try{ save(); }finally{ cloudApplying = false; }
+    if(currentEmployeeId) refreshEmployeeDetail();
   }
-
-  if(o.upload !== false){
-    const push = {};
-    Object.keys(local).forEach(function(id){
-      if(o.force || !remoteIds[id]) push[id] = local[id];
-    });
-    if(Object.keys(push).length) result.uploaded = await sigUpload(cfg, push);
-  }
-
-  if(result.downloaded || result.uploaded) cfg.lastSigAt = Date.now();
+  if(result.uploaded || result.freed) cfg.lastSigAt = Date.now();
   saveCloudConfig(cfg);
   return result;
 }
@@ -3946,10 +4433,10 @@ async function cloudTrySyncSignatures(cfg, opts){
 
 function cloudSigNote(sig){
   if(!sig || sig.skipped) return '';
-  if(sig.error) return ' — podpisy se nepodařilo synchronizovat: ' + sig.error;
+  if(sig.error) return ' — podpisy se nepodařilo nahrát: ' + sig.error;
   const parts = [];
-  if(sig.downloaded) parts.push('podpisy staženy: ' + sig.downloaded);
-  if(sig.uploaded) parts.push('podpisy nahrány: ' + sig.uploaded);
+  if(sig.uploaded) parts.push('podpisy nahrány do cloudu: ' + sig.uploaded);
+  if(sig.freed) parts.push('uvolněny ze zařízení: ' + sig.freed);
   return parts.length ? ' — ' + parts.join(', ') : '';
 }
 
@@ -3957,28 +4444,32 @@ function cloudSigKind(sig){
   return (sig && sig.error) ? 'warn' : 'ok';
 }
 
-// Ruční stažení jednoho podpisu (tlačítko v tabulce výdejů).
-async function fetchSignatureFor(issueId){
+// Ruční úklid: nahraje čekající podpisy do cloudu a uvolní je z tohoto zařízení.
+async function freeLocalSignatures(){
   const cfg = cloudConfig();
-  const issue = db.issues.find(function(i){ return i.id === issueId; });
-  if(!issue) return;
-  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)){
-    toast('Podpis tady není a cloud není nastavený.');
+  const pending = Object.keys(signatureMap()).length;
+  if(!pending){
+    toast('V tomto zařízení žádné podpisy nejsou — všechny jsou v cloudu.');
     return;
   }
-  toast('Stahuji podpis z cloudu…');
+  if(!cloudReady(cfg) || !cloudSeparatesSignatures(cfg)){
+    toast('Uvolnit podpisy jde jen s připojeným cloudem (Firebase/Supabase) — nejdřív se musí nahrát.');
+    return;
+  }
+  if(!confirm('Nahrát ' + pending + ' ' + czPlural(pending, 'podpis', 'podpisy', 'podpisů') +
+    ' do cloudu a uvolnit je z tohoto zařízení?\n\n' +
+    'Podpisy zůstanou v cloudu, tady po nich zbude jen „✔ podepsáno“. Pro tisk se znovu stáhnou.')) return;
+  toast('Nahrávám podpisy do cloudu…', 5000);
+  syncPill('busy');
   try{
-    const got = await sigDownload(cfg, [issueId]);
-    if(!got[issueId]){ toast('V cloudu tento podpis není.'); return; }
-    issue.signature = got[issueId];
-    issue.hasSignature = true;
-    delete sigFetchTried[issueId];
-    cloudApplying = true;
-    try{ save(); }finally{ cloudApplying = false; }
-    if(currentEmployeeId) refreshEmployeeDetail();
-    toast('Podpis stažen.');
+    const r = await cloudSyncSignatures(cfg, {upload: true});
+    renderCloudUI();
+    syncPill('done');
+    toast('Hotovo — nahráno ' + r.uploaded + ', uvolněno ' + r.freed + ' ' +
+      czPlural(r.freed, 'podpis', 'podpisy', 'podpisů') + '.', 5000);
   }catch(e){
-    toast('Podpis se nepodařilo stáhnout: ' + e.message);
+    syncPill('err');
+    toast('Nepodařilo se: ' + e.message + ' (podpisy zůstaly v zařízení)', 6000);
   }
 }
 
@@ -3991,6 +4482,8 @@ async function cloudSync(mode){
   if(cloudBusy) return;
   cloudBusy = true;
   cloudShowConflict(false);
+  syncPill('busy');
+  let syncOk = true;
   try{
     const remote = mode === 'push' ? null : cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
 
@@ -4001,6 +4494,11 @@ async function cloudSync(mode){
       return;
     }
     if(!remote || !remote.data || cloudDataIsEmpty(remote.data)){
+      // Úplně prázdný cloud = první zařízení, které data zakládá. Teprve tady má
+      // smysl založit výchozí číselník předmětů — na dalších zařízeních už se
+      // předměty vezmou z cloudu a nic se nezdvojí.
+      seedDefaultItemsIfEmpty();
+      save();
       await cloudPush(cfg);
       const sig = await cloudTrySyncSignatures(cfg, {upload: true, force: true});
       cloudSetStatus('V cloudu ještě nic nebylo — data i podpisy nahrány (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
@@ -4017,8 +4515,12 @@ async function cloudSync(mode){
     if(mode === 'pull'){
       const sig = await cloudTrySyncSignatures(cfg, {upload: false});
       cloudMarkSynced(cfg, cloudLocalHash(), remote);
-      cloudSetStatus('Změny z cloudu přidány k místním datům (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-      if(gained) toast('Data z cloudu sloučena.');
+      // Hláška o „datech z jiného zařízení“ se ukáže jen tehdy, když se opravdu
+      // něco přidalo. Když jsou data stejná, napíše se jen „beze změny“.
+      const statusHead = gained
+        ? 'Změny z cloudu přidány k místním datům'
+        : 'Zkontrolováno — beze změny';
+      cloudSetStatus(statusHead + ' (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
       return;
     }
 
@@ -4030,14 +4532,19 @@ async function cloudSync(mode){
       cloudMarkSynced(cfg, remoteHash, remote);
     }
     const sig = await cloudTrySyncSignatures(cfg, {upload: true});
-    cloudSetStatus('Synchronizováno — data ze všech zařízení sloučena (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
-    if(gained && mode !== 'auto') toast('Data sloučena s cloudem.');
-    if(gained && mode === 'auto') toast('Načtena data z jiného zařízení (přidáno, nic nepřepsáno).');
+    // Automatická synchronizace se ničím neohlašuje: nové záznamy z cloudu se
+    // jen tiše přidají. Žádná vyskakovací hláška o „datech z jiného zařízení“
+    // při každém připojení k internetu (jen malý indikátor v hlavičce).
+    cloudSetStatus((gained ? 'Synchronizováno — nové záznamy z cloudu přidány' : 'Synchronizováno') +
+      ' (' + cloudFormatTime(Date.now()) + ')' + cloudSigNote(sig) + '.', cloudSigKind(sig));
   }catch(e){
+    syncOk = false;
     cloudSetStatus('Chyba cloudu: ' + e.message, 'err');
   }finally{
     cloudBusy = false;
     renderCloudUI();
+    // Krátká zpětná vazba v hlavičce místo dlouhé hlášky (detail zůstává v kartě Cloud).
+    syncPill(syncOk ? 'done' : 'err');
   }
 }
 
@@ -4069,8 +4576,8 @@ function cloudCountsNote(){
     (db.functions || []).length + ' funkcí',
     (db.issues || []).length + ' výdejů'
   ];
-  const sigs = Object.keys(signatureMap()).length;
-  if(sigs) parts.push(sigs + ' podpisů');
+  const signed = (db.issues || []).filter(function(i){ return i && i.hasSignature; }).length;
+  if(signed) parts.push(signed + ' podepsaných (podpisy v cloudu)');
   return parts.join(' • ');
 }
 
@@ -4123,7 +4630,7 @@ async function cloudTestConnection(){
     const head = '✔ ' + where + ' funguje' + who + '. ';
     // u Firebase/Supabase jsou podpisy zvlášť — ověřit i jejich úložiště
     if(cloudSeparatesSignatures(cfg)){
-      try{ await sigRemoteIds(cfg); }
+      try{ await sigProbe(cfg); }
       catch(e){
         cloudSetStatus(head + 'Data ano, ale podpisy ne: ' + e.message, 'warn');
         return;
@@ -4139,6 +4646,27 @@ async function cloudTestConnection(){
   }
 }
 
+// Kolik podpisů zůstává v tomto zařízení a kolik jich je v cloudu.
+function updateCloudSigInfo(){
+  const el = document.getElementById('cloudSigInfo');
+  if(!el) return;
+  const local = Object.keys(signatureMap()).length;
+  const signed = (db.issues || []).filter(function(i){ return i && i.hasSignature; }).length;
+  if(!signed){
+    el.textContent = 'Zatím žádný podepsaný výdej.';
+    return;
+  }
+  if(!cloudSeparatesSignatures(cloudConfig())){
+    el.textContent = 'Podepsaných výdejů: ' + signed + '. Zvolený cloud neumí podpisy ukládat zvlášť, ' +
+      'takže se vozí uvnitř dat (větší přenosy). Úsporné ukládání podpisů umí Firebase a Supabase.';
+    return;
+  }
+  el.textContent = local
+    ? 'Podepsaných výdejů: ' + signed + '. V tomto zařízení je uloženo ' + local + ' ' +
+      czPlural(local, 'podpis', 'podpisy', 'podpisů') + ' — ještě nejsou v cloudu. Tlačítkem výše je nahrajete a uvolníte.'
+    : 'Podepsaných výdejů: ' + signed + '. Podpisy jsou uložené v cloudu, tady po nich zůstává jen „✔ podepsáno“ — stahují se jen pro tisk nebo náhled.';
+}
+
 function renderCloudUI(){
   if(!document.getElementById('cloudProvider')) return;
   const cfg = cloudConfig();
@@ -4146,12 +4674,12 @@ function renderCloudUI(){
   document.getElementById('cloudUrl').value = cfg.url || '';
   document.getElementById('cloudKey').value = cfg.key || '';
   document.getElementById('cloudDoc').value = cfg.docId || '';
-  document.getElementById('cloudAuto').checked = !!cfg.auto;
   const emailEl = document.getElementById('cloudEmail');
   if(emailEl) emailEl.value = cfg.firebaseEmail || '';
   const passEl = document.getElementById('cloudPass');
   if(passEl) passEl.value = cfg.firebasePass || '';
   updateCloudProviderUI();
+  updateCloudSigInfo();
   if(!cloudStatusMsg){
     if(!cloudReady(cfg)){
       if(cloudPresetActive(cfg) && cfg.provider === 'firebase'){
@@ -4166,6 +4694,7 @@ function renderCloudUI(){
     }
   }
   updateCloudBanner();
+  syncPillVisibility();
 }
 
 function updateCloudProviderUI(){
@@ -4190,6 +4719,10 @@ function updateCloudProviderUI(){
   if(urlField) urlField.placeholder = isFb ? 'např. oopp-evidence' : (provider === 'supabase' ? 'https://vaše-id.supabase.co' : 'https://…');
   const docField = document.getElementById('cloudDoc');
   if(docField) docField.placeholder = provider === 'supabase' ? 'main' : 'bin ID';
+
+  // Podpisy jde ukládat zvlášť (mimo data) jen u Firebase a Supabase.
+  const freeBtn = document.getElementById('btnCloudSigsFree');
+  if(freeBtn) freeBtn.classList.toggle('hidden', !cloudSeparatesSignatures({provider: provider}));
 }
 
 function cloudSaveConfig(){
@@ -4207,7 +4740,7 @@ function cloudSaveConfig(){
   cfg.docId = docId;
   cfg.firebaseEmail = email.trim();
   cfg.firebasePass = pass;
-  cfg.auto = !!document.getElementById('cloudAuto').checked;
+  cfg.auto = true; // synchronizace je vždy automatická (bez zaškrtávání)
   if(changed){ cfg.baseHash = ''; cfg.lastRev = 0; cfg.lastSyncAt = 0; cfg.lastSigAt = 0; fbReset(); }
   saveCloudConfig(cfg);
   cloudStatusMsg = '';
@@ -4230,6 +4763,7 @@ function renderAll(){
   renderFunctions();
   refreshFunctionOptions();
   renderDataInfo();
+  renderConsumption();
   updateAdminUI();
   if(currentEmployeeId) refreshEmployeeDetail();
 }
@@ -4238,7 +4772,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v31';
+const APP_VERSION = 'v37';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -4348,7 +4882,7 @@ async function autoUpdateCheck(autoReload){
     return;
   }
   if(!autoReload){
-    toast('Je dostupná nová verze aplikace — zavřete a znovu otevřete aplikaci (nebo ⟳ Aktualizovat aplikaci v záložce Data).');
+    toast('Je dostupná nová verze — ⟳ Aktualizovat aplikaci (Data).');
     return;
   }
   let tries = 0;
@@ -4476,23 +5010,28 @@ document.addEventListener('DOMContentLoaded', function(){
   if(isDesktopShell()) document.documentElement.classList.add('desktop-shell');
   if(!db.initialized){
     db.initialized = true;
-    if(db.items.length === 0){
-      db.items = [
-        {id: uid(), name: 'Pracovní rukavice', unit: 'pár', sizeMin: '6', sizeMax: '12'},
-        {id: uid(), name: 'Ochranné brýle', unit: 'ks', sizeMin: '', sizeMax: ''},
-        {id: uid(), name: 'Ochranná přilba', unit: 'ks', sizeMin: '', sizeMax: ''},
-        {id: uid(), name: 'Reflexní vesta', unit: 'ks', sizeMin: '', sizeMax: ''},
-        {id: uid(), name: 'Respirátor / maska', unit: 'ks', sizeMin: '', sizeMax: ''},
-        {id: uid(), name: 'Ochranná obuv', unit: 'pár', sizeMin: '34', sizeMax: '48'},
-        {id: uid(), name: 'Chrániče sluchu', unit: 'ks', sizeMin: '', sizeMax: ''}
-      ];
-    }
+    // Výchozí číselník se zakládá jen v aplikaci bez cloudu. Když je cloud
+    // přednastavený, čeká se na první synchronizaci (seedDefaultItemsIfEmpty
+    // se volá jen u prokazatelně prázdného cloudu) — jinak by na každém novém
+    // zařízení vznikla druhá kopie předmětů vedle těch, co už jsou v cloudu.
+    if(!CLOUD_PRESET.provider) seedDefaultItemsIfEmpty();
     save();
   }
 
   if(migrateItemSizes()) save();
   ensureFunctions();
   if(migrateFunctions()) save();
+  // duplicity, které na nových zařízeních vznikly dřívějšími verzemi, se sloučí
+  const dupItems = dedupeItems();
+  if(dupItems){
+    toast('Duplicitní předměty sloučeny (' + dupItems + ' ' + czPlural(dupItems, 'kopie', 'kopie', 'kopií') +
+      ') — v číselníku zůstal vždy jeden.', 6000);
+  }
+  // kdyby v datech zůstaly podpisy, které už jsou v cloudu, uklidí se při startu
+  const freedSigs = freeUploadedSignatures();
+  if(freedSigs){
+    toast('Podpisy jsou v cloudu — v zařízení zůstaly jen fajfky „✔ podepsáno“.', 5000);
+  }
 
   renderAll();
   resizeSignature();
@@ -4601,7 +5140,7 @@ document.addEventListener('DOMContentLoaded', function(){
       try{ reg.update(); }catch(e){}
       const hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', function(){
-        if(hadController) toast('Nová verze aplikace je připravena — klepněte na „⟳ Aktualizovat aplikaci“ v záložce Data.');
+        if(hadController) toast('Nová verze je připravena — ⟳ Aktualizovat aplikaci (Data).');
       });
       // Vlastní kontrola verze — aplikace se takto zaktualizuje sama, i když
       // je nainstalovaná na ploše telefonu.
@@ -4664,7 +5203,8 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnCloudSync').addEventListener('click', function(){ cloudSync('auto'); });
   document.getElementById('btnCloudPush').addEventListener('click', function(){ cloudSync('push'); });
   document.getElementById('btnCloudPull').addEventListener('click', function(){ cloudSync('pull'); });
-  document.getElementById('cloudAuto').addEventListener('change', cloudSaveConfig);
+  const btnSigsFree = document.getElementById('btnCloudSigsFree');
+  if(btnSigsFree) btnSigsFree.addEventListener('click', freeLocalSignatures);
   // připojení ke cloudu hned po spuštění (lišta nahoře + formulář)
   document.getElementById('btnCloudBannerLogin').addEventListener('click', openCloudQuick);
   document.getElementById('btnCloudBannerLater').addEventListener('click', dismissCloudBanner);
@@ -4716,6 +5256,9 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('itemsPass').addEventListener('keydown', function(e){
     if(e.key === 'Enter') tryItemsLogin();
   });
+  // přehled spotřeby v záložce Data (jen pro čtení) — filtr období a hledání
+  document.getElementById('consPeriod').addEventListener('change', renderConsumption);
+  document.getElementById('consFilter').addEventListener('input', renderConsumption);
 
   document.addEventListener('click', function(e){
     const editBtn = e.target.closest('button[data-edit]');
@@ -4724,8 +5267,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(delBtn){ deleteEmployee(delBtn.dataset.del); return; }
     const sigImg = e.target.closest('img[data-sig]');
     if(sigImg){ showSignature(sigImg.dataset.sig); return; }
-    const fetchSigBtn = e.target.closest('button[data-fetchsig]');
-    if(fetchSigBtn){ fetchSignatureFor(fetchSigBtn.dataset.fetchsig); return; }
+    const viewSigBtn = e.target.closest('button[data-viewsig]');
+    if(viewSigBtn){ viewSignature(viewSigBtn.dataset.viewsig); return; }
     const empRow = e.target.closest('tr[data-open]');
     if(empRow){ openEmployeeDetail(empRow.dataset.open); return; }
     const editItemBtn = e.target.closest('button[data-edititem]');
@@ -4736,6 +5279,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(editFuncBtn){ editFunction(editFuncBtn.dataset.editfunc); return; }
     const delFuncBtn = e.target.closest('button[data-delfunc]');
     if(delFuncBtn){ deleteFunction(delFuncBtn.dataset.delfunc); return; }
+    const consCsvBtn = e.target.closest('button[data-cons-csv]');
+    if(consCsvBtn){ exportConsumptionCsv(); return; }
   });
 
   initDatePicker();
