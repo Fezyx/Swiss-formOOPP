@@ -97,6 +97,7 @@ tr.clickable{cursor:pointer}
 tr.clickable:hover{background:#f1f5f9}
 .sig-box{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
 #signatureCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
+.proto-canvas{display:block;width:100%;height:140px;touch-action:none;cursor:crosshair}
 .sig-hint{font-size:.76rem;color:#94a3b8;margin-top:4px}
 /* Informace o automatické synchronizaci v kartě Cloud (místo zaškrtávacího políčka). */
 .cloud-auto-info{display:flex;align-items:flex-start;gap:8px;font-size:.8rem;line-height:1.4;color:#166534;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px}
@@ -208,6 +209,7 @@ tr.clickable:hover{background:#f1f5f9}
   .opt{display:none}
   .only-mobile{display:block}
   #signatureCanvas{height:170px}
+  .proto-canvas{height:120px}
   .issue-table{font-size:.84rem}
   .issue-table th,.issue-table td{padding:7px 4px}
   .sig-thumb{height:30px;max-width:64px}
@@ -244,6 +246,29 @@ tr.clickable:hover{background:#f1f5f9}
 .bk-list td.bk-sig img{max-height:5mm;max-width:100%;display:block;margin:0 auto}
 .bk-list th.bk-mid,.bk-list td.bk-mid{border-left:2px solid #000}
 .bk-foot{position:absolute;left:12mm;right:12mm;bottom:6mm;display:flex;justify-content:space-between;gap:6mm;font-size:7.5pt;color:#333;border-top:1px solid #666;padding-top:1mm}
+/* ---- Předávací protokol: tisková podoba A4 s logem a podpisy ---- */
+.proto-page{position:relative;width:210mm;min-height:296mm;padding:14mm 16mm 12mm;background:#fff;color:#000;font-family:'Segoe UI',Arial,Helvetica,sans-serif;font-size:10pt;page-break-after:always;break-after:page}
+.proto-page:last-child{page-break-after:auto;break-after:auto}
+.proto-head{display:flex;align-items:center;gap:8mm;border-bottom:2.5px solid #17324d;padding-bottom:5mm;margin-bottom:8mm}
+.proto-logo{height:22mm;width:auto;flex:0 0 auto}
+.proto-head-txt{flex:1;min-width:0}
+.proto-kicker{font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:#17324d;font-weight:700;margin:0 0 1mm}
+.proto-head h1{font-size:23pt;font-weight:800;letter-spacing:.02em;margin:0;color:#000;background:none;text-transform:none}
+.proto-no{font-size:10pt;color:#333;margin-top:1.5mm}
+.proto-table{width:100%;border-collapse:collapse;margin:0 0 6mm;table-layout:fixed}
+.proto-table th,.proto-table td{border:1px solid #000;padding:3.5mm 4mm;vertical-align:top;text-align:left;background:#fff;color:#000;font-size:10.5pt;font-weight:400;line-height:1.3}
+.proto-table th{background:#eef2f7;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;width:50%}
+.proto-table td{font-weight:600;min-height:12mm}
+.proto-note{margin:0 0 6mm;font-size:10pt;color:#000}
+.proto-note .lbl{font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;color:#17324d;font-weight:700;display:block;margin-bottom:1.5mm}
+.proto-sigs{display:flex;gap:12mm;margin-top:18mm}
+.proto-sig{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}
+.proto-sig-label{font-size:9.5pt;font-weight:700;color:#000;margin-bottom:2mm}
+.proto-sig-line{width:100%;height:26mm;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:1mm}
+.proto-sig-line img{height:23mm;max-width:100%;object-fit:contain}
+.proto-sig-name{margin-top:2.5mm;font-size:9.5pt;font-weight:600;color:#000;width:100%}
+.proto-sig-nosig{font-size:8pt;color:#94a3b8;font-weight:400}
+.proto-foot{position:absolute;left:16mm;right:16mm;bottom:10mm;display:flex;justify-content:space-between;gap:6mm;font-size:8pt;color:#333;border-top:1px solid #666;padding-top:2mm}
 @media print{
   @page{size:A4 portrait;margin:0}
   html,body{height:auto!important;overflow:visible!important}
@@ -251,6 +276,7 @@ tr.clickable:hover{background:#f1f5f9}
   .print-area{display:block!important;padding:14mm}
   .print-area.booklet{padding:0}
   .bk-page{break-inside:avoid;page-break-inside:avoid}
+  .proto-page{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
   <script defer src="dependencies/firebase/firebase-app-compat.js"></script>
@@ -284,6 +310,7 @@ tr.clickable:hover{background:#f1f5f9}
   <nav>
     <button data-tab="issue" class="active">Výdej</button>
     <button data-tab="employees">Zaměstnanci</button>
+    <button data-tab="protocols">Předávky</button>
     <button data-tab="items">Předměty</button>
     <button data-tab="data">Data</button>
   </nav>
@@ -379,6 +406,51 @@ tr.clickable:hover{background:#f1f5f9}
           <button class="btn outline" id="btnNewIssueFor">＋ Nový výdej</button>
         </div>
         <div id="empIssues"></div>
+      </div>
+    </section>
+
+    <section id="tab-protocols" class="tab-content">
+      <div class="card">
+        <h2>Nový předávací protokol</h2>
+        <p class="desc">Vyberte, kdo předmět předává a kdo přebírá, doplňte předmět a nechte oba podepsat. Záznam se uloží do zařízení i do cloudu (stejně jako výdej).</p>
+        <label>Datum</label>
+        <input type="date" id="protocolDate">
+        <label>Předávající (vydává)</label>
+        <div class="row">
+          <input type="search" id="protocolFromFilter" class="grow" placeholder="Hledat jméno nebo osobní číslo…" autocomplete="off" inputmode="search" enterkeyhint="search">
+        </div>
+        <input type="hidden" id="protocolFrom">
+        <div id="protocolFromList" class="emp-suggest hidden"></div>
+        <label>Přebírající (přijímá)</label>
+        <div class="row">
+          <input type="search" id="protocolToFilter" class="grow" placeholder="Hledat jméno nebo osobní číslo…" autocomplete="off" inputmode="search" enterkeyhint="search">
+        </div>
+        <input type="hidden" id="protocolTo">
+        <div id="protocolToList" class="emp-suggest hidden"></div>
+        <label>Předmět předávky</label>
+        <select id="protocolItem"></select>
+        <div class="row" style="margin-top:8px">
+          <input type="number" id="protocolQty" min="1" step="1" value="1" placeholder="množství" style="flex:0 0 90px">
+          <select id="protocolSize" title="Velikost" style="flex:0 0 110px"></select>
+          <input type="text" id="protocolNote" class="grow" placeholder="poznámka (např. inventární číslo)" autocomplete="off">
+        </div>
+        <label>Podpis předávajícího</label>
+        <div class="sig-box"><canvas id="protocolFromCanvas" class="proto-canvas"></canvas></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn secondary small" id="btnClearProtoFrom">Vymazat podpis</button>
+        </div>
+        <label>Podpis přebírajícího</label>
+        <div class="sig-box"><canvas id="protocolToCanvas" class="proto-canvas"></canvas></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn secondary small" id="btnClearProtoTo">Vymazat podpis</button>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnSaveProtocol">Uložit protokol</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Seznam předávacích protokolů</h2>
+        <div id="protocolList"></div>
       </div>
     </section>
 
@@ -688,8 +760,8 @@ try{ localStorage.removeItem('oopp_caps'); }catch(e){}
 
 // jednotný tvar dat — starší zálohy nemají tombstones/functions
 function normalizeDbShape(d){
-  const out = Object.assign({employees: [], items: [], issues: [], functions: [], tombstones: []}, d || {});
-  ['employees', 'items', 'issues', 'functions', 'tombstones'].forEach(function(k){
+  const out = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: [], tombstones: []}, d || {});
+  ['employees', 'items', 'issues', 'functions', 'protocols', 'tombstones'].forEach(function(k){
     if(!Array.isArray(out[k])) out[k] = [];
   });
   return out;
@@ -845,7 +917,7 @@ function recSig(rec){
 
 function trackRecChanges(){
   const now = Date.now();
-  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
     const alive = {};
     (db[kind] || []).forEach(function(r){
       if(!r || !r.id) return;
@@ -1350,6 +1422,7 @@ function showTab(name){
     s.classList.toggle('active', s.id === 'tab-' + name);
   });
   if(name === 'issue'){ populateIssueForm(); resizeSignature(); }
+  if(name === 'protocols'){ populateProtocolForm(); resizeProtocolSigs(); }
   if(name === 'employees'){
     renderEmployees();
     if(currentEmployeeId) refreshEmployeeDetail();
@@ -2438,6 +2511,360 @@ function saveIssue(){
   toast('Výdej uložen.');
 }
 
+/* ---------- Předávací protokoly ---------- */
+// Dva podpisy (předávající + přebírající) se ukládají do stejného úložiště
+// oopp_sig jako podpisy výdejů, jen s vlastními klíči p_{id}_from / p_{id}_to,
+// aby se s nikým nesrazily. Po nahrání do cloudu se ze zařízení uvolní
+// (zůstane jen „podepsáno“) — úplně stejně jako u výdejů.
+let padFrom = null;
+let padTo = null;
+
+function makeSigPad(canvas){
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let hasContent = false;
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    if(rect.width === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    const saved = hasContent ? canvas.toDataURL() : null;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1f2937';
+    if(saved){
+      const img = new Image();
+      img.onload = function(){ ctx.drawImage(img, 0, 0, rect.width, rect.height); };
+      img.src = saved;
+    }
+  }
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    return {x: e.clientX - r.left, y: e.clientY - r.top};
+  }
+  canvas.addEventListener('pointerdown', function(e){
+    drawing = true;
+    hasContent = true;
+    try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+  canvas.addEventListener('pointermove', function(e){
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(ev){
+    canvas.addEventListener(ev, function(){ drawing = false; });
+  });
+  window.addEventListener('resize', resize);
+  function clear(){
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    hasContent = false;
+  }
+  function getData(){
+    if(!hasContent) return '';
+    const scale = Math.min(1, 800 / canvas.width);
+    const w = Math.max(1, Math.round(canvas.width * scale));
+    const h = Math.max(1, Math.round(canvas.height * scale));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const cc = c.getContext('2d');
+    cc.fillStyle = '#ffffff';
+    cc.fillRect(0, 0, w, h);
+    cc.drawImage(canvas, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.8);
+  }
+  return {resize: resize, clear: clear, getData: getData};
+}
+
+function initProtocolSigs(){
+  if(padFrom) return;
+  padFrom = makeSigPad(document.getElementById('protocolFromCanvas'));
+  padTo = makeSigPad(document.getElementById('protocolToCanvas'));
+}
+
+function resizeProtocolSigs(){
+  initProtocolSigs();
+  padFrom.resize();
+  padTo.resize();
+}
+
+function protocolBox(which){
+  return document.getElementById(which === 'from' ? 'protocolFromList' : 'protocolToList');
+}
+function protocolInput(which){
+  return document.getElementById(which === 'from' ? 'protocolFromFilter' : 'protocolToFilter');
+}
+function protocolHidden(which){
+  return document.getElementById(which === 'from' ? 'protocolFrom' : 'protocolTo');
+}
+
+function renderProtocolSuggestions(which){
+  const input = protocolInput(which);
+  const box = protocolBox(which);
+  const q = (input && input.value ? input.value : '').trim();
+  const matches = issueEmployeeMatches(q);
+  if(!q || matches.length === 0){
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+  box.innerHTML = matches.slice(0, 60).map(function(e){
+    return '<div class="emp-suggest-item" data-id="' + e.id + '">' +
+      escapeHtml(issueEmployeeLabel(e)) +
+      (e.personalNumber ? '<div class="sig-hint">os. č. ' + escapeHtml(e.personalNumber) + '</div>' : '') +
+      '</div>';
+  }).join('');
+  box.classList.remove('hidden');
+}
+
+function closeProtocolSuggestions(which){
+  const box = protocolBox(which);
+  if(box){ box.classList.add('hidden'); box.innerHTML = ''; }
+}
+
+function selectProtocolPerson(which, id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) return;
+  protocolHidden(which).value = id;
+  protocolInput(which).value = issueEmployeeLabel(e);
+  closeProtocolSuggestions(which);
+}
+
+function refreshProtocolSize(){
+  const itemSel = document.getElementById('protocolItem');
+  const sizeSel = document.getElementById('protocolSize');
+  const it = db.items.find(function(x){ return x.id === itemSel.value; });
+  const sizes = sizesForItem(it);
+  if(sizes.length === 0){
+    sizeSel.innerHTML = '<option value="">vel.</option>';
+    sizeSel.disabled = true;
+  } else {
+    sizeSel.innerHTML = sizeOptions(sizes, sizeSel.value || '');
+    sizeSel.disabled = false;
+  }
+}
+
+function populateProtocolForm(){
+  const date = document.getElementById('protocolDate');
+  if(!date.value) date.value = todayIso();
+  const itemSel = document.getElementById('protocolItem');
+  const prev = itemSel.value;
+  itemSel.innerHTML = itemOptions(prev, null);
+  refreshProtocolSize();
+  ['from', 'to'].forEach(closeProtocolSuggestions);
+}
+
+function protocolSignatureMap(){
+  const map = {};
+  (db.protocols || []).forEach(function(p){
+    if(p && p.id){
+      if(p.sigFrom) map['p_' + p.id + '_from'] = p.sigFrom;
+      if(p.sigTo) map['p_' + p.id + '_to'] = p.sigTo;
+    }
+  });
+  return map;
+}
+
+// Úklid při startu / po sloučení: podpisy protokolů, které už jsou v cloudu
+// (sigFromPending/sigToPending === false), se v zařízení nedrží.
+function freeUploadedProtocolSignatures(){
+  if(!cloudSeparatesSignatures(cloudConfig())) return 0;
+  let freed = 0;
+  (db.protocols || []).forEach(function(p){
+    if(!p) return;
+    if(p.sigFrom && p.sigFromHas && p.sigFromPending === false){ delete p.sigFrom; freed++; }
+    if(p.sigTo && p.sigToHas && p.sigToPending === false){ delete p.sigTo; freed++; }
+  });
+  if(freed){
+    cloudApplying = true;
+    try{ save(); }finally{ cloudApplying = false; }
+  }
+  return freed;
+}
+
+function saveProtocol(){
+  const fromId = protocolHidden('from').value;
+  const toId = protocolHidden('to').value;
+  if(!fromId){ toast('Vyberte předávajícího.'); return; }
+  if(!toId){ toast('Vyberte přebírajícího.'); return; }
+  if(fromId === toId){ toast('Předávající a přebírající musí být různí.'); return; }
+  const from = db.employees.find(function(e){ return e.id === fromId; });
+  const to = db.employees.find(function(e){ return e.id === toId; });
+  if(!from || !to){ toast('Zaměstnanec nenalezen.'); return; }
+  const itemId = document.getElementById('protocolItem').value;
+  if(!itemId){ toast('Vyberte předmět předávky.'); return; }
+  const it = db.items.find(function(x){ return x.id === itemId; });
+  const qty = parseInt(document.getElementById('protocolQty').value, 10);
+  if(!qty || qty < 1){ toast('Zadejte množství.'); return; }
+  initProtocolSigs();
+  const sigFrom = padFrom.getData();
+  const sigTo = padTo.getData();
+  const p = touchRec({
+    id: uid(),
+    date: document.getElementById('protocolDate').value || todayIso(),
+    fromId: from.id, fromName: from.name, fromFunc: employeeFunctionName(from),
+    toId: to.id, toName: to.name, toFunc: employeeFunctionName(to),
+    itemId: itemId, itemName: it ? it.name : itemId,
+    qty: qty, unit: it ? (it.unit || 'ks') : 'ks',
+    size: document.getElementById('protocolSize').value || '',
+    note: document.getElementById('protocolNote').value.trim(),
+    sigFrom: sigFrom, sigFromHas: !!sigFrom, sigFromPending: !!sigFrom,
+    sigTo: sigTo, sigToHas: !!sigTo, sigToPending: !!sigTo,
+    createdAt: Date.now()
+  });
+  db.protocols.push(p);
+  save();
+  padFrom.clear();
+  padTo.clear();
+  document.getElementById('protocolNote').value = '';
+  document.getElementById('protocolQty').value = '1';
+  protocolHidden('from').value = '';
+  protocolHidden('to').value = '';
+  protocolInput('from').value = '';
+  protocolInput('to').value = '';
+  populateProtocolForm();
+  renderProtocols();
+  toast('Předávací protokol uložen.');
+}
+
+function protocolsSorted(){
+  return db.protocols.slice().sort(function(a, b){
+    const da = a.date || '', db2 = b.date || '';
+    if(da !== db2) return da < db2 ? 1 : -1;        // nejnovější nahoře
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+
+function renderProtocols(){
+  const box = document.getElementById('protocolList');
+  if(!box) return;
+  const list = protocolsSorted();
+  if(list.length === 0){
+    box.innerHTML = '<div class="empty">Zatím žádný předávací protokol.</div>';
+    return;
+  }
+  const rows = list.map(function(p){
+    return '<tr>' +
+      '<td class="nowrap">' + formatDate(p.date) + '</td>' +
+      '<td>' + escapeHtml(p.fromName) + ' → ' + escapeHtml(p.toName) + '</td>' +
+      '<td>' + escapeHtml(p.itemName || '') +
+        (p.size ? ' <span class="sig-hint">vel. ' + escapeHtml(p.size) + '</span>' : '') + '</td>' +
+      '<td class="nowrap">' + escapeHtml(String(p.qty == null ? '' : p.qty)) + ' ' + escapeHtml(p.unit || '') + '</td>' +
+      '<td class="nowrap" style="text-align:right">' +
+        '<button class="btn outline small" data-printproto="' + p.id + '">🖨 Tisk</button> ' +
+        '<button class="btn danger small" data-delproto="' + p.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button>' +
+      '</td></tr>';
+  }).join('');
+  box.innerHTML = '<table><thead><tr><th>Datum</th><th>Předávající → Přebírající</th><th>Předmět</th><th>Množství</th><th></th></tr></thead><tbody>' +
+    rows + '</tbody></table>';
+}
+
+function deleteProtocol(id){
+  const p = db.protocols.find(function(x){ return x.id === id; });
+  if(!p) return;
+  if(!askAdminPassword('smazání předávacího protokolu')) return;
+  if(!confirm('Smazat předávací protokol z ' + formatDate(p.date) + ' (' + p.fromName + ' → ' + p.toName + ')?')) return;
+  db.protocols = db.protocols.filter(function(x){ return x.id !== id; });
+  markDeleted('protocols', id);
+  save();
+  renderProtocols();
+  toast('Protokol smazán.');
+}
+
+function protoPersonCell(p, key){
+  const name = p[key + 'Name'] || '—';
+  const fn = p[key + 'Func'] || '';
+  return escapeHtml(name) + (fn ? '<div style="font-weight:400;font-size:9pt;color:#333">' + escapeHtml(fn) + '</div>' : '');
+}
+
+function protoSigBlock(name, data, noSigHint){
+  if(data){
+    return '<div class="proto-sig-line"><img src="' + data + '" alt="Podpis"></div>' +
+      '<div class="proto-sig-name">' + escapeHtml(name) + '</div>';
+  }
+  return '<div class="proto-sig-line"><span class="proto-sig-nosig">' + (noSigHint || 'bez podpisu') + '</span></div>' +
+    '<div class="proto-sig-name">' + escapeHtml(name) + '</div>';
+}
+
+function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
+  const no = String(p.id || '').slice(-6).toUpperCase();
+  const item = escapeHtml(p.itemName || '—');
+  const size = p.size ? ' <span style="font-weight:400">(vel. ' + escapeHtml(p.size) + ')</span>' : '';
+  const qty = escapeHtml(String(p.qty == null ? '' : p.qty)) + ' ' + escapeHtml(p.unit || '');
+  const note = p.note
+    ? '<div class="proto-note"><span class="lbl">Poznámka</span>' + escapeHtml(p.note) + '</div>'
+    : '';
+  return '<div class="proto-page">' +
+    '<div class="proto-head">' +
+      '<img class="proto-logo" src="dependencies/logo.png" alt="SWISSFORM">' +
+      '<div class="proto-head-txt">' +
+        '<div class="proto-kicker">SWISSFORM · Evidence OOPP</div>' +
+        '<h1>Předávací protokol</h1>' +
+        '<div class="proto-no">č. ' + no + ' · ' + formatDate(p.date) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<table class="proto-table">' +
+      '<tr><th>Předávající (vydává)</th><th>Přebírající (přijímá)</th></tr>' +
+      '<tr><td>' + protoPersonCell(p, 'from') + '</td><td>' + protoPersonCell(p, 'to') + '</td></tr>' +
+      '<tr><th>Předmět předávky</th><th>Množství</th></tr>' +
+      '<tr><td>' + item + size + '</td><td>' + qty + '</td></tr>' +
+    '</table>' +
+    note +
+    '<div class="proto-sigs">' +
+      '<div class="proto-sig">' +
+        '<div class="proto-sig-label">Podpis předávajícího</div>' +
+        protoSigBlock(p.fromName || '', sigFrom, missingFrom ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
+      '</div>' +
+      '<div class="proto-sig">' +
+        '<div class="proto-sig-label">Podpis přebírajícího</div>' +
+        protoSigBlock(p.toName || '', sigTo, missingTo ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
+      '</div>' +
+    '</div>' +
+    '<div class="proto-foot"><span>Místo předání: ………………………………</span><span>Datum: ' + formatDate(p.date) + '</span></div>' +
+    '</div>';
+}
+
+async function printProtocol(id){
+  const p = db.protocols.find(function(x){ return x.id === id; });
+  if(!p) return;
+  const cfg = cloudConfig();
+  let sigFrom = p.sigFrom || '';
+  let sigTo = p.sigTo || '';
+  let missingFrom = false;
+  let missingTo = false;
+  if(cloudSeparatesSignatures(cfg) && (p.sigFromHas || p.sigToHas)){
+    const need = [];
+    if(!sigFrom && p.sigFromHas) need.push('p_' + id + '_from');
+    if(!sigTo && p.sigToHas) need.push('p_' + id + '_to');
+    if(need.length){
+      let got = {};
+      try{ got = await sigDownload(cfg, need); }catch(e){}
+      sigFrom = sigFrom || got['p_' + id + '_from'] || '';
+      sigTo = sigTo || got['p_' + id + '_to'] || '';
+    }
+    missingFrom = p.sigFromHas && !sigFrom;
+    missingTo = p.sigToHas && !sigTo;
+  }
+  const area = document.getElementById('printArea');
+  area.className = 'print-area booklet';
+  area.innerHTML = buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo);
+  sigMissingNote((missingFrom ? 1 : 0) + (missingTo ? 1 : 0));
+  printWhenReady(area);
+}
+
 /* ---------- Výdeje zaměstnance (tabulka v seznamu zaměstnanců) ---------- */
 // české skloňování podle počtu: 1 výdej / 3 výdeje / 8 výdejů
 function czPlural(n, one, few, many){
@@ -3349,8 +3776,8 @@ async function connectDataDir(dir){
       // Data ze souboru jsou hlavní, ale když soubor vznikl starší verzí aplikace
       // a nějaký číselník v něm úplně chybí (např. funkce/pozice), ponechá se
       // to, co je v zařízení — nic se tím neztratí a hned se to dopíše do souboru.
-      const merged = Object.assign({employees: [], items: [], issues: [], functions: []}, existing);
-      ['employees', 'items', 'issues', 'functions'].forEach(function(key){
+      const merged = Object.assign({employees: [], items: [], issues: [], functions: [], protocols: []}, existing);
+      ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(key){
         if(!Array.isArray(existing[key])) merged[key] = Array.isArray(db[key]) ? db[key] : [];
       });
       db = merged;
@@ -3547,7 +3974,8 @@ function renderDataInfo(){
   ensureFunctions();
   document.getElementById('dataStats').textContent =
     'Zaměstnanců: ' + db.employees.length + '  •  Předmětů: ' + db.items.length +
-    '  •  Funkcí: ' + db.functions.length + '  •  Výdejů: ' + db.issues.length;
+    '  •  Funkcí: ' + db.functions.length + '  •  Výdejů: ' + db.issues.length +
+    '  •  Protokolů: ' + db.protocols.length;
 }
 
 /* ---------- Spotřeba předmětů (záložka Data) — jen pro čtení ---------- */
@@ -3694,7 +4122,7 @@ function clearAll(){
   if(!confirm('Opravdu smazat VŠECHNA data? Tuto akci nelze vrátit.')) return;
   if(!confirm('Jste si jistí? Data budou nenávratně smazána.')) return;
   // mazání se musí do cloudu propsat jako „smazáno“, jinak by se data z jiného zařízení vrátila
-  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
     (db[kind] || []).forEach(function(r){ if(r && r.id) markDeleted(kind, r.id); });
   });
   db = normalizeDbShape({tombstones: db.tombstones, initialized: true});
@@ -3797,6 +4225,16 @@ function cloudDataOnly(d, opts){
       return copy;
     }), function(r){ return r && r.id; }),
     functions: sortById(src.functions, function(r){ return r && r.id; }),
+    protocols: sortById((src.protocols || []).map(function(p){
+      const hasFrom = !!(p && (p.sigFrom || p.sigFromHas));
+      const hasTo = !!(p && (p.sigTo || p.sigToHas));
+      const copy = Object.assign({}, p, {sigFromHas: hasFrom, sigToHas: hasTo});
+      if(!keepSignatures){
+        delete copy.sigFrom;
+        delete copy.sigTo;
+      }
+      return copy;
+    }), function(r){ return r && r.id; }),
     tombstones: sortById(src.tombstones, function(t){ return t && (t.kind + '|' + t.id); }),
     initialized: true
   };
@@ -4222,7 +4660,7 @@ function cloudDropDeleted(data){
   data.tombstones = mergeCloudTombstones(data.tombstones, []);
   const dead = {};
   data.tombstones.forEach(function(t){ dead[t.kind + '|' + t.id] = t.at || 0; });
-  ['employees', 'items', 'issues', 'functions'].forEach(function(kind){
+  ['employees', 'items', 'issues', 'functions', 'protocols'].forEach(function(kind){
     data[kind] = (data[kind] || []).filter(function(r){
       if(!r || !r.id) return false;
       const at = dead[kind + '|' + r.id];
@@ -4248,6 +4686,7 @@ function cloudMergeData(local, remote){
     items: mergeCloudList(mine.items, theirs.items),
     issues: mergeCloudList(mine.issues, theirs.issues),
     functions: mergeCloudList(mine.functions, theirs.functions),
+    protocols: mergeCloudList(mine.protocols, theirs.protocols),
     tombstones: mergeCloudTombstones(mine.tombstones, theirs.tombstones),
     initialized: true
   });
@@ -4256,7 +4695,7 @@ function cloudMergeData(local, remote){
 function cloudDataIsEmpty(d){
   if(!d) return true;
   return !(d.employees || []).length && !(d.items || []).length &&
-    !(d.issues || []).length && !(d.functions || []).length;
+    !(d.issues || []).length && !(d.functions || []).length && !(d.protocols || []).length;
 }
 
 function cloudFormatTime(ts){
@@ -4441,6 +4880,9 @@ async function cloudSyncSignatures(cfg, opts){
   const o = opts || {};
   if(o.upload === false) return {uploaded: 0, freed: 0};
   const pending = signatureMap();
+  // Předávací protokoly mají dva podpisy (předávající + přebírající) — nahrávají
+  // se do stejného úložiště oopp_sig, jen s vlastními klíči p_{id}_from/_to.
+  Object.assign(pending, protocolSignatureMap());
   const result = {uploaded: 0, freed: 0};
   if(Object.keys(pending).length){
     // Když nahrání selže (offline), funkce skončí výjimkou a podpisy v zařízení
@@ -4454,6 +4896,10 @@ async function cloudSyncSignatures(cfg, opts){
       i.sigPending = false;
       result.freed++;
     }
+  });
+  (db.protocols || []).forEach(function(p){
+    if(p && p.sigFrom){ delete p.sigFrom; p.sigFromHas = true; p.sigFromPending = false; result.freed++; }
+    if(p && p.sigTo){ delete p.sigTo; p.sigToHas = true; p.sigToPending = false; result.freed++; }
   });
   if(result.freed){
     cloudApplying = true;
@@ -4803,6 +5249,7 @@ function renderAll(){
   refreshFunctionOptions();
   renderDataInfo();
   renderConsumption();
+  renderProtocols();
   updateAdminUI();
   if(currentEmployeeId) refreshEmployeeDetail();
 }
@@ -4811,7 +5258,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -5096,7 +5543,7 @@ document.addEventListener('DOMContentLoaded', function(){
       ') — v číselníku zůstal vždy jeden.', 6000);
   }
   // kdyby v datech zůstaly podpisy, které už jsou v cloudu, uklidí se při startu
-  const freedSigs = freeUploadedSignatures();
+  const freedSigs = freeUploadedSignatures() + freeUploadedProtocolSignatures();
   if(freedSigs){
     toast('Podpisy jsou v cloudu — v zařízení zůstaly jen fajfky „✔ podepsáno“.', 5000);
   }
@@ -5122,6 +5569,41 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnAddEmployee').addEventListener('click', addEmployee);
   document.getElementById('btnCancelEditEmployee').addEventListener('click', resetEmployeeForm);
   document.getElementById('empFilter').addEventListener('input', renderEmployees);
+
+  // Předávací protokoly: dvě pole pro výběr zaměstnance (předávající / přebírající)
+  function bindProtocolSuggestion(which){
+    const input = protocolInput(which);
+    const list = protocolBox(which);
+    input.addEventListener('input', function(){
+      protocolHidden(which).value = '';
+      renderProtocolSuggestions(which);
+    });
+    input.addEventListener('focus', function(){ renderProtocolSuggestions(which); });
+    input.addEventListener('keydown', function(ev){
+      if(list.classList.contains('hidden')) return;
+      const items = Array.from(list.querySelectorAll('.emp-suggest-item'));
+      if(!items.length) return;
+      let idx = items.findIndex(function(el){ return el.classList.contains('active'); });
+      if(ev.key === 'ArrowDown'){ ev.preventDefault(); idx = (idx + 1) % items.length; }
+      else if(ev.key === 'ArrowUp'){ ev.preventDefault(); idx = (idx <= 0 ? items.length - 1 : idx - 1); }
+      else if(ev.key === 'Enter'){ ev.preventDefault(); if(idx >= 0) selectProtocolPerson(which, items[idx].dataset.id); return; }
+      else if(ev.key === 'Escape'){ closeProtocolSuggestions(which); return; }
+      else return;
+      items.forEach(function(el){ el.classList.remove('active'); });
+      items[idx].classList.add('active');
+      items[idx].scrollIntoView({block: 'nearest'});
+    });
+    list.addEventListener('click', function(ev){
+      const item = ev.target.closest ? ev.target.closest('.emp-suggest-item') : null;
+      if(item) selectProtocolPerson(which, item.dataset.id);
+    });
+  }
+  bindProtocolSuggestion('from');
+  bindProtocolSuggestion('to');
+  document.getElementById('protocolItem').addEventListener('change', refreshProtocolSize);
+  document.getElementById('btnClearProtoFrom').addEventListener('click', function(){ initProtocolSigs(); padFrom.clear(); });
+  document.getElementById('btnClearProtoTo').addEventListener('click', function(){ initProtocolSigs(); padTo.clear(); });
+  document.getElementById('btnSaveProtocol').addEventListener('click', saveProtocol);
   const issueFilter = document.getElementById('issueEmployeeFilter');
   const issueList = document.getElementById('issueEmployeeList');
   issueFilter.addEventListener('input', function(){
@@ -5336,6 +5818,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if(delFuncBtn){ deleteFunction(delFuncBtn.dataset.delfunc); return; }
     const consCsvBtn = e.target.closest('button[data-cons-csv]');
     if(consCsvBtn){ exportConsumptionCsv(); return; }
+    const printProtoBtn = e.target.closest('button[data-printproto]');
+    if(printProtoBtn){ printProtocol(printProtoBtn.dataset.printproto); return; }
+    const delProtoBtn = e.target.closest('button[data-delproto]');
+    if(delProtoBtn){ deleteProtocol(delProtoBtn.dataset.delproto); return; }
   });
 
   initDatePicker();

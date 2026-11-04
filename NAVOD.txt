@@ -166,6 +166,18 @@ Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
   Data se ukládají automaticky do zařízení a synchronizují se do cloudu;
   podpisy se po nahrání do cloudu ze zařízení mažou (šetří místo).
 
+Předávací protokoly
+- Záložka Předávky (mezi Zaměstnanci a Předměty) eviduje předání předmětu mezi
+  dvěma lidmi — např. nářadí nebo OOPP z ruky do ruky.
+- Vyberete předávajícího a přebírajícího (vyhledávání podle jména / os. čísla),
+  předmět předávky a množství (případně velikost a poznámku), pak oba podepíšou.
+- Ukládá se stejně jako výdej: automaticky do zařízení a po přihlášení ke cloudu
+  se záznamy i podpisy slučují mezi všemi zařízeními. Podpisy se po nahrání do
+  cloudu ze zařízení mažou (zůstane jen „podepsáno“).
+- Každý protokol lze vytisknout na A4 (tlačítko „🖨 Tisk“ v seznamu): v hlavičce
+  je logo SWISSFORM, tabulka předávající/přebírající/předmět a dole dva podpisy.
+- Mazání protokolů je chráněné heslem správce.
+
 Knížka OOPP zaměstnance
 - Záložka Zaměstnanci → otevřete zaměstnance:
   • „Export PDF" uloží knížku (evidenční list + listy výdejů s podpisy) do PDF,
