@@ -317,7 +317,7 @@ tr.clickable:hover{background:#f1f5f9}
     <button data-tab="issue" class="active">Výdej</button>
     <button data-tab="employees">Zaměstnanci</button>
     <button data-tab="protocols">Předávky</button>
-    <button data-tab="orders">Objednávky</button>
+    <button data-tab="orders" class="hidden">Objednávky</button>
     <button data-tab="items">Předměty</button>
     <button data-tab="data">Data</button>
   </nav>
@@ -1467,6 +1467,8 @@ function getSignatureData(){
 
 /* ---------- Záložky ---------- */
 function showTab(name){
+  // Objednávky jsou zatím jen pro přihlášeného správce (viz ORDERS_ADMIN_ONLY).
+  if(name === 'orders' && ORDERS_ADMIN_ONLY && !isAdmin()) name = 'issue';
   document.querySelectorAll('nav button').forEach(function(b){
     b.classList.toggle('active', b.dataset.tab === name);
   });
@@ -1489,6 +1491,11 @@ const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin';
 const ADMIN_KEY = 'oopp_admin_session';   // '1' = správce je přihlášený (drží do odhlášení)
 
+// Záložka Objednávky je zatím jen pro přihlášeného správce: kdo přihlášený
+// není, tlačítko v menu vůbec nevidí (a nedá se na ni přepnout ani odkazem).
+// Až má být dostupná všem, stačí tuhle konstantu přepnout na false.
+const ORDERS_ADMIN_ONLY = true;
+
 function isAdmin(){
   try{ return localStorage.getItem(ADMIN_KEY) === '1'; }catch(e){ return false; }
 }
@@ -1505,6 +1512,17 @@ function setAdminSession(on){
 function updateAdminUI(){
   const badge = document.getElementById('adminBadge');
   if(badge) badge.classList.toggle('hidden', !isAdmin());
+  updateOrdersVisibility();
+}
+
+// Záložka Objednávky: v menu se ukáže jen přihlášenému správci. Kdyby na ní
+// zařízení zůstalo (např. po odhlášení), přepne se zpátky na Výdej.
+function updateOrdersVisibility(){
+  const show = !ORDERS_ADMIN_ONLY || isAdmin();
+  const btn = document.querySelector('nav button[data-tab="orders"]');
+  if(btn) btn.classList.toggle('hidden', !show);
+  const sec = document.getElementById('tab-orders');
+  if(!show && sec && sec.classList.contains('active')) showTab('issue');
 }
 
 function logoutAdmin(){
@@ -5606,7 +5624,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 let installPromptEvent = null;
 
 function isAppStandalone(){
