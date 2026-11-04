@@ -235,6 +235,9 @@ Funkce a pozice — „Má nárok" a „Může nafasovat"
   (letní, zimní, nitrilové, protiřezné…) jsou v nároku jedna položka
   „Rukavice", pánské i dámské montérky jedna položka „Montérky".
   Stejně obuv, brýle, přilba, vesta, respirátor, chrániče sluchu…
+  A stejně trička: „Tričko bílé", „Tričko s dlouhým rukávem", „Triko",
+  „T-shirt" = jedna položka „Trička" (platí tričko i triko, s diakritikou
+  i bez, malá/velká písmena).
   Důvod: evidenční list (PDF) má jeden řádek na OOPP, ne na každý druh.
 - Když jste dřív měli v nároku vypsané jednotlivé druhy, po aktualizaci
   se samy sloučí na obecné položky — nic se nemusí přepisovat. Co

@@ -665,7 +665,7 @@ tr.clickable:hover{background:#eef3fa}
                   <option value="">＋ vybrat z předmětů (přidá se hned)…</option>
                 </select>
               </div>
-              <div class="sig-hint" style="margin-top:4px">Nárok se vede obecně: všechny druhy rukavic = jedny <strong>Rukavice</strong>, pánské i dámské montérky = <strong>Montérky</strong>. Konkrétní druhy pak uvidíte v „Může nafasovat“.</div>
+              <div class="sig-hint" style="margin-top:4px">Nárok se vede obecně: všechny druhy rukavic = jedny <strong>Rukavice</strong>, pánské i dámské montérky = <strong>Montérky</strong>, všechna trička (tričko, triko, T-shirt) = <strong>Trička</strong>. Konkrétní druhy pak uvidíte v „Může nafasovat“.</div>
               <div class="sig-hint" style="margin-top:4px">nebo přidejte vlastní název a životnost:</div>
               <div class="row" style="margin-top:2px">
                 <input type="text" id="funcClaimInput" class="grow" placeholder="např. Pracovní obuv" autocomplete="off">
@@ -1054,7 +1054,7 @@ function normalizeFunctionName(s){
 const GENERIC_ITEM_TYPES = [
   {label: 'Rukavice', words: ['rukavic']},
   {label: 'Rukávník', words: ['rukavnik', 'rukavniky']},
-  {label: 'Chrániče sluchu', words: ['sluch', 'spunt', 'hlusnic', 'zatkov', 'musl']},
+  {label: 'Chrániče sluchu', words: ['sluch', 'spunt', 'hlusnic', 'hlucnic', 'zatkov', 'musl']},
   {label: 'Respirátor', words: ['respir', 'polomask', 'maska', 'masky', 'ffp']},
   {label: 'Brýle', words: ['bryl']},
   {label: 'Obličejový štít', words: ['stit']},
@@ -1067,7 +1067,8 @@ const GENERIC_ITEM_TYPES = [
   {label: 'Pracovní oděv', words: ['odev']},
   {label: 'Bunda', words: ['bund']},
   {label: 'Mikina', words: ['mikin']},
-  {label: 'Triko', words: ['trik', 'trick']},
+  // tričko = „tricko" (po zahození diakritiky), triko = „triko" — musí sedět obojí
+  {label: 'Trička', words: ['trick', 'trik', 'shirt']},
   {label: 'Košile', words: ['kosil']},
   {label: 'Zástěra', words: ['zaster']},
   {label: 'Pláštěnka', words: ['plasten']},
@@ -5868,7 +5869,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v43';
+const APP_VERSION = 'v44';
 let installPromptEvent = null;
 
 function isAppStandalone(){
