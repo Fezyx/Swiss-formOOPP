@@ -687,8 +687,10 @@ tr.clickable:hover{background:#f1f5f9}
               <div class="sig-hint" style="margin-top:4px">„Může nafasovat“ tvoří rolovací menu ve výdeji pro tuto pozici — zahrňte povinné OOPP i případné další.</div>
               <div style="margin-top:12px" class="row">
                 <button class="btn" id="btnAddFunction">Přidat funkci</button>
+                <button class="btn outline" id="btnFuncFromEmployees" title="Založí funkce podle zařazení zaměstnanců a každého do jeho funkce přiřadí">🧩 Vytvořit funkce z lidí</button>
                 <button class="btn outline hidden" id="btnCancelEditFunction">Zrušit</button>
               </div>
+              <div class="sig-hint" style="margin-top:6px">„🧩 Vytvořit funkce z lidí“ založí funkce podle <strong>zařazení z importovaného seznamu</strong> (např. Dělník ve výrobě, Kancelář, Skladník / Manipulant…) a každého zaměstnance do jeho funkce zařadí. Nárok a „může nafasovat“ pak u každé funkce jen doplníte.</div>
               <div id="functionList" style="margin-top:16px"></div>
             </div>
           </details>
@@ -716,7 +718,7 @@ tr.clickable:hover{background:#f1f5f9}
                 <button class="btn" id="btnImportEmployees">🔒 Importovat seznam (JSON)</button>
                 <input type="file" id="importEmployeesFile" accept=".json,application/json" class="hidden">
               </div>
-              <div class="sig-hint" style="margin-top:8px">Import je chráněný heslem správce. Formát: {"employees":[{"personalNumber":"00318","name":"Lukáš Dvořák","department":"Mechanik"}]} — nebo jen pole jmen. <strong>department</strong> = název funkce; když v číselníku funkcí není, založí se nová (bez nároku).</div>
+              <div class="sig-hint" style="margin-top:8px">Import je chráněný heslem správce. Bere české i anglické názvy sloupců: <strong>jmeno / name</strong>, <strong>osobni_cislo / personalNumber</strong>, <strong>zarazeni / department</strong> (= název funkce). Funguje i prosté pole jmen. Každé zařazení ze seznamu založí funkci v číselníku (bez nároku) a zaměstnance do ní zařadí; opakovaný import čísla doplní a lidi přeřadí podle seznamu.</div>
             </div>
           </details>
         </div>
@@ -1838,40 +1840,69 @@ function normalizeEmployeeName(s){
   return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+// Vrátí první neprázdnou textovou hodnotu z daných klíčů (po sloučení mezer).
+function firstText(obj, keys){
+  for(let i = 0; i < keys.length; i++){
+    const v = obj[keys[i]];
+    if(v == null) continue;
+    const s = String(v).replace(/\s+/g, ' ').trim();
+    if(s) return s;
+  }
+  return '';
+}
+
+// Sloupce se v seznamech jmenují česky i anglicky — bereme obojí.
 function employeeFromImport(raw){
   if(raw == null) return null;
   if(typeof raw === 'string'){
     const name = raw.replace(/\s+/g, ' ').trim();
     return name ? {name: name, personalNumber: '', department: ''} : null;
   }
-  const name = String(raw.name || raw.jmeno || '').replace(/\s+/g, ' ').trim();
+  if(typeof raw !== 'object') return null;
+  // jmeno / name; osobni_cislo / personalNumber; zarazeni / department (= název funkce)
+  const name = firstText(raw, ['name', 'jmeno', 'jméno', 'celeJmeno', 'fullName']);
   if(!name) return null;
   return {
     name: name,
-    personalNumber: String(raw.personalNumber || raw.osCislo || raw.oscislo || '').trim(),
-    department: String(raw.department || raw.funkce || raw.oddeleni || '').trim()
+    personalNumber: firstText(raw, ['personalNumber', 'osCislo', 'oscislo', 'osobniCislo', 'osobni_cislo', 'osobní_číslo', 'osobníČíslo', 'osobniC', 'osCisloOsoby']),
+    department: firstText(raw, ['department', 'funkce', 'oddeleni', 'oddělení', 'zarazeni', 'zařazení', 'pozice', 'profese', 'pracovniPozice', 'pracovníPozice'])
   };
+}
+
+// „00393“ a „393“ je pro nás stejné osobní číslo.
+function samePersonalNumber(a, b){
+  const x = String(a == null ? '' : a).replace(/\s+/g, '');
+  const y = String(b == null ? '' : b).replace(/\s+/g, '');
+  if(!x || !y) return false;
+  if(x === y) return true;
+  return /^\d+$/.test(x) && /^\d+$/.test(y) && parseInt(x, 10) === parseInt(y, 10);
 }
 
 // Název funkce z importu → položka číselníku (když tam není, založí se nová bez nároku).
 function functionForImport(name){
-  const label = String(name || '').trim();
+  const label = String(name || '').replace(/\s+/g, ' ').trim();
   if(!label) return null;
   const existing = functionByName(label);
   if(existing) return existing;
-  const fn = touchRec({id: uid(), name: label, claims: []});
+  const fn = touchRec({id: uid(), name: label, claims: [], canIssue: []});
   db.functions.push(fn);
   return fn;
 }
 
 function findEmployeeForImport(entry){
   const wanted = normalizeEmployeeName(entry.name);
-  return db.employees.find(function(e){
-    if(entry.personalNumber && e.personalNumber) return e.personalNumber === entry.personalNumber;
-    if(normalizeEmployeeName(e.name) !== wanted) return false;
-    if(e.department && entry.department) return e.department === entry.department;
-    return true;
-  });
+  // 1) osobní číslo je jednoznačné
+  if(entry.personalNumber){
+    const byNumber = db.employees.find(function(e){ return samePersonalNumber(e.personalNumber, entry.personalNumber); });
+    if(byNumber) return byNumber;
+  }
+  const sameName = db.employees.filter(function(e){ return normalizeEmployeeName(e.name) === wanted; });
+  if(sameName.length === 0) return null;
+  // 2) stejné jméno bez osobního čísla → doplní se číslo (i když je ve firmě dvakrát)
+  const withoutNumber = sameName.find(function(e){ return !String(e.personalNumber || '').trim(); });
+  if(entry.personalNumber) return withoutNumber || null;   // jiné číslo = jiný člověk
+  // 3) import bez čísla → bereme záznam bez čísla, jinak první se stejným jménem
+  return withoutNumber || sameName[0];
 }
 
 function importEmployeesFromData(data){
@@ -1879,33 +1910,43 @@ function importEmployeesFromData(data){
   if(Array.isArray(data)) list = data;
   else if(data && Array.isArray(data.employees)) list = data.employees;
   if(!list) return null;
-  let added = 0, updated = 0, skipped = 0, invalid = 0;
+  const functionsBefore = (db.functions || []).length;
+  let added = 0, updated = 0, relinked = 0, skipped = 0, invalid = 0;
   list.forEach(function(raw){
     const entry = employeeFromImport(raw);
     if(!entry){ invalid++; return; }
+    // Každé zařazení ze seznamu = funkce v číselníku (když tam ještě není, založí se).
+    const fn = functionForImport(entry.department);
     const existing = findEmployeeForImport(entry);
     if(existing){
       let changed = false;
-      if(entry.personalNumber && !existing.personalNumber){
+      if(entry.personalNumber && !String(existing.personalNumber || '').trim()){
         existing.personalNumber = entry.personalNumber;
         changed = true;
       }
-      if(entry.department && !employeeFunction(existing)){
-        const fn = functionForImport(entry.department);
-        if(fn){
+      if(fn){
+        const current = employeeFunction(existing);
+        if(!current || current.id !== fn.id){
           existing.functionId = fn.id;
           existing.department = fn.name;
           changed = true;
+          if(current) relinked++;
         }
       }
       if(changed){ touchRec(existing); updated++; } else skipped++;
       return;
     }
-    const fn = functionForImport(entry.department);
     db.employees.push(touchRec({id: uid(), name: entry.name, personalNumber: entry.personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
     added++;
   });
-  return {added: added, updated: updated, skipped: skipped, invalid: invalid};
+  return {
+    added: added,
+    updated: updated,
+    relinked: relinked,
+    skipped: skipped,
+    invalid: invalid,
+    functionsAdded: (db.functions || []).length - functionsBefore
+  };
 }
 
 function importEmployeeList(file){
@@ -1915,7 +1956,7 @@ function importEmployeeList(file){
     try{ data = JSON.parse(reader.result); }catch(e){ toast('Soubor není platný JSON.'); return; }
     const res = importEmployeesFromData(data);
     if(!res){ toast('Soubor neobsahuje seznam zaměstnanců.'); return; }
-    if(res.added === 0 && res.updated === 0){
+    if(res.added === 0 && res.updated === 0 && res.functionsAdded === 0){
       toast('Nic k importu: ' + res.skipped + ' zaměstnanců už v evidenci je.');
       return;
     }
@@ -1923,8 +1964,10 @@ function importEmployeeList(file){
     renderAll();
     let msg = 'Import: ' + res.added + ' nových';
     if(res.updated) msg += ', ' + res.updated + ' doplněno';
-    if(res.skipped) msg += ', ' + res.skipped + ' přeskočeno';
+    if(res.relinked) msg += ' (přeřazeno do jiné funkce: ' + res.relinked + ')';
+    if(res.skipped) msg += ', ' + res.skipped + ' beze změny';
     if(res.invalid) msg += ', ' + res.invalid + ' neplatných';
+    if(res.functionsAdded) msg += ' — nové funkce: ' + res.functionsAdded + ', doplňte jim „má nárok“';
     toast(msg + '.');
   };
   reader.onerror = function(){ toast('Soubor se nepodařilo přečíst.'); };
@@ -2162,7 +2205,7 @@ function renderFunctionList(){
   const list = document.getElementById('functionList');
   if(!list) return;
   if(db.functions.length === 0){
-    list.innerHTML = '<div class="empty">Žádné funkce. Přidejte první výše.</div>';
+    list.innerHTML = '<div class="empty">Žádné funkce. Přidejte první výše, nebo klepněte na „🧩 Vytvořit funkce z lidí“.</div>';
     return;
   }
   const itemNames = function(ids){
@@ -2196,6 +2239,63 @@ function renderFunctions(){
   renderFunctionClaims();
   renderFunctionChecklist('funcCanIssue', checkedIdsIn('funcCanIssue'));
   renderFunctionList();
+}
+
+// Založí číselník funkcí podle zařazení zaměstnanců (text „funkce/zařazení“)
+// a každého zaměstnance do jeho funkce přiřadí. Nároky se doplňují ručně.
+function createFunctionsFromEmployees(){
+  const groups = {};
+  const order = [];
+  db.employees.forEach(function(e){
+    const label = employeeFunctionName(e);
+    if(!label) return;
+    const key = normalizeFunctionName(label);
+    if(!groups[key]){
+      groups[key] = {name: label, employees: []};
+      order.push(key);
+    }
+    groups[key].employees.push(e);
+  });
+  if(order.length === 0){
+    toast('U zaměstnanců není vyplněná funkce. Naimportujte seznam (JSON) se sloupcem „zařazení“.');
+    return;
+  }
+  order.sort(function(a, b){
+    const diff = groups[b].employees.length - groups[a].employees.length;
+    return diff !== 0 ? diff : groups[a].name.localeCompare(groups[b].name, 'cs');
+  });
+  const preview = order.map(function(k){
+    return '• ' + groups[k].name + ' — ' + groups[k].employees.length + ' ' + czPlural(groups[k].employees.length, 'zaměstnanec', 'zaměstnanci', 'zaměstnanců');
+  }).join('\n');
+  if(!confirm('Vytvořit funkce podle zaměstnanců a přiřadit je?\n\n' + preview)) return;
+
+  let created = 0, linked = 0;
+  order.forEach(function(k){
+    const g = groups[k];
+    let fn = functionByName(g.name);
+    if(!fn){
+      fn = touchRec({id: uid(), name: g.name, claims: [], canIssue: []});
+      db.functions.push(fn);
+      created++;
+    }
+    g.employees.forEach(function(e){
+      if(e.functionId === fn.id && e.department === fn.name) return;
+      e.functionId = fn.id;
+      e.department = fn.name;
+      touchRec(e);
+      linked++;
+    });
+  });
+  save();
+  renderFunctionList();
+  refreshFunctionOptions();
+  renderEmployees();
+  renderDataInfo();
+  populateIssueForm();
+  if(currentEmployeeId) refreshEmployeeDetail();
+  let msg = 'Funkce: ' + order.length + ' (' + created + ' nových), přiřazeno ' + linked + ' lidí.';
+  msg += ' Teď u každé funkce nastavte „má nárok“ a „může nafasovat“.';
+  toast(msg);
 }
 
 // Naplní rolovací okno funkcí ve formuláři zaměstnance.
@@ -5624,7 +5724,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -6050,6 +6150,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnAddFunction').addEventListener('click', addFunction);
   document.getElementById('btnCancelEditFunction').addEventListener('click', resetFunctionForm);
   document.getElementById('btnFuncCopyIssue').addEventListener('click', copyClaimToCanIssue);
+  document.getElementById('btnFuncFromEmployees').addEventListener('click', createFunctionsFromEmployees);
   document.getElementById('btnFuncAddClaim').addEventListener('click', addFunctionClaim);
   document.getElementById('funcClaimInput').addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); addFunctionClaim(); }

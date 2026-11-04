@@ -58,9 +58,29 @@ Záložka Data — rozklikávací karty
 Import seznamu zaměstnanců
 - Přesunut do Záložky Data → karta „📥 Import seznamu zaměstnanců“ (dřív
   byl v Záložce Zaměstnanci). Načte JSON se seznamem (např.
-  OOPP_zamestnanci.json): stávající zaměstnanci zůstanou, noví se doplní
+  SEZNAM_02_11.json): stávající zaměstnanci zůstanou, noví se doplní
   a duplicity se přeskočí (podle osobního čísla, jinak podle jména).
   Import je chráněný heslem správce.
+- Bere české i anglické názvy sloupců — české exporty z personalistiky
+  proto fungují bez úprav:
+    jmeno / jméno / name        = jméno zaměstnance
+    osobni_cislo / personalNumber = osobní číslo (stačí ho mít v jednom)
+    zarazeni / zařazení / department / funkce = název funkce (pozice)
+  Funguje i prosté pole jmen, např. ["Novák Jan", "Dvořák Petr"].
+- KAŽDÉ ZAŘAZENÍ ZE SEZNAMU ZALOŽÍ FUNKCI: když se název v číselníku
+  funkcí ještě nevyskytuje, založí se nová (bez nároku) a zaměstnanec se
+  do ní zařadí. Po importu seznamu 02_11 tak vznikne:
+    Dělník ve výrobě (209), Kancelář (23), Skladník / Manipulant (3),
+    Úklid (2), Laser / vysekávačky (1), Správce (1) — celkem 6 funkcí.
+  U každé pak jen doplníte „Má nárok“ a „Může nafasovat“ (Data →
+  Funkce a pozice).
+- Opakovaný import je bezpečný: osobní čísla se doplní k existujícím
+  lidem a když se někdo v novém seznamu posunul do jiné funkce, přeřadí
+  se (v hlášce je vidět „přeřazeno do jiné funkce: N“).
+- Totéž jde udělat i bez souboru: Data → Funkce a pozice →
+  „🧩 Vytvořit funkce z lidí“ — projde zaměstnance, z jejich funkce
+  (text ze zařazení) založí chybějící funkce a všechny do nich zařadí.
+  Před potvrzením ukáže seznam funkcí i počty zaměstnanců.
 
 Cloud — společná databáze (Firebase) a hosting na GitHubu
 - Projekt „swissformoopp" je v aplikaci UŽ PŘEDNASTAVENÝ: ID projektu i Web API

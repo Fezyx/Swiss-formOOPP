@@ -2,6 +2,8 @@
 # (lokální data, desktopová aplikace a knihovny)
 OOPP_data.json
 OOPP_data.json.tmp
+# Seznamy zaměstnanců z personalistiky (osobní data) — do veřejného repa nepatří.
+SEZNAM_*.json
 OOPP.exe
 *.dll
 OOPP.ico
