@@ -148,6 +148,21 @@ tr.clickable:hover{background:#eef3fa}
 .file-setup-card h2{margin-bottom:8px}
 .file-setup-card p{margin-bottom:14px;font-size:.9rem;color:#48586e;line-height:1.5}
 .file-setup-card .btn{width:100%;justify-content:center;margin-top:8px}
+/* ---- Sdílení knížky (WhatsApp, e-mail, SMS…) ---- */
+.share-sheet{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(20,38,66,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:75}
+.share-card{background:#fff;border-radius:14px;padding:18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.32);max-height:92vh;overflow:auto}
+.share-card h2{font-size:1.05rem;margin-bottom:6px}
+.share-card .share-sub{font-size:.85rem;color:#48586e;line-height:1.45;margin-bottom:6px}
+.share-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:#231f20;background:#fff;border:1px solid #c6d4e6;border-radius:10px;padding:11px 13px;margin-top:8px;cursor:pointer}
+.share-opt:hover{background:#f1f6fc}
+.share-opt:disabled{opacity:.55;cursor:default}
+.share-opt .share-ic{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;line-height:1;background:#e9f0fa;color:#1e3760}
+.share-opt .share-tx{flex:1;min-width:0;font-size:.95rem;line-height:1.25}
+.share-opt .share-tx small{display:block;font-size:.78rem;color:#5b6b80;font-weight:400;margin-top:2px}
+.share-opt.wa .share-ic{background:#e7f9ee;color:#128c4b}
+.share-opt.mail .share-ic{background:#eaf1fb;color:#1d4ed8}
+.share-opt.sms .share-ic{background:#fdf0e6;color:#c2410c}
+.share-card .btn{width:100%;justify-content:center;margin-top:10px}
 /* ---- Připojení ke cloudu (lišta nahoře + rychlé přihlášení) ---- */
 #cloudBanner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 3px rgba(30,55,96,.08)}
 #cloudBanner .cb-text{flex:1;min-width:190px;font-size:.85rem;line-height:1.45;color:#7c2d12}
@@ -168,7 +183,10 @@ tr.clickable:hover{background:#eef3fa}
 /* ---- Úvodní obrazovka (splash) ---- */
 #splash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:120;background:linear-gradient(160deg,#1e3760 0%,#3663ae 65%,#2e75cf 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease}
 #splash.splash-hide{opacity:0;pointer-events:none}
-/* Úvodní obrazovka bez obrázku loga — název aplikace a firmy textem. */
+/* Úvodní obrazovka: bílé firemní logo na modré + název aplikace textem.
+   Logo je záměrně tady (ne v hlavičce) — na modrém podkladu je vidět i na
+   malém displeji a při každém startu se načte z nové verze cache. */
+.splash-logo{width:min(70vw,240px);height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0,0,0,.22))}
 .splash-brand{font-size:clamp(28px,7.5vw,46px);font-weight:800;letter-spacing:.01em;color:#fff;text-align:center;line-height:1.1}
 .splash-company{font-size:.95rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#c7dcff;margin-top:-10px;text-align:center}
 .splash-spinner{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:#c7dcff;animation:splashSpin .9s linear infinite}
@@ -293,6 +311,7 @@ tr.clickable:hover{background:#eef3fa}
 </head>
 <body>
 <div id="splash">
+  <img class="splash-logo" src="dependencies/logo-inverse.png" alt="SWISS-FORM" onerror="this.style.display='none'">
   <div class="splash-brand">Evidence OOPP</div>
   <div class="splash-company">SWISS – FORM a.s.</div>
   <div class="splash-spinner" aria-hidden="true"></div>
@@ -412,7 +431,9 @@ tr.clickable:hover{background:#eef3fa}
           <button class="btn" id="btnExportCSV">⬇ Export CSV</button>
           <button class="btn" id="btnExportPDF">⬇ Export PDF</button>
           <button class="btn outline" id="btnPrintHistory">🖨 Tisk knížky</button>
+          <button class="btn outline" id="btnShareBooklet" title="Sdílet knížku (WhatsApp, e-mail, SMS…)">📤 Sdílet</button>
           <button class="btn outline" id="btnNewIssueFor">＋ Nový výdej</button>
+          <button class="btn danger" id="btnDeleteEmp" title="Smazat (jen správce, s potvrzením)">🗑 Smazat</button>
         </div>
         <div id="empIssues"></div>
       </div>
@@ -789,6 +810,36 @@ tr.clickable:hover{background:#eef3fa}
       <div class="sig-hint" id="qcError" style="color:#dc2626;margin-top:8px"></div>
       <button class="btn" id="btnQcLogin">🔑 Přihlásit a sladit data</button>
       <button class="btn outline" id="btnQcLater">Teď ne — jen v tomto zařízení</button>
+    </div>
+  </div>
+  <!-- Sdílení knížky: stejné PDF jako „Tisk knížky“, ale rovnou do aplikace
+       (WhatsApp, e-mail, SMS…). Kde zařízení umí poslat soubor, jde PDF
+       i s podpisy; jinde se PDF uloží a otevře se aplikace s textem. -->
+  <div class="share-sheet hidden" id="shareSheet">
+    <div class="share-card">
+      <h2 id="shareSheetTitle">Sdílet knížku</h2>
+      <p class="share-sub" id="shareSheetState">Připravuji knížku do PDF…</p>
+      <button class="share-opt wa" id="btnShareWa" disabled>
+        <span class="share-ic">💬</span>
+        <span class="share-tx">WhatsApp<small>pošle knížku (PDF) s podpisy</small></span>
+      </button>
+      <button class="share-opt mail" id="btnShareMail" disabled>
+        <span class="share-ic">✉</span>
+        <span class="share-tx">E-mail<small>nový e-mail s knížkou v příloze</small></span>
+      </button>
+      <button class="share-opt sms" id="btnShareSms" disabled>
+        <span class="share-ic">📱</span>
+        <span class="share-tx">SMS / zpráva<small>jen text knížky, bez přílohy</small></span>
+      </button>
+      <button class="share-opt" id="btnShareOther" disabled>
+        <span class="share-ic">📤</span>
+        <span class="share-tx">Jiná aplikace…<small>systémové sdílení PDF (Drive, Teams…)</small></span>
+      </button>
+      <button class="share-opt" id="btnShareCopy">
+        <span class="share-ic">📋</span>
+        <span class="share-tx">Kopírovat text<small>shrnutí výdejů do schránky</small></span>
+      </button>
+      <button class="btn outline" id="btnShareClose">Zavřít</button>
     </div>
   </div>
   <div class="toast" id="toast"></div>
@@ -1879,7 +1930,7 @@ function renderEmployees(){
         '<td class="opt" style="text-align:right;white-space:nowrap;color:#5b6b83">▸</td>' +
         '<td style="text-align:right;white-space:nowrap">' +
         '<button class="btn outline small" data-edit="' + e.id + '">Upravit</button> ' +
-        '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button></td></tr>';
+        '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (jen správce, s potvrzením)">🔒 Smazat</button></td></tr>';
     }).join('') + '</tbody></table>';
 }
 
@@ -1943,19 +1994,48 @@ function editEmployee(id){
   document.getElementById('empName').focus();
 }
 
+// Mazat smí jen správce (heslo) a vždy až po potvrzení.
+// Zaměstnanec, který má výdeje, smazat taky jde: nejdřív se potvrdí smazání
+// osoby, potom se zvlášť potvrzuje i smazání jejích výdejů. Evidence se tak
+// neztratí omylem (výchozí volba = výdeje zůstanou), ale na výslovné
+// potvrzení se dá uklidit i s nimi.
 function deleteEmployee(id){
   const e = db.employees.find(function(x){ return x.id === id; });
   if(!e) return;
-  const has = db.issues.some(function(i){ return i.employeeId === id; });
-  if(has){ toast('Nelze smazat: zaměstnanec má záznamy výdejů.'); return; }
   if(!askAdminPassword('smazání zaměstnance „' + e.name + '“')) return;
-  if(!confirm('Opravdu smazat zaměstnance "' + e.name + '"?')) return;
+
+  const issues = db.issues.filter(function(i){ return i.employeeId === id; });
+  const itemCount = issues.reduce(function(n, i){ return n + ((i.items && i.items.length) || 0); }, 0);
+  const countText = issues.length + ' ' + czPlural(issues.length, 'výdej', 'výdeje', 'výdejů') +
+    ' (' + itemCount + ' ' + czPlural(itemCount, 'položka', 'položky', 'položek') + ')';
+  const ask = issues.length
+    ? 'Smazat zaměstnance „' + e.name + '“?\n\nMá ' + countText + '.'
+    : 'Opravdu smazat zaměstnance „' + e.name + '“?';
+  if(!confirm(ask)) return;
+
+  const withIssues = issues.length
+    ? confirm('Smazat i ' + countText + ' tohoto zaměstnance?\n\n' +
+        'OK = smazat i výdeje (evidence se nevratně ztratí)\n' +
+        'Storno = výdeje zůstanou uložené (jen se u nikoho nezobrazí)')
+    : false;
+
+  if(withIssues){
+    issues.forEach(function(i){ markDeleted('issues', i.id); });
+    db.issues = db.issues.filter(function(i){ return i.employeeId !== id; });
+  }
   db.employees = db.employees.filter(function(x){ return x.id !== id; });
   markDeleted('employees', id);
   save();
+
+  // Když právě mizí zaměstnanec otevřený v detailu nebo v editaci, zavřít to.
+  if(editingEmployeeId === id) resetEmployeeForm();
+  if(currentEmployeeId === id) closeEmployeeDetail();
+  if(withIssues) sigCacheClear(issues.map(function(i){ return i.id; }));
   renderEmployees();
   populateIssueForm();
-  toast('Zaměstnanec smazán.');
+  try{ renderDataInfo(); }catch(err){}
+  try{ renderConsumption(); }catch(err){}
+  toast(withIssues ? 'Zaměstnanec i jeho výdeje smazáni.' : 'Zaměstnanec smazán.');
 }
 
 /* ---------- Import seznamu zaměstnanců ---------- */
@@ -3710,6 +3790,8 @@ function doPrint(){
 function ooppAndroidBack(){
   const sig = document.getElementById('sigOverlay');
   if(sig && !sig.classList.contains('hidden')){ hideSignature(); return true; }
+  const share = document.getElementById('shareSheet');
+  if(share && !share.classList.contains('hidden')){ closeShareSheet(); return true; }
   const picker = document.getElementById('issueDatePicker');
   if(picker && !picker.classList.contains('hidden')){ closeDatePicker(); return true; }
   if(currentEmployeeId){ closeEmployeeDetail(); return true; }
@@ -4193,6 +4275,32 @@ function pdfFromJpegPages(pages){
   return out;
 }
 
+// Sestaví knížku (evidenční list + listy výdejů) a vrátí hotové PDF v paměti.
+// Stejnou cestu používá export do PDF i sdílení (WhatsApp, e-mail…), aby obě
+// podoby vypadaly jako tisk knížky. Podpisy se dotáhnou z cloudu jen na dobu
+// sestavení a pak se z paměti uvolní (sigCacheClear volá volající).
+async function buildBookletPdfBytes(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e) throw new Error('zaměstnanec nenalezen');
+  const missing = await sigPrefetchForEmployee(id);
+  if(missing) sigMissingNote(missing);
+  const stage = buildBookletStage(id);
+  if(!stage) throw new Error('knížku nelze sestavit');
+  try{
+    const pageEls = Array.prototype.slice.call(stage.querySelectorAll('.bk-page'));
+    if(pageEls.length === 0) throw new Error('knížka nemá žádnou stránku');
+    const pages = [];
+    for(const el of pageEls) pages.push(await rasterizeBookletPage(el));
+    return {
+      bytes: pdfFromJpegPages(pages),
+      pageCount: pages.length,
+      filename: 'OOPP_' + safeName(e.name) + '.pdf'
+    };
+  }finally{
+    if(stage.parentNode) document.body.removeChild(stage);
+  }
+}
+
 // Export knížky zaměstnance (evidenční list + listy výdejů) do souboru PDF.
 let pdfExportBusy = false;
 
@@ -4204,29 +4312,215 @@ async function exportEmployeePdf(id){
   pdfExportBusy = true;
   if(btn) btn.disabled = true;
   toast('Generuji PDF…');
-  let stage = null;
   try{
-    // podpisy jen pro tohoto zaměstnance a jen do paměti (po exportu se uvolní)
-    const missing = await sigPrefetchForEmployee(id);
-    if(missing) sigMissingNote(missing);
-    stage = buildBookletStage(id);
-    if(!stage) throw new Error('knížku nelze sestavit');
-    const pageEls = Array.prototype.slice.call(stage.querySelectorAll('.bk-page'));
-    if(pageEls.length === 0) throw new Error('knížka nemá žádnou stránku');
-    const pages = [];
-    for(const el of pageEls) pages.push(await rasterizeBookletPage(el));
-    document.body.removeChild(stage);
-    stage = null;
-    downloadBlob(pdfFromJpegPages(pages), 'OOPP_' + safeName(e.name) + '.pdf', 'application/pdf');
-    toast('PDF uloženo (' + pages.length + ' str.).');
+    const pdf = await buildBookletPdfBytes(id);        // stejná knížka jako tisk
+    downloadBlob(pdf.bytes, pdf.filename, 'application/pdf');
+    toast('PDF uloženo (' + pdf.pageCount + ' str.).');
   }catch(err){
-    if(stage && stage.parentNode) document.body.removeChild(stage);
     toast('PDF se nepodařilo vytvořit — použijte Tisk knížky a uložení do PDF.');
   }finally{
     pdfExportBusy = false;
     if(btn) btn.disabled = false;
     sigCacheClear();          // podpisy stažené kvůli PDF už v paměti netřeba
   }
+}
+
+/* ---------- Sdílení knížky (WhatsApp, e-mail, SMS…) ----------
+   Vygeneruje stejnou knížku jako „Tisk knížky“ / „Export PDF“ a nabídne její
+   odeslání. Kde zařízení umí poslat soubor (APK s nativním mostem, Chrome/Edge
+   přes Web Share API), odejde PDF i s podpisy. Jinde se PDF uloží do Stahování
+   a otevře se WhatsApp / poštovní klient s textovým shrnutím — přílohu je pak
+   potřeba přiložit ručně (📎). */
+let shareSheetEmpId = null;     // zaměstnanec, pro kterého je dialog otevřený
+let shareSheetFile = null;      // hotové PDF (File/Blob) připravené k odeslání
+let shareSheetText = '';        // textové shrnutí knížky
+let shareSheetSubject = '';     // předmět e-mailu
+let shareSheetBusy = false;     // právě se generuje PDF
+
+// Otevře odkaz nebo jinou aplikaci (WhatsApp, poštovní klient, SMS).
+// V APK to dělá nativní část — WebView by cizí odkaz otevřel sám v sobě.
+function openExternal(url){
+  try{
+    if(isAndroidShell() && window.OOPPAndroid && typeof window.OOPPAndroid.openUrl === 'function'){
+      window.OOPPAndroid.openUrl(url);
+      return;
+    }
+  }catch(e){}
+  let win = null;
+  try{ win = window.open(url, '_blank'); }catch(e){ win = null; }
+  if(!win){ try{ window.location.href = url; }catch(e){} }
+}
+
+// Textové shrnutí knížky (pro WhatsApp, e-mail, SMS, schránku).
+// PDF se přikládá zvlášť — text slouží k tomu, aby zpráva dávala smysl i bez něj.
+function bookletShareText(e, issues){
+  const lines = ['Knížka OOPP – ' + e.name];
+  const meta = [];
+  if(e.personalNumber) meta.push('os. č. ' + e.personalNumber);
+  if(employeeFunctionName(e)) meta.push(employeeFunctionName(e));
+  if(meta.length) lines.push(meta.join(' • '));
+  if(issues.length === 0){
+    lines.push('Zatím žádný výdej.');
+  }else{
+    const itemCount = issues.reduce(function(n, i){ return n + ((i.items && i.items.length) || 0); }, 0);
+    lines.push('Výdejů: ' + issues.length + ' (' + itemCount + ' ' +
+      czPlural(itemCount, 'položka', 'položky', 'položek') + ')');
+    issues.slice().reverse().forEach(function(issue){       // od nejstaršího
+      const what = bookletEntry(issue).oop || '—';
+      lines.push('• ' + (issue.date ? formatDate(issue.date) : '') + ': ' + what);
+    });
+  }
+  const ent = employeeEntitlement(e, issues);
+  if(ent.length){
+    lines.push('Má nárok: ' + ent.map(function(x){
+      return x.name + (x.lifetime ? ' (' + x.lifetime + ')' : '');
+    }).join(', '));
+  }
+  lines.push('Odesláno z aplikace Evidence OOPP (SWISS-FORM).');
+  return lines.join('\n');
+}
+
+// Umí zařízení předat soubor jiné aplikaci?
+function shareCanSendFile(file){
+  if(!file) return false;
+  if(isAndroidShell() && window.OOPPAndroid && typeof window.OOPPAndroid.shareFile === 'function'){
+    return true;
+  }
+  if(navigator.canShare && typeof navigator.share === 'function'){
+    try{ return !!navigator.canShare({files: [file]}); }catch(e){ return false; }
+  }
+  return false;
+}
+
+function setShareButtonsEnabled(on){
+  ['btnShareWa', 'btnShareMail', 'btnShareSms', 'btnShareOther'].forEach(function(id){
+    const b = document.getElementById(id);
+    if(b) b.disabled = !on;
+  });
+}
+
+function openShareSheet(id){
+  const e = db.employees.find(function(x){ return x.id === id; });
+  if(!e){ toast('Zaměstnanec nenalezen.'); return; }
+  shareSheetEmpId = id;
+  shareSheetFile = null;
+  shareSheetText = bookletShareText(e, issuesForEmployee(id));
+  shareSheetSubject = 'Knížka OOPP – ' + e.name;
+  const title = document.getElementById('shareSheetTitle');
+  if(title) title.textContent = 'Sdílet knížku – ' + e.name;
+  const state = document.getElementById('shareSheetState');
+  if(state) state.textContent = 'Připravuji knížku do PDF…';
+  setShareButtonsEnabled(false);
+  const sheet = document.getElementById('shareSheet');
+  if(sheet) sheet.classList.remove('hidden');
+  prepareShareFile(id);
+}
+
+function closeShareSheet(){
+  shareSheetEmpId = null;
+  shareSheetFile = null;
+  const sheet = document.getElementById('shareSheet');
+  if(sheet) sheet.classList.add('hidden');
+}
+
+// Připraví PDF na pozadí hned po otevření dialogu — obsluha tak jen vybere
+// aplikaci a nemusí čekat, až se knížka vygeneruje.
+async function prepareShareFile(id){
+  if(shareSheetBusy) return;
+  shareSheetBusy = true;
+  const btn = document.getElementById('btnShareBooklet');
+  if(btn) btn.disabled = true;
+  try{
+    const pdf = await buildBookletPdfBytes(id);
+    if(shareSheetEmpId !== id) return;                    // dialog se mezitím zavřel
+    let file = null;
+    try{ file = new File([pdf.bytes], pdf.filename, {type: 'application/pdf'}); }
+    catch(e){ file = null; }
+    if(!file){                                            // starší prohlížeč bez File
+      file = new Blob([pdf.bytes], {type: 'application/pdf'});
+      file.name = pdf.filename;
+    }
+    shareSheetFile = file;
+    const state = document.getElementById('shareSheetState');
+    if(state){
+      state.textContent = shareCanSendFile(file)
+        ? 'Knížka je hotová (' + pdf.pageCount + ' str.). Vybraná aplikace dostane PDF i s podpisy.'
+        : 'Knížka je hotová (' + pdf.pageCount + ' str.). Toto zařízení neumí přiložit soubor samo — ' +
+          'PDF se uloží do Stahování a přílohu přidáte v aplikaci (📎).';
+    }
+    setShareButtonsEnabled(true);
+  }catch(err){
+    const state = document.getElementById('shareSheetState');
+    if(state) state.textContent = 'Knížku se nepodařilo připravit — zkuste „Tisk knížky“ a uložení do PDF.';
+    shareSheetFile = null;
+  }finally{
+    shareSheetBusy = false;
+    if(btn) btn.disabled = false;
+    sigCacheClear();
+    // Dialog se mezitím zavřel a pro jiného zaměstnance znovu otevřel —
+    // připravíme PDF ještě jednou, aby nové okno nezůstalo bez souboru.
+    if(!shareSheetFile && shareSheetEmpId && shareSheetEmpId !== id) prepareShareFile(shareSheetEmpId);
+  }
+}
+
+// Odešle knížku zvolenou cestou: 'wa' (WhatsApp), 'mail', 'sms', 'other', 'copy'.
+async function shareBookletSend(kind){
+  const file = shareSheetFile;
+  const text = shareSheetText;
+  const subject = shareSheetSubject;
+  const name = (file && file.name) || 'OOPP_knizka.pdf';
+
+  if(kind === 'copy'){
+    const ok = await copyPlainText(text);
+    toast(ok ? 'Text knížky je ve schránce.' : 'Kopírování není dostupné.');
+    return;
+  }
+  if(kind === 'sms'){
+    openExternal('sms:?body=' + encodeURIComponent(text));
+    closeShareSheet();
+    toast('Otevřela se nová zpráva s textem knížky (PDF se k SMS přiložit nedá).', 5000);
+    return;
+  }
+  if(!file){ toast('Knížka se ještě připravuje…'); return; }
+
+  // 1) přímé sdílení souboru — WhatsApp / e-mail dostanou rovnou PDF i s podpisy
+  if(shareCanSendFile(file)){
+    if(isAndroidShell() && window.OOPPAndroid && typeof window.OOPPAndroid.shareFile === 'function'){
+      try{
+        closeShareSheet();
+        blobToBase64(file, function(b64){
+          try{ window.OOPPAndroid.shareFile(name, b64, 'application/pdf'); }
+          catch(err){ toast('Sdílení se nepodařilo — PDF najdete ve Stahování.'); }
+        });
+        return;
+      }catch(err){}
+    }
+    try{
+      await navigator.share({files: [file], title: subject, text: text});
+      closeShareSheet();
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError'){ closeShareSheet(); return; }   // obsluha zrušila
+    }
+  }
+
+  // 2) záložní cesta: PDF uložit a otevřít aplikaci s textem knížky
+  downloadBlob(file, name, 'application/pdf');
+  if(kind === 'wa'){
+    openExternal('https://wa.me/?text=' + encodeURIComponent(text));
+    closeShareSheet();
+    toast('PDF uloženo do Stahování — ve WhatsApp ho přiložte tlačítkem 📎.', 6000);
+    return;
+  }
+  if(kind === 'mail'){
+    openExternal('mailto:?subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(text));
+    closeShareSheet();
+    toast('PDF uloženo do Stahování — v e-mailu ho přiložte tlačítkem 📎.', 6000);
+    return;
+  }
+  closeShareSheet();
+  toast('PDF uloženo do Stahování.', 4000);
 }
 
 
@@ -5869,7 +6163,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v47';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -6365,6 +6659,34 @@ document.addEventListener('DOMContentLoaded', function(){
     closeEmployeeDetail();
     showTab('issue');
     selectIssueEmployee(id);
+  });
+  // Smazání přímo z karty zaměstnance (stejná cesta jako tlačítko v seznamu).
+  document.getElementById('btnDeleteEmp').addEventListener('click', function(){
+    if(currentEmployeeId) deleteEmployee(currentEmployeeId);
+  });
+  // Sdílení knížky: stejné PDF jako „Tisk knížky“, ale rovnou do WhatsAppu,
+  // e-mailu nebo jiné aplikace.
+  document.getElementById('btnShareBooklet').addEventListener('click', function(){
+    if(currentEmployeeId) openShareSheet(currentEmployeeId);
+  });
+  const shareSheetEl = document.getElementById('shareSheet');
+  if(shareSheetEl){
+    shareSheetEl.addEventListener('click', function(e){
+      if(e.target === shareSheetEl) closeShareSheet();      // klik mimo kartu
+    });
+  }
+  const shareActions = {
+    btnShareWa: 'wa', btnShareMail: 'mail', btnShareSms: 'sms',
+    btnShareOther: 'other', btnShareCopy: 'copy', btnShareClose: 'close'
+  };
+  Object.keys(shareActions).forEach(function(btnId){
+    const b = document.getElementById(btnId);
+    if(!b) return;
+    b.addEventListener('click', function(){
+      const kind = shareActions[btnId];
+      if(kind === 'close'){ closeShareSheet(); return; }
+      shareBookletSend(kind);
+    });
   });
   const sigOverlay = document.getElementById('sigOverlay');
   if(sigOverlay){

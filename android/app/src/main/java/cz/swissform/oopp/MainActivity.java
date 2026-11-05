@@ -7,6 +7,7 @@ import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -65,6 +66,9 @@ public class MainActivity extends Activity {
     WebView.setWebContentsDebuggingEnabled(true);
 
     web = new WebView(this);
+    // Modrá firemní barva místo bílé: mezi startovním oknem a načítací
+    // obrazovkou aplikace tak nic neproblikne.
+    web.setBackgroundColor(Color.parseColor("#3663AE"));
     setContentView(web, new ViewGroup.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -322,6 +326,87 @@ public class MainActivity extends Activity {
     @JavascriptInterface
     public String appInfo() {
       return "android";
+    }
+
+    /**
+     * Otevření odkazu nebo cizí aplikace (WhatsApp, poštovní klient, SMS).
+     * WebView by cizí odkaz otevřel sám v sobě, proto to dělá nativní část.
+     */
+    @JavascriptInterface
+    public void openUrl(final String url) {
+      if (url == null || url.trim().isEmpty()) return;
+      runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.trim())));
+          } catch (Exception e) {
+            Log.w(TAG, "Odkaz nelze otevrit: " + url, e);
+            toast("Odkaz se nepodařilo otevřít.");
+          }
+        }
+      });
+    }
+
+    /**
+     * Sdílení souboru (PDF knížky) do jiných aplikací — WhatsApp, e-mail, Drive.
+     * WebView sám Web Share API neumí, proto se soubor předá systému.
+     * Android 10 a novější ukáže dialog „Sdílet“; starší verze soubor uloží
+     * do složky Stahování.
+     */
+    @JavascriptInterface
+    public void shareFile(final String name, final String base64, final String mime) {
+      if (base64 == null || base64.isEmpty()) {
+        toastOnUi("Soubor je prázdný — není co sdílet.");
+        return;
+      }
+      final String type = (mime == null || mime.trim().isEmpty())
+          ? "application/pdf" : mime.trim();
+      try {
+        byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+        if (Build.VERSION.SDK_INT < 29) {
+          String where = writeToDownloads(name, bytes, type);
+          toastOnUi("Uloženo: " + where + " — soubor přiložte ručně.");
+          return;
+        }
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME, cleanFileName(name));
+        values.put(MediaStore.Downloads.MIME_TYPE, type);
+        values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+        values.put(MediaStore.Downloads.IS_PENDING, 1);
+        final Uri uri = getContentResolver()
+            .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+        if (uri == null) throw new Exception("soubor nelze vytvorit");
+        OutputStream os = getContentResolver().openOutputStream(uri);
+        if (os == null) throw new Exception("soubor nelze otevrit");
+        try {
+          os.write(bytes);
+          os.flush();
+        } finally {
+          os.close();
+        }
+        values.clear();
+        values.put(MediaStore.Downloads.IS_PENDING, 0);
+        getContentResolver().update(uri, values, null, null);
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              Intent send = new Intent(Intent.ACTION_SEND);
+              send.setType(type);
+              send.putExtra(Intent.EXTRA_STREAM, uri);
+              send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+              startActivity(Intent.createChooser(send, "Sdílet knížku"));
+            } catch (Exception e) {
+              Log.e(TAG, "Sdileni se nepodarilo", e);
+              toast("Sdílení se nepodařilo — soubor je ve Stahování.");
+            }
+          }
+        });
+      } catch (Exception e) {
+        Log.e(TAG, "Soubor pro sdileni nelze pripravit", e);
+        toastOnUi("Sdílení se nepodařilo: " + e.getMessage());
+      }
     }
   }
 

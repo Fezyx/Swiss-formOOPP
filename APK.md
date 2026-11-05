@@ -131,6 +131,14 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
       načtení aplikace, tisk (PrintManager), ukládání exportů (MediaStore
       do složky Stahování), výběr souboru pro import, tlačítko Zpět.
   - app/src/main/assets/offline.html ... hláška, když není internet
+  - app/src/main/res/values/styles.xml ... vzhled (AppTheme): startovní okno
+      v modré, aby při startu neproblikla bílá plocha
+  - app/src/main/res/values-v31/styles.xml ... totéž pro Android 12+; navíc
+      potlačí velkou ikonu systémové úvodní obrazovky (splash_blank), takže
+      start rovnou naváže na načítací obrazovku s logem v aplikaci
+  - app/src/main/res/drawable/splash_blank.xml ... průhledný obrázek pro
+      úvodní obrazovku Androidu 12+ (žádná velká ikona při startu)
+  - app/src/main/res/values/colors.xml .. firemní modrá (oopp_blue)
   - app/build.gradle ............. verze (dodává CI), podpis, minSdk 24
   - keystore/oopp.jks ............ podpisový klíč (vytvoří a uloží CI při
                                    prvním běhu; heslo je ve workflow)
@@ -141,6 +149,9 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
   - isAndroidShell() pozná, že běží v APK (objekt window.OOPPAndroid),
   - downloadBlob() při exportu předá soubor nativní části (uloží do Stahování),
   - doPrint() zavolá nativní tisk místo window.print(),
+  - sdílení knížky (tlačítko „📤 Sdílet“): shareFile() předá PDF systému
+    (dialog „Sdílet“ — WhatsApp, e-mail, Drive) a openUrl() otevře WhatsApp
+    nebo poštovního klienta; WebView sám Web Share API neumí,
   - window.__ooppBack řeší tlačítko Zpět,
   - refreshInstallUI() v APK nenabízí instalaci z prohlížeče a vypíše verzi.
   - renderShareQr() kreslí v záložce Data sdílecí QR kód (odkaz na APK)

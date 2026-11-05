@@ -58,10 +58,16 @@ Záložka Data — rozklikávací karty
 Vzhled aplikace
 - Barvy jsou sladěné s firemní modrou SWISS-FORM (swissform.cz): hlavička,
   tlačítka i spodní menu jsou v této modré, podklad je světlý do modrošeda.
-- Na úvodní obrazovce i v hlavičce je název aplikace TEXTEM — žádný obrázek
-  loga. Nemůže se tak stát, že by se po aktualizaci na tabletu zobrazilo
-  staré logo z paměti zařízení; napořád ostré je i na malém displeji.
-- Obrázkové logo zůstává jen na tištěném předávacím protokolu (A4).
+- Načítací obrazovka při startu je v modré a nese bílé firemní logo
+  SWISSFORM, název aplikace a stav „Spouštím aplikaci…“.
+- V hlavičce aplikace žádný obrázek loga není — název je tam textem.
+  Obrázek se tak nikdy nemůže zobrazit zastaralý (z paměti zařízení)
+  a je ostrý na každé obrazovce.
+- V APK se při startu už neukazuje velká ikona systémové obrazovky
+  Androidu: startovní okno je v modré a rovnou naváže na načítací
+  obrazovku s logem. V prohlížeči (web) si krátkou úvodní obrazovku
+  s ikonou kreslí sám systém (Chrome/Android) — ovlivnit ji nelze.
+- Obrázkové logo zůstává i na tištěném předávacím protokolu (A4).
 
 Import seznamu zaměstnanců
 - Přesunut do Záložky Data → karta „📥 Import seznamu zaměstnanců“ (dřív
@@ -259,6 +265,36 @@ Knížka OOPP zaměstnance
   Nárok na přidělení OOPP („má nárok") a Životnost.
 - Životnost předmětu se vybírá v záložce Předměty: „14 dní / dle potřeby"
   (rukavice, respirátory), 1/3/6/12/24/36 měsíců, nebo „vlastní…".
+
+Mazání zaměstnance
+- Mazat smí jen správce (heslo admin) a aplikace se PŘED SMAZÁNÍM vždy
+  zeptá na potvrzení.
+- Tlačítko „🔒 Smazat" je u zaměstnance v seznamu (Záložka Zaměstnanci →
+  napsat jméno do hledání) a nově i přímo na kartě otevřeného zaměstnance
+  („🗑 Smazat" vedle Exportu a Tisku).
+- Zaměstnance, který má výdeje, smazat taky jde. Nejdřív se potvrdí
+  smazání osoby a pak se aplikace ještě jednou zeptá na jeho výdeje:
+  • „OK" = smažou se i záznamy o výdeji (evidence se nevratně ztratí),
+  • „Storno" = zaměstnanec ze seznamu zmizí, jeho výdeje ale zůstanou
+    uložené — dál se počítají do spotřeby předmětů, jen se u nikoho
+    nezobrazí (evidence se tak nedá smazat omylem).
+- Smazání se pamatuje i pro cloud, takže se záznam z jiného zařízení
+  nevrátí.
+
+Sdílení knížky (WhatsApp, e-mail, SMS)
+- Na kartě zaměstnance je vedle „Tisk knížky“ tlačítko „📤 Sdílet“.
+  Vygeneruje stejnou knížku jako tisk (evidenční list + listy výdejů
+  s podpisy) a nabídne, kam ji poslat:
+  • WhatsApp – pošle knížku jako PDF i s podpisy,
+  • E-mail – nový e-mail s knížkou v příloze,
+  • SMS / zpráva – jen textové shrnutí výdejů (PDF se k SMS přiložit nedá),
+  • Jiná aplikace… – systémové sdílení (Drive, Teams, …),
+  • Kopírovat text – shrnutí výdejů do schránky.
+- Kde to zařízení umí (APK v Androidu 10 a novějším, Chrome/Edge), odejde
+  rovnou PDF s podpisy. Jinde (např. OOPP.exe ve Windows) se PDF uloží do
+  Stahování a otevře se WhatsApp nebo poštovní klient s textem knížky —
+  přílohu pak přiložte tlačítkem 📎.
+- Příjemce dostane stejnou knížku, jakou by dostal vytištěnou.
 
 Poznámka
 - Neodstraňujte ani nepřejmenovávejte soubory vedle OOPP.exe — jsou potřeba

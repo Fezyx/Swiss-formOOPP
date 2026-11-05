@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Firemní modrá SWISS-FORM. Používá se jako podklad startovní obrazovky,
+     aby při spuštění aplikace neproblikla bílá a nebylo vidět logo. -->
+<resources>
+  <color name="oopp_blue">#3663AE</color>
+  <color name="oopp_blue_dark">#1E3760</color>
+</resources>

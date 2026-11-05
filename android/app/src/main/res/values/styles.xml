@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vzhled aplikace. Startovní okno (než se načte web) je v firemní modré,
+     takže po klepnutí na ikonu nesvítí bílá plocha. Na Androidu 12+ se navíc
+     velká ikona v úvodní obrazovce potlačí (splash_blank) — logo ukazuje až
+     načítací obrazovka přímo v aplikaci (bílé logo na modré). -->
+<resources>
+  <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+    <item name="android:windowBackground">@color/oopp_blue</item>
+    <item name="android:colorBackground">@color/oopp_blue</item>
+  </style>
+</resources>
