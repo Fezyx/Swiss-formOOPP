@@ -169,7 +169,7 @@ tr.clickable:hover{background:#eef3fa}
 #cloudBanner .cb-text strong{display:block;font-size:.95rem;margin-bottom:2px}
 #cloudBanner .cb-actions{display:flex;gap:8px;flex-wrap:wrap}
 .hidden{display:none!important}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e3760;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e3760;color:#fff;padding:12px 22px;border-radius:10px;font-size:.9rem;line-height:1.35;text-align:center;max-width:min(92vw,520px);z-index:130;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 .print-area{display:none}
 .danger-zone{border:1px dashed #fca5a5;background:#fef2f2;border-radius:10px;padding:14px}
@@ -185,7 +185,11 @@ tr.clickable:hover{background:#eef3fa}
 #splash.splash-hide{opacity:0;pointer-events:none}
 /* Úvodní obrazovka: bílé firemní logo na modré + název aplikace textem.
    Logo je záměrně tady (ne v hlavičce) — na modrém podkladu je vidět i na
-   malém displeji a při každém startu se načte z nové verze cache. */
+   malém displeji a při každém startu se načte z nové verze cache.
+   POZOR: používá se logo-splash.png, NE logo-inverse.png. Soubor
+   logo-inverse.png si při startu načítá obal OOPP.exe do svého splash okna
+   a roztahuje ho přes celou obrazovku — v něm je proto jen průhledný
+   obrázek, aby při startu nebylo vidět přetažené a rozmazané logo. */
 .splash-logo{width:min(70vw,240px);height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0,0,0,.22))}
 .splash-brand{font-size:clamp(28px,7.5vw,46px);font-weight:800;letter-spacing:.01em;color:#fff;text-align:center;line-height:1.1}
 .splash-company{font-size:.95rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#c7dcff;margin-top:-10px;text-align:center}
@@ -294,7 +298,28 @@ tr.clickable:hover{background:#eef3fa}
 .proto-sig-line{width:100%;height:22mm;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:flex-start;padding-bottom:1mm}
 .proto-sig-line img{height:20mm;max-width:100%;object-fit:contain}
 .proto-sig-nosig{font-size:8pt;color:#8fa0b6;font-weight:400}
+/* Fotografie u protokolu: jedna na střed, dvě vedle sebe — na displeji i na papíře. */
+.proto-photos{display:grid;grid-template-columns:1fr;gap:6mm;margin:0 0 8mm;justify-items:center}
+.proto-photos.two{grid-template-columns:1fr 1fr}
+.proto-photos-lbl{grid-column:1 / -1;justify-self:start;font-size:8.5pt;text-transform:uppercase;letter-spacing:.06em;color:#3663ae;font-weight:700}
+.proto-photos figure{margin:0;width:100%;min-width:0;display:flex;align-items:center;justify-content:center;break-inside:avoid;page-break-inside:avoid}
+.proto-photos img{display:block;max-width:100%;max-height:60mm;object-fit:contain;border:1px solid #000;background:#fff}
+/* Náhled fotek ve formuláři protokolu (ještě před uložením). */
+.proto-photo-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.proto-photo-preview:empty{display:none}
+.proto-photo-preview figure{position:relative;margin:0;width:104px;height:104px;border:1px solid #c6d4e6;border-radius:8px;overflow:hidden;background:#f5f8fd}
+.proto-photo-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.proto-photo-del{position:absolute;top:3px;right:3px;width:24px;height:24px;padding:0;border:none;border-radius:50%;background:rgba(35,31,32,.72);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.proto-photo-badge{font-size:.78rem;color:#5b6b83;white-space:nowrap}
 .proto-foot{position:absolute;left:16mm;right:16mm;bottom:10mm;display:flex;justify-content:space-between;gap:6mm;font-size:8pt;color:#333;border-top:1px solid #666;padding-top:2mm}
+/* ---- Náhled předávacího protokolu: stejná A4 jako při tisku, jen zmenšená ---- */
+.proto-preview{position:fixed;top:0;right:0;bottom:0;left:0;z-index:115;background:rgba(13,26,46,.94);display:flex;flex-direction:column}
+.proto-preview-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;color:#dce6f3;font-size:.9rem;background:rgba(10,21,39,.92);border-bottom:1px solid rgba(255,255,255,.1)}
+.proto-preview-title{font-weight:600;letter-spacing:.02em;padding:4px 0}
+.proto-preview-actions{display:flex;gap:8px}
+.proto-preview-scroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 14px 18px}
+.proto-preview-fit{position:relative;margin:0 auto;overflow:hidden;background:#fff;border-radius:4px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.proto-preview-scaler{width:210mm;transform-origin:top left}
 @media print{
   @page{size:A4 portrait;margin:0}
   html,body{height:auto!important;overflow:visible!important}
@@ -311,7 +336,7 @@ tr.clickable:hover{background:#eef3fa}
 </head>
 <body>
 <div id="splash">
-  <img class="splash-logo" src="dependencies/logo-inverse.png" alt="SWISS-FORM" onerror="this.style.display='none'">
+  <img class="splash-logo" src="dependencies/logo-splash.png" alt="SWISS-FORM" onerror="this.style.display='none'">
   <div class="splash-brand">Evidence OOPP</div>
   <div class="splash-company">SWISS – FORM a.s.</div>
   <div class="splash-spinner" aria-hidden="true"></div>
@@ -339,7 +364,7 @@ tr.clickable:hover{background:#eef3fa}
     <button data-tab="employees">Zaměstnanci</button>
     <button data-tab="protocols">Předávky</button>
     <button data-tab="orders" class="hidden">Objednávky</button>
-    <button data-tab="items">Předměty</button>
+    <button data-tab="items" class="hidden">Předměty</button>
     <button data-tab="data">Data</button>
   </nav>
   <main>
@@ -464,6 +489,16 @@ tr.clickable:hover{background:#eef3fa}
           <option value="N.Role">N.Role</option>
           <option value="Nejdek">Nejdek</option>
         </select>
+        <label>Fotografie předmětu (nepovinné, max. 2)</label>
+        <div class="row">
+          <button class="btn secondary small" id="btnProtocolPhoto" type="button" title="Vyfotit předmět fotoaparátem">📷 Vyfotit</button>
+          <button class="btn outline small" id="btnProtocolPhotoPick" type="button" title="Vybrat fotku z galerie nebo ze souborů">🖼 Vybrat z galerie</button>
+          <button class="btn outline small hidden" id="btnClearProtocolPhoto" type="button">Odebrat fotky</button>
+        </div>
+        <input type="file" id="protocolPhotoCamera" accept="image/*" capture="environment" class="hidden">
+        <input type="file" id="protocolPhotoFile" accept="image/*" multiple class="hidden">
+        <div class="proto-photo-preview" id="protocolPhotoPreview"></div>
+        <p class="sig-hint" id="protocolPhotoHint">Fotka se zmenší a přiloží se k protokolu — v protokolu se vytiskne pod údaje (jedna uprostřed, dvě vedle sebe).</p>
         <label>Podpis předávajícího</label>
         <div class="sig-box"><canvas id="protocolFromCanvas" class="proto-canvas"></canvas></div>
         <div class="row" style="margin-top:8px">
@@ -506,6 +541,12 @@ tr.clickable:hover{background:#eef3fa}
         <div class="sig-hint">Např.: „Pracovní rukavice vel. 10 – 2 pár“ na jednom řádku, další položka na dalším.</div>
         <label>Odeslat na e-mail</label>
         <input type="text" id="orderEmail" placeholder="objednavky@swissform.cz" autocomplete="off" inputmode="email">
+        <label>Jak odeslat</label>
+        <select id="orderSendMode">
+          <option value="direct">Přímo e-mailem (poštovní klient se neotevírá)</option>
+          <option value="mailto">Otevřít poštovního klienta (Gmail, Outlook…)</option>
+        </select>
+        <div class="sig-hint" id="orderSendHint"></div>
         <div class="row" style="margin-top:12px">
           <button class="btn" id="btnSendOrder">📤 Odeslat objednávku</button>
           <button class="btn outline" id="btnPreviewOrder">👁 Náhled</button>
@@ -514,12 +555,14 @@ tr.clickable:hover{background:#eef3fa}
         <label style="margin-top:14px">Náhled odesílaného textu</label>
         <textarea id="orderPreview" rows="10" readonly placeholder="Náhled se zobrazí po stisku „Náhled“."></textarea>
         <details style="margin-top:14px">
-          <summary style="cursor:pointer;font-size:.84rem;font-weight:600;color:#33465c">Pokročilé — automatické odesílání přes službu</summary>
+          <summary style="cursor:pointer;font-size:.84rem;font-weight:600;color:#33465c">Pokročilé — vlastní odesílací služba</summary>
           <label>URL odesílací služby (nepovinné)</label>
           <input type="text" id="orderEndpoint" placeholder="https://…" autocomplete="off" inputmode="url">
           <div class="sig-hint">
-            Když je adresa vyplněná, aplikace pošle objednávku na tuto adresu (POST, JSON) a e-mail odešle služba.
-            Bez vyplnění se otevře poštovní klient s předvyplněnou zprávou (Gmail, Outlook…), kde se jen stiskne Odeslat.
+            Když je adresa vyplněná, posílá se objednávka tam (POST, JSON) — hodí se pro vlastní bránu,
+            aby e-maily chodily z vaší domény. Bez vyplnění použije aplikace zdarma veřejnou službu
+            <strong>FormSubmit.co</strong>: tu je potřeba jednou potvrdit klikem v aktivačním e-mailu,
+            který na zadanou adresu dorazí při prvním odeslání. Potom už objednávky chodí rovnou.
           </div>
         </details>
       </div>
@@ -848,6 +891,22 @@ tr.clickable:hover{background:#eef3fa}
     <div class="sig-overlay-bar">
       <span id="sigOverlayLabel"></span>
       <button class="btn light small" id="btnCloseSig">Zavřít</button>
+    </div>
+  </div>
+  <!-- Náhled předávacího protokolu: ukáže přesně tu A4, která se tiskne,
+       jen zmenšenou na displej. Obsah se po zavření zahodí z paměti. -->
+  <div class="proto-preview hidden" id="protoPreview" role="dialog" aria-modal="true" aria-label="Náhled předávacího protokolu">
+    <div class="proto-preview-bar">
+      <span class="proto-preview-title" id="protoPreviewTitle">Náhled předávacího protokolu</span>
+      <span class="proto-preview-actions">
+        <button class="btn light small" id="btnProtoPreviewPrint">🖨 Tisk</button>
+        <button class="btn light small" id="btnProtoPreviewClose">Zavřít</button>
+      </span>
+    </div>
+    <div class="proto-preview-scroll" id="protoPreviewScroll">
+      <div class="proto-preview-fit" id="protoPreviewFit">
+        <div class="proto-preview-scaler" id="protoPreviewScaler"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1645,6 +1704,8 @@ function getSignatureData(){
 function showTab(name){
   // Objednávky jsou zatím jen pro přihlášeného správce (viz ORDERS_ADMIN_ONLY).
   if(name === 'orders' && ORDERS_ADMIN_ONLY && !isAdmin()) name = 'issue';
+  // Předměty (číselník OOPP) jsou jen pro přihlášeného správce (viz ITEMS_ADMIN_ONLY).
+  if(name === 'items' && ITEMS_ADMIN_ONLY && !isAdmin()) name = 'issue';
   document.querySelectorAll('nav button').forEach(function(b){
     b.classList.toggle('active', b.dataset.tab === name);
   });
@@ -1672,6 +1733,12 @@ const ADMIN_KEY = 'oopp_admin_session';   // '1' = správce je přihlášený (d
 // Až má být dostupná všem, stačí tuhle konstantu přepnout na false.
 const ORDERS_ADMIN_ONLY = true;
 
+// Záložka Předměty (číselník OOPP, přidávání a úpravy předmětů) je jen pro
+// přihlášeného správce — nepřihlášenému se tlačítko v menu vůbec neukáže.
+// Přehled spotřeby je kvůli tomu v záložce Data (ten je i bez přihlášení).
+// Až má být číselník dostupný všem, stačí přepnout tuhle konstantu na false.
+const ITEMS_ADMIN_ONLY = true;
+
 function isAdmin(){
   try{ return localStorage.getItem(ADMIN_KEY) === '1'; }catch(e){ return false; }
 }
@@ -1689,6 +1756,7 @@ function updateAdminUI(){
   const badge = document.getElementById('adminBadge');
   if(badge) badge.classList.toggle('hidden', !isAdmin());
   updateOrdersVisibility();
+  updateItemsVisibility();
 }
 
 // Záložka Objednávky: v menu se ukáže jen přihlášenému správci. Kdyby na ní
@@ -1698,6 +1766,16 @@ function updateOrdersVisibility(){
   const btn = document.querySelector('nav button[data-tab="orders"]');
   if(btn) btn.classList.toggle('hidden', !show);
   const sec = document.getElementById('tab-orders');
+  if(!show && sec && sec.classList.contains('active')) showTab('issue');
+}
+
+// Záložka Předměty: nepřihlášenému se v menu vůbec neukáže (stejně jako
+// Objednávky). Kdyby na ní zařízení zůstalo po odhlášení, přepne se na Výdej.
+function updateItemsVisibility(){
+  const show = !ITEMS_ADMIN_ONLY || isAdmin();
+  const btn = document.querySelector('nav button[data-tab="items"]');
+  if(btn) btn.classList.toggle('hidden', !show);
+  const sec = document.getElementById('tab-items');
   if(!show && sec && sec.classList.contains('active')) showTab('issue');
 }
 
@@ -2997,6 +3075,138 @@ function resizeProtocolSigs(){
   padTo.resize();
 }
 
+/* ---------- Fotky k protokolu (max. 2) ----------
+   Fotka se hned po výběru zmenší (delší strana max. 1000 px, JPEG), takže
+   protokol i jeho tisk zůstanou malé. Ukládá se stejně jako podpisy — do
+   samostatného úložiště oopp_sig pod klíči p_{id}_photo1 / p_{id}_photo2,
+   takže v datech zařízení i cloudu zůstane jen příznak, že fotka existuje. */
+const PROTO_PHOTO_MAX = 2;
+let protocolPhotos = [];           // dataURL fotek vybraných ve formuláři
+
+function protocolPhotoKey(id, n){
+  return 'p_' + id + '_photo' + n;
+}
+
+// Čísla fotek (1, 2), které protokol má — ať už je obrázek v datech, nebo
+// je zatím jen příznak „je v cloudu“.
+function protocolPhotoSlots(p){
+  const slots = [];
+  for(let n = 1; n <= PROTO_PHOTO_MAX; n++){
+    if(p && (p['photo' + n] || p['photo' + n + 'Has'])) slots.push(n);
+  }
+  return slots;
+}
+
+function protocolPhotoCount(p){
+  return protocolPhotoSlots(p).length;
+}
+
+// Uvolní z dat zařízení fotky, které už jsou nahrané v cloudu (Pending === false).
+function freeProtocolPhotos(p){
+  let freed = 0;
+  protocolPhotoSlots(p).forEach(function(n){
+    const key = 'photo' + n;
+    if(p[key] && p[key + 'Has'] && p[key + 'Pending'] === false){ delete p[key]; freed++; }
+  });
+  return freed;
+}
+
+// Zmenšení fotky na rozumnou velikost pro tisk i pro cloud.
+function protocolPhotoScale(img, maxSide, quality){
+  const w0 = img.naturalWidth || img.width || 0;
+  const h0 = img.naturalHeight || img.height || 0;
+  if(!w0 || !h0) throw new Error('Fotku se nepodařilo načíst.');
+  const scale = Math.min(1, maxSide / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * scale));
+  const h = Math.max(1, Math.round(h0 * scale));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';          // průhledné PNG neskončí černě
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', quality);
+}
+
+function protocolPhotoFromFile(file){
+  return new Promise(function(resolve, reject){
+    if(!file || !/^image\//i.test(file.type || '')){
+      reject(new Error('Vybraný soubor není obrázek.'));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const finish = function(err, data){
+      try{ URL.revokeObjectURL(url); }catch(e){}
+      if(err) reject(err); else resolve(data);
+    };
+    img.onload = function(){
+      try{
+        let max = 1000;
+        let q = 0.72;
+        let data = protocolPhotoScale(img, max, q);
+        // Když je fotka i po zmenšení velká, zkusí se menší a s větší kompresí.
+        for(let i = 0; i < 3 && data.length > 220000; i++){
+          max = Math.round(max * 0.78);
+          q = Math.max(0.5, q - 0.08);
+          data = protocolPhotoScale(img, max, q);
+        }
+        finish(null, data);
+      }catch(e){ finish(e); }
+    };
+    img.onerror = function(){ finish(new Error('Fotku se nepodařilo načíst.')); };
+    img.src = url;
+  });
+}
+
+// Přidá vybrané fotky (celkem nejvýš dvě) — další se ignoruje s hláškou.
+async function addProtocolPhotos(files){
+  const list = Array.prototype.slice.call(files || []);
+  if(!list.length) return;
+  let added = 0;
+  for(let i = 0; i < list.length; i++){
+    if(protocolPhotos.length >= PROTO_PHOTO_MAX){
+      toast('K protokolu jdou přiložit nejvýš ' + PROTO_PHOTO_MAX + ' fotky.');
+      break;
+    }
+    try{
+      protocolPhotos.push(await protocolPhotoFromFile(list[i]));
+      added++;
+    }catch(e){
+      toast((e && e.message) || 'Fotku se nepodařilo načíst.');
+    }
+  }
+  if(added) renderProtocolPhotoPreview();
+}
+
+function renderProtocolPhotoPreview(){
+  const box = document.getElementById('protocolPhotoPreview');
+  if(box){
+    box.innerHTML = protocolPhotos.map(function(data, i){
+      return '<figure><img src="' + data + '" alt="Fotka ' + (i + 1) + '">' +
+        '<button type="button" class="proto-photo-del" data-removephoto="' + i + '"' +
+        ' title="Odebrat fotku" aria-label="Odebrat fotku">✕</button></figure>';
+    }).join('');
+  }
+  const full = protocolPhotos.length >= PROTO_PHOTO_MAX;
+  ['btnProtocolPhoto', 'btnProtocolPhotoPick'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden', full);
+  });
+  const clear = document.getElementById('btnClearProtocolPhoto');
+  if(clear) clear.classList.toggle('hidden', protocolPhotos.length === 0);
+}
+
+function clearProtocolPhotos(){
+  protocolPhotos = [];
+  ['protocolPhotoCamera', 'protocolPhotoFile'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.value = '';             // aby šla vybrat i stejná fotka znovu
+  });
+  renderProtocolPhotoPreview();
+}
+
 function protocolBox(which){
   return document.getElementById(which === 'from' ? 'protocolFromList' : 'protocolToList');
 }
@@ -3043,6 +3253,7 @@ function populateProtocolForm(){
   const date = document.getElementById('protocolDate');
   if(!date.value) date.value = todayIso();
   ['from', 'to'].forEach(closeProtocolSuggestions);
+  renderProtocolPhotoPreview();
 }
 
 function protocolSignatureMap(){
@@ -3051,13 +3262,18 @@ function protocolSignatureMap(){
     if(p && p.id){
       if(p.sigFrom) map['p_' + p.id + '_from'] = p.sigFrom;
       if(p.sigTo) map['p_' + p.id + '_to'] = p.sigTo;
+      // Fotky protokolu jdou do stejného úložiště, jen pod vlastními klíči.
+      protocolPhotoSlots(p).forEach(function(n){
+        const data = p['photo' + n];
+        if(data) map[protocolPhotoKey(p.id, n)] = data;
+      });
     }
   });
   return map;
 }
 
-// Úklid při startu / po sloučení: podpisy protokolů, které už jsou v cloudu
-// (sigFromPending/sigToPending === false), se v zařízení nedrží.
+// Úklid při startu / po sloučení: podpisy a fotky protokolů, které už jsou
+// v cloudu (sigFromPending/sigToPending/photoNPending === false), se v zařízení nedrží.
 function freeUploadedProtocolSignatures(){
   if(!cloudSeparatesSignatures(cloudConfig())) return 0;
   let freed = 0;
@@ -3065,6 +3281,7 @@ function freeUploadedProtocolSignatures(){
     if(!p) return;
     if(p.sigFrom && p.sigFromHas && p.sigFromPending === false){ delete p.sigFrom; freed++; }
     if(p.sigTo && p.sigToHas && p.sigToPending === false){ delete p.sigTo; freed++; }
+    freed += freeProtocolPhotos(p);
   });
   if(freed){
     cloudApplying = true;
@@ -3082,6 +3299,12 @@ function protoItemLabel(p){
   }
   if(p && p.size) extra.push('vel. ' + p.size);
   return base + (extra.length ? ' (' + extra.join(', ') + ')' : '');
+}
+
+// Značka v seznamu protokolů: „📷 2“ = protokol má přiložené fotky.
+function protoPhotoBadge(p){
+  const n = protocolPhotoCount(p);
+  return n ? ' <span class="proto-photo-badge" title="Protokol má přiložené fotky">📷 ' + n + '</span>' : '';
 }
 
 function saveProtocol(){
@@ -3109,10 +3332,19 @@ function saveProtocol(){
     sigTo: sigTo, sigToHas: !!sigTo, sigToPending: !!sigTo,
     createdAt: Date.now()
   });
+  // Fotky (max. 2) se ukládají stejně jako podpisy: obrázek + příznaky, že
+  // existuje a že ještě čeká na nahrání do cloudu.
+  protocolPhotos.slice(0, PROTO_PHOTO_MAX).forEach(function(data, i){
+    const n = i + 1;
+    p['photo' + n] = data;
+    p['photo' + n + 'Has'] = true;
+    p['photo' + n + 'Pending'] = true;
+  });
   db.protocols.push(p);
   save();
   padFrom.clear();
   padTo.clear();
+  clearProtocolPhotos();
   document.getElementById('protocolItemText').value = '';
   protocolHidden('from').value = '';
   protocolHidden('to').value = '';
@@ -3143,9 +3375,10 @@ function renderProtocols(){
     return '<tr>' +
       '<td class="nowrap">' + formatDate(p.date) + '</td>' +
       '<td>' + escapeHtml(p.fromName) + ' → ' + escapeHtml(p.toName) + '</td>' +
-      '<td>' + escapeHtml(protoItemLabel(p)) + '</td>' +
+      '<td>' + escapeHtml(protoItemLabel(p)) + protoPhotoBadge(p) + '</td>' +
       '<td class="nowrap">' + escapeHtml(p.place || '—') + '</td>' +
       '<td class="nowrap" style="text-align:right">' +
+        '<button class="btn outline small" data-previewproto="' + p.id + '" title="Náhled protokolu na displeji">👁 Náhled</button> ' +
         '<button class="btn outline small" data-printproto="' + p.id + '">🖨 Tisk</button> ' +
         '<button class="btn danger small" data-delproto="' + p.id + '" title="Smazat (chráněno heslem)">🔒 Smazat</button>' +
       '</td></tr>';
@@ -3182,7 +3415,20 @@ function protoSigBlock(role, name, data, noSigHint){
     '</div>';
 }
 
-function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
+/* Fotky na protokolu: jedna je na střed, dvě jsou vedle sebe. Víc než dvě
+   se nikdy nepřiloží, ale kdyby v datech přesto byly, vykreslí se jen dvě. */
+function protoPhotosBlock(photos){
+  const list = (photos || []).filter(Boolean).slice(0, PROTO_PHOTO_MAX);
+  if(!list.length) return '';
+  return '<div class="proto-photos' + (list.length > 1 ? ' two' : '') + '">' +
+    '<div class="proto-photos-lbl">Fotografie předmětu</div>' +
+    list.map(function(data, i){
+      return '<figure><img src="' + data + '" alt="Fotografie ' + (i + 1) + '"></figure>';
+    }).join('') +
+    '</div>';
+}
+
+function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo, photos){
   const no = String(p.id || '').slice(-6).toUpperCase();
   const item = escapeHtml(protoItemLabel(p) || '—');
   const place = p.place ? escapeHtml(p.place) : '………………………………';
@@ -3206,6 +3452,7 @@ function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
       '<tr><th>Místo předání</th><td>' + place + '</td></tr>' +
     '</table>' +
     note +
+    protoPhotosBlock(photos) +
     '<div class="proto-sigs">' +
       protoSigBlock('Podpis předávajícího', p.fromName || '', sigFrom, missingFrom ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
       protoSigBlock('Podpis přebírajícího', p.toName || '', sigTo, missingTo ? 'podpis v cloudu — nepodařilo se načíst' : 'bez podpisu') +
@@ -3214,33 +3461,118 @@ function buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo){
     '</div>';
 }
 
-async function printProtocol(id){
-  const p = db.protocols.find(function(x){ return x.id === id; });
-  if(!p) return;
+/* Podpisy a fotky k protokolu: buď ještě čekají v zařízení (nebyly nahrané
+   do cloudu), nebo se stáhnou z cloudu do paměti — jen pro tisk / náhled, do
+   dat zařízení se neukládají. Vrací i informaci, co se načíst nepodařilo. */
+async function protocolSigs(p){
   const cfg = cloudConfig();
   let sigFrom = p.sigFrom || '';
   let sigTo = p.sigTo || '';
   let missingFrom = false;
   let missingTo = false;
-  if(cloudSeparatesSignatures(cfg) && (p.sigFromHas || p.sigToHas)){
+  const slots = protocolPhotoSlots(p);
+  const photos = slots.map(function(n){ return p['photo' + n] || ''; });
+  if(cloudSeparatesSignatures(cfg) && (p.sigFromHas || p.sigToHas || slots.length)){
     const need = [];
-    if(!sigFrom && p.sigFromHas) need.push('p_' + id + '_from');
-    if(!sigTo && p.sigToHas) need.push('p_' + id + '_to');
+    if(!sigFrom && p.sigFromHas) need.push('p_' + p.id + '_from');
+    if(!sigTo && p.sigToHas) need.push('p_' + p.id + '_to');
+    slots.forEach(function(n, i){
+      if(!photos[i] && p['photo' + n + 'Has']) need.push(protocolPhotoKey(p.id, n));
+    });
     if(need.length){
       let got = {};
       try{ got = await sigDownload(cfg, need); }catch(e){}
-      sigFrom = sigFrom || got['p_' + id + '_from'] || '';
-      sigTo = sigTo || got['p_' + id + '_to'] || '';
+      sigFrom = sigFrom || got['p_' + p.id + '_from'] || '';
+      sigTo = sigTo || got['p_' + p.id + '_to'] || '';
+      slots.forEach(function(n, i){
+        if(!photos[i]) photos[i] = got[protocolPhotoKey(p.id, n)] || '';
+      });
     }
     missingFrom = p.sigFromHas && !sigFrom;
     missingTo = p.sigToHas && !sigTo;
   }
+  const found = photos.filter(Boolean);
+  return {
+    sigFrom: sigFrom, sigTo: sigTo,
+    missingFrom: missingFrom, missingTo: missingTo,
+    photos: found, missingPhotos: Math.max(0, slots.length - found.length)
+  };
+}
+
+async function printProtocol(id){
+  const p = db.protocols.find(function(x){ return x.id === id; });
+  if(!p) return;
+  const s = await protocolSigs(p);
   const area = document.getElementById('printArea');
   area.className = 'print-area booklet';
-  area.innerHTML = buildProtocolPage(p, sigFrom, sigTo, missingFrom, missingTo);
-  sigMissingNote((missingFrom ? 1 : 0) + (missingTo ? 1 : 0));
+  area.innerHTML = buildProtocolPage(p, s.sigFrom, s.sigTo, s.missingFrom, s.missingTo, s.photos);
+  sigMissingNote((s.missingFrom ? 1 : 0) + (s.missingTo ? 1 : 0));
+  protoMissingPhotosNote(s.missingPhotos);
   printWhenReady(area);
 }
+
+/* ---------- Náhled předávacího protokolu na displeji ----------
+   V seznamu protokolů tlačítko „👁 Náhled“ otevře stejnou A4, jakou tiskne
+   tlačítko Tisk — jen zmenšenou, aby se vešla na obrazovku. Nic se neukládá:
+   dokument se při každém otevření sestaví znovu a po zavření se z paměti
+   zahodí (i podpisy stažené z cloudu). */
+let protoPreviewId = null;
+
+function protoPreviewOpen(){
+  return !!protoPreviewId;
+}
+
+// Zmenšit A4 tak, aby se celá vešla na displej (na výšku i na šířku).
+function fitProtocolPreview(){
+  const fit = document.getElementById('protoPreviewFit');
+  const scaler = document.getElementById('protoPreviewScaler');
+  const scroll = document.getElementById('protoPreviewScroll');
+  if(!fit || !scaler || !scroll) return;
+  const page = scaler.firstElementChild;
+  if(!page) return;
+  const pageW = page.offsetWidth || 794;      // 210 mm
+  const pageH = page.offsetHeight || 1119;    // 296 mm
+  const availW = Math.max(180, scroll.clientWidth - 28);
+  const availH = Math.max(240, scroll.clientHeight - 22);
+  const scale = Math.min(1, availW / pageW, availH / pageH);
+  scaler.style.transform = 'scale(' + scale + ')';
+  fit.style.width = Math.round(pageW * scale) + 'px';
+  fit.style.height = Math.round(pageH * scale) + 'px';
+}
+
+async function previewProtocol(id){
+  const p = db.protocols.find(function(x){ return x.id === id; });
+  if(!p) return;
+  const overlay = document.getElementById('protoPreview');
+  const scaler = document.getElementById('protoPreviewScaler');
+  if(!overlay || !scaler) return;
+  protoPreviewId = id;
+  document.getElementById('protoPreviewTitle').textContent = 'Načítám náhled…';
+  scaler.innerHTML = '';
+  overlay.classList.remove('hidden');
+  const s = await protocolSigs(p);
+  if(protoPreviewId !== id) return;            // mezitím se náhled zavřel
+  document.getElementById('protoPreviewTitle').textContent =
+    'Předávací protokol · ' + formatDate(p.date) + ' · ' + (p.fromName || '') + ' → ' + (p.toName || '');
+  scaler.innerHTML = buildProtocolPage(p, s.sigFrom, s.sigTo, s.missingFrom, s.missingTo, s.photos);
+  fitProtocolPreview();
+  sigMissingNote((s.missingFrom ? 1 : 0) + (s.missingTo ? 1 : 0));
+  protoMissingPhotosNote(s.missingPhotos);
+}
+
+function closeProtocolPreview(){
+  protoPreviewId = null;
+  const overlay = document.getElementById('protoPreview');
+  if(overlay) overlay.classList.add('hidden');
+  const scaler = document.getElementById('protoPreviewScaler');
+  if(scaler) scaler.innerHTML = '';            // dokument i stažené podpisy z paměti
+}
+
+// Při otočení displeje / změně velikosti okna náhled znovu zmenšit.
+window.addEventListener('resize', function(){ if(protoPreviewOpen()) fitProtocolPreview(); });
+window.addEventListener('orientationchange', function(){
+  if(protoPreviewOpen()) setTimeout(fitProtocolPreview, 250);
+});
 
 /* ---------- Objednávky materiálu ----------
    Uživatel napíše, co potřebuje, aplikace text převede do objednávkového
@@ -3249,6 +3581,11 @@ async function printProtocol(id){
    zbytek aplikace (formulář, odesílání, historie) zůstává stejný. */
 const ORDER_EMAIL_KEY = 'oopp_order_email';
 const ORDER_ENDPOINT_KEY = 'oopp_order_endpoint';
+const ORDER_SEND_MODE_KEY = 'oopp_order_send_mode';   // 'direct' = odešle služba, 'mailto' = poštovní klient
+const ORDER_SEND_MODE_DEFAULT = 'direct';
+// Veřejná odesílací služba (bez registrace a bez klíče) — používá se, když není
+// vyplněná vlastní URL v „Pokročilé“. Adresu je potřeba jednou potvrdit.
+const FORMSUBMIT_URL = 'https://formsubmit.co/ajax/';
 const ORDER_PLACES = ['N.Role', 'Nejdek'];
 
 function orderSetting(key){
@@ -3256,6 +3593,97 @@ function orderSetting(key){
 }
 function setOrderSetting(key, value){
   try{ localStorage.setItem(key, value || ''); }catch(e){}
+}
+
+// Způsob odeslání objednávky: 'direct' (rovnou e-mailem) nebo 'mailto'
+// (otevře se poštovní klient s předvyplněnou zprávou).
+function orderSendMode(){
+  const v = orderSetting(ORDER_SEND_MODE_KEY);
+  return v === 'mailto' ? 'mailto' : ORDER_SEND_MODE_DEFAULT;
+}
+function setOrderSendMode(v){
+  setOrderSetting(ORDER_SEND_MODE_KEY, v === 'mailto' ? 'mailto' : 'direct');
+}
+
+// Vlastní odesílací služba zadaná v „Pokročilé“ (má přednost před FormSubmit).
+function orderEndpointUrl(){
+  const field = document.getElementById('orderEndpoint');
+  const fromField = field && field.value ? field.value.trim() : '';
+  return fromField || orderSetting(ORDER_ENDPOINT_KEY).trim();
+}
+
+// Vysvětlení pod přepínačem „Jak odeslat“ — aby bylo jasné, co se stane.
+function refreshOrderSendHint(){
+  const el = document.getElementById('orderSendHint');
+  if(!el) return;
+  if(orderSendMode() === 'mailto'){
+    el.textContent = 'Otevře se poštovní klient s předvyplněnou objednávkou — odešle se tlačítkem Odeslat.';
+    return;
+  }
+  if(orderEndpointUrl()){
+    el.textContent = 'Objednávku odešle vlastní odesílací služba z „Pokročilé“ — e-mail se odešle hned, nic se neotevírá.';
+    return;
+  }
+  el.textContent = 'Objednávku odešle zdarma služba FormSubmit.co — e-mail se odešle hned, poštovní klient se neotevírá. ' +
+    'Poprvé je potřeba adresu potvrdit klikem v aktivačním e-mailu, pak už chodí objednávky rovnou.';
+}
+
+// Signál, který po dané době požadavek přeruší — aby aplikace u nedostupné
+// služby nečekala donekonečna a mohla se ozvat záložní cesta.
+function orderFetchSignal(ms){
+  try{
+    const c = new AbortController();
+    setTimeout(function(){ c.abort(); }, ms || 12000);
+    return c.signal;
+  }catch(e){ return undefined; }
+}
+
+/* Přímé odeslání e-mailu. Web sám e-mail odeslat neumí, potřebuje k tomu
+   odesílací službu — proto se zkouší v tomto pořadí:
+   1) vlastní URL odesílací služby („Pokročilé“) — POST s JSON,
+   2) veřejná služba FormSubmit.co (bez nastavení, jen jednou potvrdit adresu).
+   Vrací { ok, via, activate, message }; 'activate' = adresa ještě není potvrzená. */
+async function sendOrderEmail(to, subject, body){
+  const endpoint = orderEndpointUrl();
+  if(endpoint){
+    try{
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        signal: orderFetchSignal(12000),
+        body: JSON.stringify({to: to, subject: subject, body: body, text: body})
+      });
+      if(res && res.ok) return { ok: true, via: 'endpoint' };
+      return { ok: false, via: 'endpoint', message: 'HTTP ' + (res ? res.status : '?') };
+    }catch(e){
+      return { ok: false, via: 'endpoint', message: (e && e.message) || 'síť nedostupná' };
+    }
+  }
+  try{
+    const res = await fetch(FORMSUBMIT_URL + encodeURIComponent(to), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      signal: orderFetchSignal(15000),
+      body: JSON.stringify({
+        _subject: subject,
+        message: body,
+        _template: 'box',
+        _captcha: 'false'
+      })
+    });
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+    const msg = data && data.message ? String(data.message) : '';
+    const okFlag = !!(data && String(data.success).toLowerCase() === 'true');
+    if(res && res.ok && okFlag){
+      // Nepotvrzená adresa: služba pošle aktivační e-mail a objednávku nedoručí.
+      if(/activat|confirm/i.test(msg)) return { ok: false, via: 'formsubmit', activate: true, message: msg };
+      return { ok: true, via: 'formsubmit' };
+    }
+    return { ok: false, via: 'formsubmit', message: msg || ('HTTP ' + (res ? res.status : '?')) };
+  }catch(e){
+    return { ok: false, via: 'formsubmit', message: (e && e.message) || 'síť nedostupná' };
+  }
 }
 
 // Rozdělí napsaný text na jednotlivé položky (každá na vlastním řádku).
@@ -3330,6 +3758,9 @@ function populateOrderForm(){
   if(email && !email.value) email.value = orderSetting(ORDER_EMAIL_KEY);
   const endpoint = document.getElementById('orderEndpoint');
   if(endpoint && !endpoint.value) endpoint.value = orderSetting(ORDER_ENDPOINT_KEY);
+  const mode = document.getElementById('orderSendMode');
+  if(mode) mode.value = orderSendMode();
+  refreshOrderSendHint();
   closeOrderSuggestions();
 }
 
@@ -3401,8 +3832,19 @@ function copyOrder(){
   });
 }
 
-// Odešle objednávku. Když je v nastavení URL odesílací služby, pošle se tam
-// (POST s JSON); jinak se otevře poštovní klient s předvyplněnou zprávou.
+// Otevře poštovního klienta s předvyplněnou zprávou (záložní cesta odeslání).
+function openMailClient(to, subject, body){
+  const href = 'mailto:' + encodeURIComponent(to || '') +
+    '?subject=' + encodeURIComponent(subject || '') +
+    '&body=' + encodeURIComponent(body || '');
+  try{ window.location.href = href; }catch(e){}
+  return href;
+}
+
+// Odešle objednávku. Ve výchozím nastavení ji rovnou pošle e-mailem odesílací
+// služba (viz sendOrderEmail) — poštovní klient se neotevírá. Když přímé
+// odeslání neprojde (adresa ještě není potvrzená, není signál…), text se
+// zkopíruje do schránky a otevře se poštovní klient jako záloha.
 async function sendOrder(){
   const o = readOrderForm();
   if(!o) return;
@@ -3423,26 +3865,23 @@ async function sendOrder(){
   db.orders.push(rec);
   save();
 
-  const endpoint = document.getElementById('orderEndpoint').value.trim();
-  let sent = false;
-  if(endpoint){
-    try{
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'text/plain;charset=utf-8'},
-        body: JSON.stringify({to: o.email, subject: subject, body: body, text: body, order: rec})
-      });
-      sent = !!(res && res.ok);
-    }catch(e){ sent = false; }
-  }
-  if(sent){
-    rec.status = 'odesláno';
-    rec.sentAt = Date.now();
-    save();
-    renderOrders();
-    toast('Objednávka odeslána na ' + o.email + '.');
-    document.getElementById('orderText').value = '';
-    return;
+  let failNote = '';
+  if(orderSendMode() === 'direct'){
+    toast('Odesílám objednávku na ' + o.email + '…', 4000);
+    const r = await sendOrderEmail(o.email, subject, body);
+    if(r.ok){
+      rec.status = 'odesláno';
+      rec.sentVia = r.via;
+      rec.sentAt = Date.now();
+      save();
+      renderOrders();
+      toast('Objednávka odeslána na ' + o.email + '.');
+      document.getElementById('orderText').value = '';
+      return;
+    }
+    failNote = r.activate
+      ? 'Adresa ' + o.email + ' ještě není u odesílací služby potvrzená — přišel na ni aktivační e-mail, klikněte v něm na odkaz. '
+      : 'Přímé odeslání se nepovedlo (' + (r.message || 'chyba') + '). ';
   }
 
   // Záložní cesta: předvyplněný e-mail v poštovním klientovi.
@@ -3452,13 +3891,9 @@ async function sendOrder(){
   rec.handedAt = Date.now();
   save();
   renderOrders();
-  const href = 'mailto:' + encodeURIComponent(o.email) +
-    '?subject=' + encodeURIComponent(subject) +
-    '&body=' + encodeURIComponent(body);
-  try{ window.location.href = href; }catch(e){}
-  toast(copied
-    ? 'Otevřel se e-mail s objednávkou — zkontrolujte ji a odešlete. Text je i ve schránce.'
-    : 'Otevřel se e-mail s objednávkou — zkontrolujte ji a odešlete.');
+  openMailClient(o.email, subject, body);
+  toast(failNote + 'Otevřel se e-mail s objednávkou — zkontrolujte ji a odešlete.' +
+    (copied ? ' Text je i ve schránce.' : ''), failNote ? 8000 : 4000);
   document.getElementById('orderText').value = '';
 }
 
@@ -3508,32 +3943,30 @@ function renderOrders(){
 async function resendOrder(id){
   const o = (db.orders || []).find(function(x){ return x.id === id; });
   if(!o) return;
-  const endpoint = orderSetting(ORDER_ENDPOINT_KEY);
-  if(endpoint){
-    try{
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'text/plain;charset=utf-8'},
-        body: JSON.stringify({to: o.email, subject: o.subject, body: o.body, text: o.body, order: o})
-      });
-      if(res && res.ok){
-        o.status = 'odesláno';
-        o.sentAt = Date.now();
-        o.updatedAt = Date.now();
-        save();
-        renderOrders();
-        toast('Objednávka odeslána na ' + o.email + '.');
-        return;
-      }
-    }catch(e){}
+  const subject = o.subject || orderSubject(o);
+  let failNote = '';
+  if(orderSendMode() === 'direct'){
+    toast('Odesílám objednávku na ' + (o.email || '') + '…', 4000);
+    const r = await sendOrderEmail(o.email || '', subject, o.body || '');
+    if(r.ok){
+      o.status = 'odesláno';
+      o.sentVia = r.via;
+      o.sentAt = Date.now();
+      o.updatedAt = Date.now();
+      save();
+      renderOrders();
+      toast('Objednávka odeslána na ' + o.email + '.');
+      return;
+    }
+    failNote = r.activate
+      ? 'Adresa ' + (o.email || '') + ' ještě není u odesílací služby potvrzená — klikněte na odkaz v aktivačním e-mailu. '
+      : 'Přímé odeslání se nepovedlo (' + (r.message || 'chyba') + '). ';
   }
   let copied = false;
   try{ copied = await copyPlainText(o.body || ''); }catch(e){}
-  const href = 'mailto:' + encodeURIComponent(o.email || '') +
-    '?subject=' + encodeURIComponent(o.subject || '') +
-    '&body=' + encodeURIComponent(o.body || '');
-  try{ window.location.href = href; }catch(e){}
-  toast(copied ? 'Otevřel se e-mail s objednávkou (text je i ve schránce).' : 'Otevřel se e-mail s objednávkou.');
+  openMailClient(o.email || '', subject, o.body || '');
+  toast(failNote + 'Otevřel se e-mail s objednávkou' + (copied ? ' (text je i ve schránce).' : '.'),
+    failNote ? 8000 : 4000);
 }
 
 function deleteOrder(id){
@@ -3788,6 +4221,8 @@ function doPrint(){
 // Tlačítko Zpět v Androidu: nejdřív zavře otevřený podpis, výběr data nebo
 // detail zaměstnance, a teprve když není co zavřít, aplikace se ukončí.
 function ooppAndroidBack(){
+  const prev = document.getElementById('protoPreview');
+  if(prev && !prev.classList.contains('hidden')){ closeProtocolPreview(); return true; }
   const sig = document.getElementById('sigOverlay');
   if(sig && !sig.classList.contains('hidden')){ hideSignature(); return true; }
   const share = document.getElementById('shareSheet');
@@ -3813,6 +4248,13 @@ function sigMissingNote(missing){
   if(!missing) return;
   toast('Pozor: ' + missing + ' ' + czPlural(missing, 'podpis se', 'podpisy se', 'podpisů se') +
     ' nepodařilo načíst z cloudu — připojte se k internetu a vytiskněte znovu.', 7000);
+}
+
+// Totéž pro fotky protokolu — chybí v protokolu, protože se nestáhly z cloudu.
+function protoMissingPhotosNote(missing){
+  if(!missing) return;
+  toast('Pozor: ' + missing + ' ' + czPlural(missing, 'fotku se', 'fotky se', 'fotek se') +
+    ' nepodařilo načíst z cloudu — připojte se k internetu a otevřete protokol znovu.', 7000);
 }
 
 // Počkat, až se v tiskové ploše načtou obrázky (podpisy) — jinak se na papíře neobjeví.
@@ -5800,6 +6242,16 @@ async function cloudSyncSignatures(cfg, opts){
   (db.protocols || []).forEach(function(p){
     if(p && p.sigFrom){ delete p.sigFrom; p.sigFromHas = true; p.sigFromPending = false; result.freed++; }
     if(p && p.sigTo){ delete p.sigTo; p.sigToHas = true; p.sigToPending = false; result.freed++; }
+    // Fotky protokolu se uvolní stejně — v zařízení zůstane jen „📷 2“.
+    protocolPhotoSlots(p).forEach(function(n){
+      const key = 'photo' + n;
+      if(p[key]){
+        delete p[key];
+        p[key + 'Has'] = true;
+        p[key + 'Pending'] = false;
+        result.freed++;
+      }
+    });
   });
   if(result.freed){
     cloudApplying = true;
@@ -6163,7 +6615,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v47';
+const APP_VERSION = 'v51';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -6509,6 +6961,30 @@ document.addEventListener('DOMContentLoaded', function(){
   bindProtocolSuggestion('to');
   document.getElementById('btnClearProtoFrom').addEventListener('click', function(){ initProtocolSigs(); padFrom.clear(); });
   document.getElementById('btnClearProtoTo').addEventListener('click', function(){ initProtocolSigs(); padTo.clear(); });
+  // Fotky k protokolu: vyfocení, výběr z galerie a odebírání fotek.
+  document.getElementById('btnProtocolPhoto').addEventListener('click', function(){
+    document.getElementById('protocolPhotoCamera').click();
+  });
+  document.getElementById('btnProtocolPhotoPick').addEventListener('click', function(){
+    document.getElementById('protocolPhotoFile').click();
+  });
+  ['protocolPhotoCamera', 'protocolPhotoFile'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      const files = this.files ? Array.prototype.slice.call(this.files) : [];
+      this.value = '';                 // aby šla vybrat i stejná fotka znovu
+      addProtocolPhotos(files);
+    });
+  });
+  document.getElementById('protocolPhotoPreview').addEventListener('click', function(ev){
+    const btn = ev.target.closest ? ev.target.closest('[data-removephoto]') : null;
+    if(!btn) return;
+    const idx = parseInt(btn.getAttribute('data-removephoto'), 10);
+    if(idx >= 0 && idx < protocolPhotos.length){
+      protocolPhotos.splice(idx, 1);
+      renderProtocolPhotoPreview();
+    }
+  });
+  document.getElementById('btnClearProtocolPhoto').addEventListener('click', clearProtocolPhotos);
   document.getElementById('btnSaveProtocol').addEventListener('click', saveProtocol);
 
   // Objednávky: výběr zaměstnance (kdo objednává) a odeslání e-mailem
@@ -6545,6 +7021,11 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.getElementById('orderEndpoint').addEventListener('change', function(){
     setOrderSetting(ORDER_ENDPOINT_KEY, this.value.trim());
+    refreshOrderSendHint();
+  });
+  document.getElementById('orderSendMode').addEventListener('change', function(){
+    setOrderSendMode(this.value);
+    refreshOrderSendHint();
   });
   const issueFilter = document.getElementById('issueEmployeeFilter');
   const issueList = document.getElementById('issueEmployeeList');
@@ -6695,8 +7176,23 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   document.getElementById('btnCloseSig').addEventListener('click', hideSignature);
+  // Náhled protokolu: tlačítka v liště náhledu, klik na tmavé pozadí a Esc.
+  const protoPreviewEl = document.getElementById('protoPreview');
+  if(protoPreviewEl){
+    document.getElementById('btnProtoPreviewClose').addEventListener('click', closeProtocolPreview);
+    document.getElementById('btnProtoPreviewPrint').addEventListener('click', function(){
+      if(protoPreviewId) printProtocol(protoPreviewId);
+    });
+    protoPreviewEl.addEventListener('click', function(e){
+      const scroll = document.getElementById('protoPreviewScroll');
+      if(e.target === protoPreviewEl || e.target === scroll) closeProtocolPreview();
+    });
+  }
   document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') hideSignature();
+    if(e.key !== 'Escape') return;
+    const prev = document.getElementById('protoPreview');
+    if(prev && !prev.classList.contains('hidden')){ closeProtocolPreview(); return; }
+    hideSignature();
   });
 
   document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
@@ -6789,6 +7285,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(delFuncBtn){ deleteFunction(delFuncBtn.dataset.delfunc); return; }
     const consCsvBtn = e.target.closest('button[data-cons-csv]');
     if(consCsvBtn){ exportConsumptionCsv(); return; }
+    const previewProtoBtn = e.target.closest('button[data-previewproto]');
+    if(previewProtoBtn){ previewProtocol(previewProtoBtn.dataset.previewproto); return; }
     const printProtoBtn = e.target.closest('button[data-printproto]');
     if(printProtoBtn){ printProtocol(printProtoBtn.dataset.printproto); return; }
     const delProtoBtn = e.target.closest('button[data-delproto]');

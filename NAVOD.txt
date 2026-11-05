@@ -30,6 +30,12 @@ Záloha / přenos dat
 - Po přihlášení zůstáváte přihlášeni i po zavření aplikace, takže se heslo
   u dalších úprav (předměty, funkce, mazání, import) neopakuje.
   Odhlásíte se tlačítkem „Odhlásit" vpravo nahoře v hlavičce.
+- Záložka Předměty (číselník OOPP) je vidět jen po přihlášení správce —
+  nepřihlášenému se tlačítko v menu vůbec nezobrazí a na záložku se nedá
+  přepnout ani odkazem. Přehled spotřeby předmětů je proto v Záložce Data
+  (karta „📊 Spotřeba předmětů") a ten je vidět i bez přihlášení.
+  Až má být číselník dostupný všem, stačí v kódu přepnout ITEMS_ADMIN_ONLY
+  na false (stejně jako ORDERS_ADMIN_ONLY u objednávek).
 
 Přehled spotřeby předmětů (záložka Data)
 - Karta „📊 Spotřeba předmětů" je hned nahoře v záložce Data a je vidět
@@ -67,6 +73,11 @@ Vzhled aplikace
   Androidu: startovní okno je v modré a rovnou naváže na načítací
   obrazovku s logem. V prohlížeči (web) si krátkou úvodní obrazovku
   s ikonou kreslí sám systém (Chrome/Android) — ovlivnit ji nelze.
+- Ve Windows (OOPP.exe) se před načítací obrazovkou na chvilku ukáže
+  modré startovní okno obalu — je to doba, než se spustí WebView2.
+  Velké logo v něm záměrně není: obal by ho roztáhl přes celý displej
+  (deformovaně a rozmazaně). Načítací obrazovka v aplikaci bere logo
+  z obrázku logo-splash.png, kdežto logo-inverse.png zůstává průhledný.
 - Obrázkové logo zůstává i na tištěném předávacím protokolu (A4).
 
 Import seznamu zaměstnanců
@@ -212,14 +223,31 @@ Předávací protokoly
   cloudu ze zařízení mažou (zůstane jen „podepsáno“).
 - Každý protokol lze vytisknout na A4 (tlačítko „🖨 Tisk“ v seznamu): v hlavičce
   je logo SWISSFORM, údaje jsou pod sebou na samostatných řádcích (datum,
-  předávající, přebírající, předmět, místo) a dole jsou pod sebou oba podpisy.
+  předávající, přebírající, předmět, místo), pod nimi fotky a dole jsou pod
+  sebou oba podpisy.
+- K protokolu jdou přiložit fotky (nepovinné, nejvýš dvě): tlačítko „📷 Vyfotit“
+  otevře fotoaparát, „🖼 Vybrat z galerie“ vybere fotku ze zařízení. Fotka se
+  zmenší (delší strana 1000 px), v protokolu se vytiskne pod údaji — jedna
+  uprostřed, dvě vedle sebe. Nepovedená fotka se odebere křížkem na náhledu
+  (všechny najednou tlačítkem „Odebrat fotky“) a vyfotí se znovu; po dvou
+  fotkách se tlačítka pro přidání schovají.
+- Tlačítko „👁 Náhled“ v seznamu ukáže protokol na displeji — přesně tu samou
+  stránku A4, jakou vytiskne „🖨 Tisk“, jen zmenšenou, aby se celá vešla na
+  obrazovku (na telefonu i na počítači). Nahoře v náhledu je „🖨 Tisk“
+  a „Zavřít“; náhled zavřete i klepnutím mimo dokument nebo klávesou Esc.
+  Nic se přitom neukládá — dokument ani podpisy a fotky stažené z cloudu se
+  po zavření z paměti zase uvolní. Kvůli podpisům a fotkám z cloudu potřebuje
+  náhled internet; bez něj se v místě podpisu ukáže „bez podpisu“ a aplikace
+  upozorní, že se fotky nepodařilo načíst.
+- Fotky se ukládají stejně jako podpisy (do samostatného úložiště v cloudu),
+  takže se po nahrání ze zařízení mažou a v seznamu je u protokolu vidět
+  značka „📷 2“.
 - Mazání protokolů je chráněné heslem správce.
 
 Objednávky materiálu
 - Záložka Objednávky je zatím vidět jen po přihlášení správce (Data → Přihlášení
-  k datům, nebo Předměty → Přihlášení). Nepřihlášenému se tlačítko v menu vůbec
-  nezobrazí — až bude záložka pro všechny, stačí v kódu přepnout
-  ORDERS_ADMIN_ONLY na false.
+  k datům). Nepřihlášenému se tlačítko v menu vůbec nezobrazí — až bude záložka
+  pro všechny, stačí v kódu přepnout ORDERS_ADMIN_ONLY na false.
 - Slouží k objednání materiálu: napíšete, co potřebujete
   (každou položku na samostatný řádek), vyberete místo (N.Role / Nejdek)
   a kdo objednává, a stisknete „📤 Odeslat objednávku“.
@@ -227,11 +255,20 @@ Objednávky materiálu
   Adresu příjemce stačí vyplnit jednou — pamatuje se v zařízení.
 - Tlačítko „👁 Náhled“ ukáže přesně to, co se odešle; „📋 Kopírovat“ text
   zkopíruje do schránky (dá se vložit do e-mailu i ručně).
-- Odesílání funguje dvěma způsoby:
-  • bez dalšího nastavení se otevře poštovní klient (Gmail, Outlook…) s už
-    vyplněným příjemcem, předmětem i textem — stačí stisknout Odeslat;
-  • po vyplnění „URL odesílací služby“ (rozbalovací část „Pokročilé“) posílá
-    aplikace objednávku na tuto adresu a e-mail odešle služba sama.
+- Položka „Jak odeslat“ nabízí dvě cesty:
+  • „Přímo e-mailem“ (výchozí) — objednávku odešle zdarma veřejná služba
+    FormSubmit.co a poštovní klient se vůbec neotevírá. Při prvním odeslání
+    dorazí na zadanou adresu aktivační e-mail; po kliknutí na odkaz v něm už
+    objednávky chodí rovnou. Text objednávky přitom projde servery této
+    služby — komu to nevyhovuje, ať použije vlastní odesílací službu (níže).
+  • „Otevřít poštovního klienta“ — otevře se Gmail/Outlook s vyplněným
+    příjemcem, předmětem i textem a zprávu odešlete tlačítkem Odeslat.
+- Kdo chce e-maily z vlastní domény, vyplní v „Pokročilé“ URL odesílací
+  služby — objednávka se pak posílá tam (POST s JSON) a tato adresa má
+  přednost před FormSubmit.co.
+- Když přímé odeslání neprojde (adresa ještě není potvrzená, není internet…),
+  aplikace to napíše a jako zálohu otevře poštovního klienta; text navíc
+  zkopíruje do schránky.
 - Odeslané objednávky se ukládají do seznamu (i do cloudu) včetně stavu;
   tlačítkem „📤 Znovu odeslat“ je možné objednávku poslat znovu,
   mazání je chráněné heslem správce.

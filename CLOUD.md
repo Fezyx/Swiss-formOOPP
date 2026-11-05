@@ -100,6 +100,11 @@ je zapnutá vždy (po každé změně, při startu, po návratu do aplikace a ka
     načíst.
   - Ruční úklid: Data → „☁ Cloud“ → „🧹 Uvolnit podpisy z tohoto zařízení“
     nahraje čekající podpisy do cloudu a z tohoto zařízení je smaže.
+  - Do stejné tabulky `oopp_sig` se ukládají i **fotky předávacích protokolů**
+    (nepovinné, nejvýš dvě) — pod klíči `p_{id}_photo1` a `p_{id}_photo2`.
+    Fungují stejně jako podpisy: po nahrání do cloudu se z dat zařízení uvolní
+    (zůstane jen značka „📷 2“) a při náhledu/tištění protokolu se stáhnou
+    do paměti. Tabulku proto není potřeba nijak rozšiřovat.
 - **Slučování** — u stejného záznamu vyhraje novější úprava (`updatedAt`).
 - **Bez vyskakovacích hlášek** — automatická synchronizace data jen tiše sloučí
   (žádná hláška „načtena data z jiného zařízení“). Výsledek je vidět v kartě
