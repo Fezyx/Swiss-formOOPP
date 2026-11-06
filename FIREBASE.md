@@ -9,6 +9,11 @@ po přihlášení emailem + heslem.
 Každé zařízení má navíc lokální kopii, takže se pracuje i bez internetu
 (změny se doplní po připojení).
 
+> **Cena:** stačí plán **Spark (zdarma)** — Firestore v něm dá 1 GiB dat,
+> 10 GiB přenosu měsíčně a 50 000 čtení / 20 000 zápisů denně. Platbu
+> (Blaze) zapínat nemusíte. Volný tarif Supabase je menší (500 MB databáze)
+> a projekt se po týdnu nečinnosti uspí, proto je Firebase výchozí volba.
+
 ## 1. Založení projektu Firebase
 
 > **Nové rozhraní Firebase (2025+)** má jiné menu než staré návody. Vlevo nahoře

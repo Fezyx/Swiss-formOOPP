@@ -1,12 +1,18 @@
-# Cloudová databáze (Supabase) — nastavení
+# Cloudová databáze (Supabase) — náhradní nastavení
 
 Aplikace OOPP umí mít společnou databázi v cloudu: tablet v dílně i počítač
 v kanceláři pak vidí **stejné zaměstnance, předměty, funkce/pozice, výdeje
 i obrázky podpisů**. Každé zařízení má navíc svou lokální kopii, takže se
 dá pracovat i bez internetu (změny se doplní po připojení).
 
-Doporučený poskytovatel: **Supabase** — zdarma, 500 MB databáze
-(1 podpis ≈ 8 kB, takže tisíce výdejů).
+**Doporučený poskytovatel je Firebase** — aplikace je na něj přednastavená
+a přihlašuje se jen emailem a heslem (návod `FIREBASE.md`). Tento soubor
+popisuje **náhradní variantu Supabase**, kdybyste Firebase nechtěli.
+
+Srovnání volných tarifů: **Firebase** (plán Spark) = 1 GiB dat, 10 GiB přenosu
+měsíčně, 50 000 čtení a 20 000 zápisů denně. **Supabase** zdarma = 500 MB
+databáze, 5 GB přenosu a projekt se po týdnu nečinnosti uspí. Pro tuto aplikaci
+(1 podpis ≈ 8 kB, fotka protokolu ≈ 100–200 kB) je proto výhodnější Firebase.
 
 ## 1. Založení projektu
 
@@ -148,9 +154,10 @@ je zapnutá vždy (po každé změně, při startu, po návratu do aplikace a ka
 | `new row violates row-level security` | chybí `create policy` — spusťte bod 2 znovu |
 | `Cloud není dostupný` | tablet/PC nemá internet, nebo je adresa projektu špatně |
 
-## 6. Jiní poskytovatelé
+## 6. Další poskytovatelé
 
-Aplikace umí i **JSONBin.io** (nejrychlejší nastavení, ale podpisy se vezou
+Kromě **Firebase** (doporučený, `FIREBASE.md`) a **Supabase** (tento soubor)
+umí aplikace i **JSONBin.io** (nejrychlejší nastavení, ale podpisy se vezou
 uvnitř dokumentu — větší přenosy) a **vlastní adresu** (firemní server,
 Google Apps Script), která musí umět `GET` (vrátí uložený JSON) a `PUT`
 (uloží JSON), povolit CORS a případný token přijímat jako
