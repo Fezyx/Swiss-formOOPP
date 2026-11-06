@@ -142,6 +142,15 @@ tr.clickable:hover{background:#eef3fa}
 .sig-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(20,38,66,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;z-index:60}
 .sig-overlay img{background:#fff;border-radius:10px;padding:10px;max-width:100%;max-height:62vh;object-fit:contain}
 .sig-overlay-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;color:#dce6f3;font-size:.85rem}
+/* Dodatečné doplnění podpisu k už uloženému výdeji — malý panel s plátnem. */
+.addsig-panel{background:#fff;border-radius:12px;padding:16px;width:100%;max-width:540px;box-shadow:0 18px 50px rgba(10,20,40,.35)}
+.addsig-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;color:#142642}
+.addsig-head strong{font-size:1rem}
+#addSigCanvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
+.addsig-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.addsig-actions .btn{flex:1 1 auto;justify-content:center}
+/* tlačítka pod sloupcem Podpis v kartě zaměstnance */
+.sig-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin-top:6px}
 .empty{padding:20px;text-align:center;color:#8fa0b6}
 .file-setup{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(20,38,66,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
 .file-setup-card{background:#fff;border-radius:14px;padding:22px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.32)}
@@ -240,6 +249,7 @@ tr.clickable:hover{background:#eef3fa}
   .issue-table{font-size:.84rem}
   .issue-table th,.issue-table td{padding:7px 4px}
   .sig-thumb{height:30px;max-width:64px}
+  #addSigCanvas{height:170px}
 }
 @media (max-width:400px){
   nav button{padding:11px 10px;font-size:.8rem}
@@ -891,6 +901,23 @@ tr.clickable:hover{background:#eef3fa}
     <div class="sig-overlay-bar">
       <span id="sigOverlayLabel"></span>
       <button class="btn light small" id="btnCloseSig">Zavřít</button>
+    </div>
+  </div>
+  <!-- Dodatečné doplnění podpisu: výdej, který se uložil bez podpisu, se dá
+       podepsat i později — podpis se uloží stejně jako při výdeji (do zařízení
+       jako „čeká na nahrání“, po synchronizaci zůstane „✔ podepsáno“). -->
+  <div class="sig-overlay hidden" id="addSigOverlay" role="dialog" aria-modal="true" aria-label="Doplnit podpis">
+    <div class="addsig-panel">
+      <div class="addsig-head">
+        <strong>✍ Doplnit podpis</strong>
+        <span class="sig-hint" id="addSigMeta"></span>
+      </div>
+      <div class="sig-box"><canvas id="addSigCanvas"></canvas></div>
+      <div class="addsig-actions">
+        <button class="btn" id="btnAddSigSave">Uložit podpis</button>
+        <button class="btn outline" id="btnAddSigClear">Vymazat</button>
+        <button class="btn light" id="btnAddSigCancel">Zrušit</button>
+      </div>
     </div>
   </div>
   <!-- Náhled předávacího protokolu: ukáže přesně tu A4, která se tiskne,
@@ -4135,11 +4162,21 @@ function renderEmployeeIssues(id, issues){
     // není v cloudu. Podpisy stažené z cloudu (náhled, tisk, PDF) procházejí jen
     // pamětí (sigCache) a do seznamu se nekreslí — tam zůstává fajfka „✔ podepsáno“.
     const sigData = issue.signature || '';
-    const sigCell = sigData
+    const sigMain = sigData
       ? '<img class="sig-thumb" src="' + sigData + '" alt="Podpis" title="Zobrazit podpis" data-sig="' + issue.id + '">'
       : (issue.hasSignature
           ? '<button class="btn outline small sig-ok" data-viewsig="' + issue.id + '" title="Podpis je v cloudu — klepnutím se načte">✔ podepsáno</button>'
           : '<span class="sig-hint">bez podpisu</span>');
+    // „Doplnit podpis“ — výdej uložený bez podpisu se dá podepsat i dodatečně
+    // (zaměstnanec si pro OOPP přišel později). „Smazat“ — mazání záznamu vidí
+    // jen přihlášený správce, stejně jako mazání zaměstnance v seznamu.
+    const sigActions = (!sigData && !issue.hasSignature
+        ? '<button class="btn outline small" data-addsig="' + issue.id + '" title="Dodatečně doplnit podpis k tomuto výdeji">✍ Doplnit podpis</button>'
+        : '') +
+      (isAdmin()
+        ? '<button class="btn danger small" data-delissue="' + issue.id + '" title="Smazat záznam (jen přihlášený správce)">🔒 Smazat</button>'
+        : '');
+    const sigCell = sigMain + (sigActions ? '<div class="sig-actions">' + sigActions + '</div>' : '');
     items.forEach(function(it, idx){
       rows += '<tr>';
       if(idx === 0){
@@ -4156,7 +4193,86 @@ function renderEmployeeIssues(id, issues){
   });
   box.innerHTML = '<table class="issue-table"><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>' +
     rows + '</tbody></table>' +
-    '<div class="sig-hint">Seřazeno od nejnovějšího. Podpisy jsou uložené v cloudu — klepnutím na ✔ se podpis načte a zvětší (v zařízení se neukládá).</div>';
+    '<div class="sig-hint">Seřazeno od nejnovějšího. Podpisy jsou uložené v cloudu — klepnutím na ✔ se podpis načte a zvětší (v zařízení se neukládá). ' +
+    'Výdej bez podpisu lze dodatečně podepsat tlačítkem „✍ Doplnit podpis“.' +
+    (isAdmin() ? ' Záznam jde smazat tlačítkem „🔒 Smazat“ — mazat může jen přihlášený správce.' : '') +
+    '</div>';
+}
+
+/* ---------- Dodatečné doplnění podpisu k výdeji ----------
+   Výdej se může uložit i bez podpisu (zaměstnanec si pro OOPP přišel později
+   nebo se podpis nepovedl). Podpis se pak dá doplnit přímo v kartě zaměstnance.
+   Ukládá se stejně jako podpis při výdeji: v zařízení zůstane jako „čeká na
+   nahrání“ a po nejbližší synchronizaci se nahraje do cloudu, tady po něm zbude
+   jen „✔ podepsáno“ (viz cloudSyncSignatures). */
+let addSigPad = null;          // plátno v panelu „Doplnit podpis“ (vytvoří se jednou)
+let addSigIssueId = null;      // kterému výdeji se podpis doplňuje
+
+function openAddSignature(issueId){
+  const issue = db.issues.find(function(i){ return i.id === issueId; });
+  if(!issue){ toast('Výdej nenalezen.'); return; }
+  if(issue.hasSignature || issue.signature){ toast('Tento výdej už podpis má.'); return; }
+  const overlay = document.getElementById('addSigOverlay');
+  if(!overlay) return;
+  addSigIssueId = issueId;
+  const meta = document.getElementById('addSigMeta');
+  if(meta) meta.textContent = (issue.employeeName || '') + ' • ' + formatDate(issue.date);
+  overlay.classList.remove('hidden');
+  if(!addSigPad) addSigPad = makeSigPad(document.getElementById('addSigCanvas'));
+  addSigPad.clear();
+  // Plátno má skutečné rozměry až ve chvíli, kdy je panel vidět.
+  addSigPad.resize();
+}
+
+function closeAddSignature(){
+  addSigIssueId = null;
+  const overlay = document.getElementById('addSigOverlay');
+  if(overlay) overlay.classList.add('hidden');
+  if(addSigPad) addSigPad.clear();      // rozepsaný podpis ať nezůstane v paměti
+}
+
+function saveAddedSignature(){
+  const issue = db.issues.find(function(i){ return i.id === addSigIssueId; });
+  if(!issue){ closeAddSignature(); return; }
+  const data = addSigPad ? addSigPad.getData() : '';
+  if(!data){ toast('Nejdřív se podepište do rámečku.'); return; }
+  const cfg = cloudConfig();
+  issue.signature = data;
+  issue.hasSignature = true;
+  issue.sigPending = true;                   // ještě není v cloudu → při synchronizaci se nahraje
+  issue.sigDevice = cfg.deviceId || '';
+  issue.sigAt = Date.now();
+  delete sigCache[issue.id];                 // starý náhled z paměti pryč
+  delete sigFetchTried[issue.id];
+  touchRec(issue);                           // novější změna vyhraje při sloučení
+  save();                                    // uloží a naplánuje synchronizaci s cloudem
+  closeAddSignature();
+  if(currentEmployeeId) refreshEmployeeDetail();
+  toast('Podpis doplněn.');
+}
+
+/* ---------- Smazání jednoho výdeje ----------
+   Tlačítko „🔒 Smazat“ v kartě zaměstnance vidí jen přihlášený správce (stejná
+   logika jako mazání zaměstnance). Smazání se zapíše jako tombstone, takže se
+   záznam při další synchronizaci nevrátí z jiného zařízení. */
+function deleteIssue(id){
+  const issue = db.issues.find(function(i){ return i.id === id; });
+  if(!issue) return;
+  if(!isAdmin()){ toast('Záznam může smazat jen přihlášený správce.'); return; }
+  const items = (issue.items || []).map(function(it){
+    return (it.name || '') + ' ' + (it.qty == null ? '' : it.qty);
+  }).join(', ');
+  if(!confirm('Smazat záznam výdeje z ' + formatDate(issue.date) + (items ? ' (' + items + ')' : '') +
+    '?\n\nZáznam zmizí z karty zaměstnance, z knížky i ze spotřeby.')) return;
+  db.issues = (db.issues || []).filter(function(i){ return i.id !== id; });
+  markDeleted('issues', id);
+  save();
+  delete sigCache[id];
+  delete sigFetchTried[id];
+  if(currentEmployeeId) refreshEmployeeDetail();
+  try{ renderDataInfo(); }catch(e){}
+  try{ renderConsumption(); }catch(e){}
+  toast('Záznam smazán.');
 }
 
 function showSignature(issueId){
@@ -6647,7 +6763,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v52';
+const APP_VERSION = 'v53';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -7208,6 +7324,18 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   document.getElementById('btnCloseSig').addEventListener('click', hideSignature);
+  // Panel „Doplnit podpis“: uložit / vymazat / zrušit + klik na tmavé pozadí.
+  const addSigOverlayEl = document.getElementById('addSigOverlay');
+  if(addSigOverlayEl){
+    addSigOverlayEl.addEventListener('click', function(e){
+      if(e.target === addSigOverlayEl) closeAddSignature();
+    });
+    document.getElementById('btnAddSigSave').addEventListener('click', saveAddedSignature);
+    document.getElementById('btnAddSigClear').addEventListener('click', function(){
+      if(addSigPad) addSigPad.clear();
+    });
+    document.getElementById('btnAddSigCancel').addEventListener('click', closeAddSignature);
+  }
   // Náhled protokolu: tlačítka v liště náhledu, klik na tmavé pozadí a Esc.
   const protoPreviewEl = document.getElementById('protoPreview');
   if(protoPreviewEl){
@@ -7224,6 +7352,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(e.key !== 'Escape') return;
     const prev = document.getElementById('protoPreview');
     if(prev && !prev.classList.contains('hidden')){ closeProtocolPreview(); return; }
+    const addSig = document.getElementById('addSigOverlay');
+    if(addSig && !addSig.classList.contains('hidden')){ closeAddSignature(); return; }
     hideSignature();
   });
 
@@ -7305,6 +7435,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if(sigImg){ showSignature(sigImg.dataset.sig); return; }
     const viewSigBtn = e.target.closest('button[data-viewsig]');
     if(viewSigBtn){ viewSignature(viewSigBtn.dataset.viewsig); return; }
+    const addSigBtn = e.target.closest('button[data-addsig]');
+    if(addSigBtn){ openAddSignature(addSigBtn.dataset.addsig); return; }
+    const delIssueBtn = e.target.closest('button[data-delissue]');
+    if(delIssueBtn){ deleteIssue(delIssueBtn.dataset.delissue); return; }
     const empRow = e.target.closest('tr[data-open]');
     if(empRow){ openEmployeeDetail(empRow.dataset.open); return; }
     const editItemBtn = e.target.closest('button[data-edititem]');

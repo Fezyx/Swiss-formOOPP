@@ -328,6 +328,28 @@ Knížka OOPP zaměstnance
 - Smazání se pamatuje i pro cloud, takže se záznam z jiného zařízení
   nevrátí.
 
+Doplnění podpisu k už uloženému výdeji
+- Když se výdej uloží bez podpisu (zaměstnanec si pro OOPP přišel později,
+  podpis se nepovedl), jde podpis doplnit kdykoli později — v kartě
+  zaměstnance u výdeje klepněte na „✍ Doplnit podpis".
+- Otevře se podpisový rámeček s datem a jménem. Zaměstnanec se podepíše
+  prstem/myší a dá „Uložit podpis". Tlačítko „Vymazat" podpis smaže
+  a začne se znovu, „Zrušit" (nebo Esc) panel zavře bez uložení.
+- Podpis se ukládá úplně stejně jako při výdeji: v zařízení zůstane, dokud
+  se nenahraje do cloudu, a pak po něm zbývá zelená fajfka „✔ podepsáno".
+  V knížce, PDF i na tisku se objeví jako každý jiný podpis.
+- Tlačítko „✍ Doplnit podpis" je vidět jen u výdeje, který podpis nemá.
+
+Smazání záznamu výdeje (jen přihlášený správce)
+- U každého výdeje v kartě zaměstnance je tlačítko „🔒 Smazat" — vidí ho
+  JEN přihlášený správce (stejné pravidlo jako u „Upravit"/„Smazat"
+  u zaměstnance). Nepřihlášené zařízení tlačítko vůbec neukáže.
+- Před smazáním se aplikace vždy zeptá (datum + co se vydalo). Smazaný
+  záznam zmizí z karty zaměstnance, z knížky, z PDF i ze spotřeby
+  předmětů — pozor, jde o nevratnou změnu.
+- Smazání se pamatuje i pro cloud (tombstone), takže se záznam z jiného
+  zařízení při synchronizaci nevrátí.
+
 Sdílení knížky (WhatsApp, e-mail, SMS)
 - Na kartě zaměstnance je vedle „Tisk knížky“ tlačítko „📤 Sdílet“.
   Vygeneruje stejnou knížku jako tisk (evidenční list + listy výdejů
