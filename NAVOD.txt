@@ -303,12 +303,22 @@ Knížka OOPP zaměstnance
 - Životnost předmětu se vybírá v záložce Předměty: „14 dní / dle potřeby"
   (rukavice, respirátory), 1/3/6/12/24/36 měsíců, nebo „vlastní…".
 
-Mazání zaměstnance
+Úpravy a mazání zaměstnance (jen přihlášený správce)
+- Tlačítka „Upravit" a „🔒 Smazat" jsou u zaměstnance v seznamu vidět
+  JEN přihlášenému správci. Přihlášení: Záložka Data (nebo Předměty) →
+  uživatel a heslo správce; přihlášení drží do odhlášení (tlačítko
+  „Odhlásit" v hlavičce).
+- Nepřihlášené zařízení vidí seznam i výdeje, ale bez tlačítek „Upravit"
+  a „Smazat" — pod hledáním je na to upozornění. Po přihlášení se tlačítka
+  hned objeví (a po odhlášení zase zmizí, rozeditovaný formulář se zruší).
+- Přidávat nové zaměstnance (formulář „Přidat zaměstnance") jde i bez
+  přihlášení.
 - Mazat smí jen správce (heslo admin) a aplikace se PŘED SMAZÁNÍM vždy
   zeptá na potvrzení.
 - Tlačítko „🔒 Smazat" je u zaměstnance v seznamu (Záložka Zaměstnanci →
-  napsat jméno do hledání) a nově i přímo na kartě otevřeného zaměstnance
-  („🗑 Smazat" vedle Exportu a Tisku).
+  napsat jméno do hledání) a na kartě otevřeného zaměstnance
+  („🗑 Smazat" vedle Exportu a Tisku) — obojí se ukáže jen přihlášenému
+  správci.
 - Zaměstnance, který má výdeje, smazat taky jde. Nejdřív se potvrdí
   smazání osoby a pak se aplikace ještě jednou zeptá na jeho výdeje:
   • „OK" = smažou se i záznamy o výdeji (evidence se nevratně ztratí),

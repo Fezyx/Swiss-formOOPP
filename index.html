@@ -430,7 +430,7 @@ tr.clickable:hover{background:#eef3fa}
         <h2>Seznam zaměstnanců</h2>
         <p class="desc">Klepněte na zaměstnance — otevře se jeho tabulka: datum, co a kolik převzal, včetně uloženého podpisu.</p>
         <input type="text" id="empFilter" placeholder="Hledat jméno, osobní číslo nebo funkci..." inputmode="search" enterkeyhint="search">
-        <div class="sig-hint" style="margin-top:6px">Začněte psát — seznam se zobrazí podle hledání. Mazání zaměstnance je chráněné heslem správce.</div>
+        <div class="sig-hint" id="empListHint" style="margin-top:6px">Začněte psát — seznam se zobrazí podle hledání. Mazání zaměstnance je chráněné heslem správce.</div>
         <div id="employeeList" class="hidden" style="margin-top:14px"></div>
       </div>
       <div class="card" id="empAddCard">
@@ -1757,6 +1757,12 @@ function updateAdminUI(){
   if(badge) badge.classList.toggle('hidden', !isAdmin());
   updateOrdersVisibility();
   updateItemsVisibility();
+  // Přihlášení/odhlášení hned překreslí seznam zaměstnanců — tlačítka
+  // „Upravit“ a „Smazat“ vidí jen přihlášený správce. Rozeditovaný formulář
+  // se po odhlášení zruší, aby se změny nedaly uložit bez přihlášení.
+  if(!isAdmin() && editingEmployeeId) resetEmployeeForm();
+  try{ renderEmployees(); }catch(e){}
+  if(currentEmployeeId){ try{ refreshEmployeeDetail(); }catch(e){} }
 }
 
 // Záložka Objednávky: v menu se ukáže jen přihlášenému správci. Kdyby na ní
@@ -1979,6 +1985,17 @@ function renderEmployees(){
   const list = document.getElementById('employeeList');
   const filterEl = document.getElementById('empFilter');
   const filter = (filterEl && filterEl.value ? filterEl.value : '').trim();
+  // Úpravy a mazání smí jen přihlášený správce (isAdmin) — nepřihlášenému se
+  // tlačítka vůbec nekreslí (ani sloupec s nimi, aby tabulka zůstala zarovnaná).
+  const admin = isAdmin();
+
+  // Nápověda pod hledáním se mění podle toho, jestli je správce přihlášený.
+  const hintEl = document.getElementById('empListHint');
+  if(hintEl){
+    hintEl.textContent = 'Začněte psát — seznam se zobrazí podle hledání. ' + (admin
+      ? 'Jako přihlášený správce můžete zaměstnance upravovat i mazat (mazání se ještě potvrzuje).'
+      : 'Tlačítka „Upravit“ a „Smazat“ se zobrazí po přihlášení správce.');
+  }
 
   if(db.employees.length === 0){
     list.classList.remove('hidden');
@@ -1997,7 +2014,8 @@ function renderEmployees(){
     list.innerHTML = '<div class="empty">Nic nenalezeno.</div>';
     return;
   }
-  list.innerHTML = '<table><thead><tr><th>Jméno</th><th class="opt">Funkce</th><th class="opt">Výdejů</th><th class="opt"></th><th></th></tr></thead><tbody>' +
+  list.innerHTML = '<table><thead><tr><th>Jméno</th><th class="opt">Funkce</th><th class="opt">Výdejů</th><th class="opt"></th>' +
+    (admin ? '<th></th>' : '') + '</tr></thead><tbody>' +
     rows.map(function(e){
       const count = db.issues.filter(function(i){ return i.employeeId === e.id; }).length;
       return '<tr class="clickable" data-open="' + e.id + '" title="Zobrazit výdeje">' +
@@ -2006,9 +2024,12 @@ function renderEmployees(){
         '<div class="sig-hint only-mobile">▸ ' + count + ' ' + czPlural(count, 'výdej', 'výdeje', 'výdejů') + '</div>' +
         '</td><td class="opt">' + escapeHtml(employeeFunctionName(e) || '—') + '</td><td class="opt">' + count + '</td>' +
         '<td class="opt" style="text-align:right;white-space:nowrap;color:#5b6b83">▸</td>' +
-        '<td style="text-align:right;white-space:nowrap">' +
-        '<button class="btn outline small" data-edit="' + e.id + '">Upravit</button> ' +
-        '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (jen správce, s potvrzením)">🔒 Smazat</button></td></tr>';
+        (admin
+          ? '<td style="text-align:right;white-space:nowrap">' +
+            '<button class="btn outline small" data-edit="' + e.id + '">Upravit</button> ' +
+            '<button class="btn danger small" data-del="' + e.id + '" title="Smazat (jen správce, s potvrzením)">🔒 Smazat</button></td>'
+          : '') +
+        '</tr>';
     }).join('') + '</tbody></table>';
 }
 
@@ -2057,6 +2078,13 @@ function addEmployee(){
 }
 
 function editEmployee(id){
+  // Pojistka: úpravy smí jen přihlášený správce (tlačítko „Upravit“ se
+  // nepřihlášenému vůbec nekreslí, tohle kryje starší vykreslený seznam).
+  if(!isAdmin()){
+    toast('Úpravy zaměstnanců může dělat jen přihlášený správce.');
+    renderEmployees();
+    return;
+  }
   const e = db.employees.find(function(x){ return x.id === id; });
   if(!e) return;
   editingEmployeeId = id;
@@ -4025,6 +4053,10 @@ function closeEmployeeDetail(){
 function refreshEmployeeDetail(){
   const e = db.employees.find(function(x){ return x.id === currentEmployeeId; });
   if(!e){ closeEmployeeDetail(); return; }
+  // Mazání z karty zaměstnance vidí jen přihlášený správce (stejně jako
+  // tlačítko „Smazat“ v seznamu).
+  const delBtn = document.getElementById('btnDeleteEmp');
+  if(delBtn) delBtn.classList.toggle('hidden', !isAdmin());
   const issues = issuesForEmployee(e.id);
   const itemCount = issues.reduce(function(n, i){ return n + ((i.items && i.items.length) || 0); }, 0);
   const meta = [];
@@ -6615,7 +6647,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v51';
+const APP_VERSION = 'v52';
 let installPromptEvent = null;
 
 function isAppStandalone(){
