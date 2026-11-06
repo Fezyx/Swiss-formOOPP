@@ -1,7 +1,7 @@
-﻿/* Service worker â€” offline reĹľim aplikace Evidence OOPP.
-   Data se uklĂˇdajĂ­ do zaĹ™Ă­zenĂ­ (localStorage / soubor) a volitelnÄ› do cloudu
+/* Service worker — offline režim aplikace Evidence OOPP.
+   Data se ukládají do zařízení (localStorage / soubor) a volitelně do cloudu
    (Firebase), tady se cachuje jen aplikace. */
-const CACHE = 'oopp-app-v54';
+const CACHE = 'oopp-app-v56';
 const ASSETS = [
   './',
   './index.html',
@@ -53,7 +53,7 @@ self.addEventListener('fetch', function (event) {
   try { url = new URL(request.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;
 
-  // U otevĹ™enĂ­ aplikace zkusit sĂ­ĹĄ (aby se projevily novĂ© verze), jinak pamÄ›ĹĄ.
+  // U otevření aplikace zkusit síť (aby se projevily nové verze), jinak paměť.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)

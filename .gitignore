@@ -21,3 +21,8 @@ android/local.properties
 android/.idea/
 android/captures/
 *.iml
+
+# --- Testovací kopie stránky ---
+# Při vývoji se z index.html generují dočasné kopie s testy (__t-fn.html apod.);
+# do repa ani na server nepatří.
+__t-*.html

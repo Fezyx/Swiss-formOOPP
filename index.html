@@ -272,8 +272,8 @@ tr.clickable:hover{background:#eef3fa}
 .bk-main thead th{font-size:8pt;height:8mm;vertical-align:middle;text-align:center}
 .bk-main tbody td{height:6mm}
 /* změna funkce na evidenčním listu = další blok tabulky (datum změny + nová
-   funkce + nárok z ní); silnější linka bloky oddělí, popisek je drobný */
-.bk-main tr.bk-chg td{border-top:1.5px solid #000}
+   funkce + nárok z ní); tlustá linka + mezera bloky oddělí, popisek je drobný */
+.bk-main tr.bk-chg td{border-top:3px solid #000;padding-top:1.4mm}
 .bk-sub{display:block;font-size:6.8pt;font-style:italic;line-height:1.1;margin-top:.3mm}
 /* listy s výdejem */
 .bk-sheet-title{font-size:12pt;font-weight:700;text-align:center;margin:0 0 2mm;padding:0;color:#000}
@@ -283,7 +283,7 @@ tr.clickable:hover{background:#eef3fa}
 .bk-list tbody td{height:7.3mm;padding:.8mm 1.2mm;font-size:7.8pt}
 .bk-list td.bk-date{text-align:center;vertical-align:middle;white-space:nowrap}
 .bk-list td.bk-sig{vertical-align:middle}
-.bk-list td.bk-sig img{max-height:5mm;max-width:100%;display:block;margin:0 auto}
+.bk-list td.bk-sig img{max-height:5.5mm;max-width:100%;display:block;margin:0 auto}
 .bk-list th.bk-mid,.bk-list td.bk-mid{border-left:2px solid #000}
 .bk-foot{position:absolute;left:12mm;right:12mm;bottom:6mm;display:flex;justify-content:space-between;gap:6mm;font-size:7.5pt;color:#333;border-top:1px solid #666;padding-top:1mm}
 /* ---- Předávací protokol: tisková podoba A4 s logem a podpisy ---- */
@@ -1095,7 +1095,12 @@ function sigCacheClear(issueIds){
     if(sigCache[id]) had = true;
     delete sigCache[id];
     delete sigFetchTried[id];
+    delete sigInkJobs['i_' + id];      // i zesílená kopie pro tisk
   });
+  // úplné vyčištění (po tisku, při startu) zahodí i podpisy protokolů
+  if(!issueIds){
+    Object.keys(sigInkJobs).forEach(function(k){ delete sigInkJobs[k]; });
+  }
   // Obrázky se stáhly jen do paměti, ale v tabulce už byly nakreslené. Po uvolnění
   // je potřeba seznam překreslit — jinak tam obrázek zůstane viset a vypadá to,
   // jako by podpisy byly uložené v zařízení. Správně se zase ukáže „✔ podepsáno“.
@@ -1108,6 +1113,136 @@ function sigCacheClear(issueIds){
 function sigCacheScheduleClear(ms){
   clearTimeout(sigCacheTimer);
   sigCacheTimer = setTimeout(function(){ sigCacheClear(); }, ms || 120000);
+}
+
+/* ---------- Sytost podpisu na papíře ----------
+   Podpis se v knížce tiskne do buňky vysoké jen 5 mm. Tenký tah stylusu je
+   nakreslený anti-aliasingem, takže po zmenšení na 5 mm z něj zůstane světle
+   šedá šmouha — na papíře skoro nic vidět není. Podpis se proto při ukládání
+   ořízne na skutečný obsah (bílé okraje pryč → tahy jsou v buňce větší),
+   střední šedé se ztmaví (víc inkoustu) a uloží se jako PNG, protože ztrátová
+   JPEG komprese tenké tahy rozpadá. Starší podpisy (JPEG z cloudu) se stejnou
+   úpravou proženou jen v paměti před tiskem — uložená data se nemění. */
+const SIG_PAPER = 248;       // světlejší pixel = papír (do ořezu se nepočítá)
+const SIG_INK_MIN = 18;      // tmavost, od které už je pixel papír (i šum JPEG)
+const SIG_INK_GAMMA = 0.45;  // < 1 = sytější (tmavší) tahy
+const SIG_INK_GAIN = 1.25;   // mírné přidání inkoustu
+const SIG_OUT_W = 760;       // max. šířka ukládaného podpisu (px)
+const SIG_OUT_H = 240;       // max. výška — poměr stran se zachová
+const sigInkJobs = {};       // klíč → {promise, value}; jen paměť (pro tisk)
+
+function sigLum(r, g, b){
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+// Ořízne podpis na skutečný obsah a ztmaví tahy. Vrací PNG dataURL,
+// u prázdného podpisu ''. Zdroj může být canvas i načtený obrázek.
+function sigInkDataUrl(source, srcW, srcH){
+  if(!source) return '';
+  const sW = Math.max(1, Math.round(srcW || source.width || 0));
+  const sH = Math.max(1, Math.round(srcH || source.height || 0));
+  const fit = Math.min(1, 800 / sW);
+  const w = Math.max(1, Math.round(sW * fit));
+  const h = Math.max(1, Math.round(sH * fit));
+  const base = document.createElement('canvas');
+  base.width = w;
+  base.height = h;
+  const bctx = base.getContext('2d');
+  bctx.fillStyle = '#fff';               // průhledná část podpisu = papír
+  bctx.fillRect(0, 0, w, h);
+  bctx.drawImage(source, 0, 0, w, h);
+  const bdata = bctx.getImageData(0, 0, w, h).data;
+  // obdélník se skutečnými tahy podpisu
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for(let y = 0; y < h; y++){
+    const row = y * w;
+    for(let x = 0; x < w; x++){
+      const i = (row + x) * 4;
+      if(sigLum(bdata[i], bdata[i + 1], bdata[i + 2]) < SIG_PAPER){
+        if(x < minX) minX = x;
+        if(x > maxX) maxX = x;
+        if(y < minY) minY = y;
+        if(y > maxY) maxY = y;
+      }
+    }
+  }
+  if(maxX < 0) return '';                // prázdný podpis — není co tisknout
+  // malý okraj, aby tah nekončil přesně na hraně obrázku
+  const padX = Math.max(2, Math.round((maxX - minX + 1) * 0.03));
+  const padY = Math.max(2, Math.round((maxY - minY + 1) * 0.08));
+  const cx = Math.max(0, minX - padX);
+  const cy = Math.max(0, minY - padY);
+  const cw = Math.min(w, maxX + padX + 1) - cx;
+  const ch = Math.min(h, maxY + padY + 1) - cy;
+  const k = Math.min(1, SIG_OUT_W / cw, SIG_OUT_H / ch);
+  const outW = Math.max(1, Math.round(cw * k));
+  const outH = Math.max(1, Math.round(ch * k));
+  const out = document.createElement('canvas');
+  out.width = outW;
+  out.height = outH;
+  const octx = out.getContext('2d');
+  octx.fillStyle = '#fff';
+  octx.fillRect(0, 0, outW, outH);
+  octx.drawImage(base, cx, cy, cw, ch, 0, 0, outW, outH);
+  // ztmavení: z „množství inkoustu“ udělá sytější tah (okraje zůstanou hladké)
+  const odata = octx.getImageData(0, 0, outW, outH);
+  const px = odata.data;
+  for(let i = 0; i < px.length; i += 4){
+    const ink = 255 - sigLum(px[i], px[i + 1], px[i + 2]);
+    if(ink <= SIG_INK_MIN){ px[i] = px[i + 1] = px[i + 2] = 255; continue; }
+    const t = (ink - SIG_INK_MIN) / (255 - SIG_INK_MIN);
+    const dark = Math.min(1, Math.pow(t, SIG_INK_GAMMA) * SIG_INK_GAIN);
+    const v = Math.round(255 - 255 * dark);
+    px[i] = px[i + 1] = px[i + 2] = v;
+  }
+  octx.putImageData(odata, 0, 0);
+  return out.toDataURL('image/png');
+}
+
+// Už zesílený podpis (PNG z této verze) se znovu neupravuje; starší JPEG ano.
+function sigInkNeeds(dataUrl){
+  return !!dataUrl && dataUrl.indexOf('data:image/png') !== 0;
+}
+
+// Zesílení existujícího podpisu jen v paměti (data v cloudu zůstanou stejná).
+function sigInkPrepare(dataUrl, key){
+  if(!sigInkNeeds(dataUrl) || !key) return Promise.resolve();
+  if(sigInkJobs[key]) return sigInkJobs[key].promise;
+  const job = {value: '', promise: null};
+  job.promise = new Promise(function(resolve){
+    const img = new Image();
+    img.onload = function(){
+      try{ job.value = sigInkDataUrl(img, img.naturalWidth, img.naturalHeight) || ''; }
+      catch(e){ job.value = ''; }
+      resolve();
+    };
+    img.onerror = function(){ resolve(); };
+    img.src = dataUrl;
+  });
+  sigInkJobs[key] = job;
+  return job.promise;
+}
+
+function sigInkGet(key){
+  const job = key ? sigInkJobs[key] : null;
+  return (job && job.value) || '';
+}
+
+// Podpis pro tisk: zesílený (když je dopočítaný), jinak původní.
+function sigForPrint(issue){
+  return sigInkGet(issue && issue.id ? 'i_' + issue.id : '') || sigFor(issue);
+}
+
+// Připraví (zesílí) všechny podpisy jednoho zaměstnance před tiskem / PDF.
+async function sigInkPrepareForEmployee(employeeId){
+  const jobs = [];
+  (db.issues || []).forEach(function(i){
+    if(!i || i.employeeId !== employeeId) return;
+    const data = sigFor(i);
+    if(data) jobs.push(sigInkPrepare(data, 'i_' + i.id));
+  });
+  if(jobs.length) await Promise.all(jobs);
+  return jobs.length;
 }
 
 // Každá změna záznamu musí mít updatedAt — jinak by při sloučení mohl starý
@@ -1231,6 +1366,76 @@ function normGenericText(s){
   return text.normalize ? text.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : text;
 }
 
+/* ---------- Oprava „překódované“ diakritiky ----------
+   Někdy se text uložil tak, že se bajty UTF-8 přečetly jako jednobajtová
+   znaková sada: „Montérky“ pak vypadá jako „MontÃ©rky“ a „Trička“ jako
+   „TriÄka“. Opraví se jen řetězec, který se dá bezpečně převést zpět — text,
+   který je v pořádku, zůstane beze změny. */
+// Přímé bajty: co znak, to jeden bajt (UTF-8 přečtené jako Latin-1 / Windows-1252).
+function latin1Bytes(text){
+  const out = new Uint8Array(text.length);
+  for(let i = 0; i < text.length; i++){
+    const code = text.charCodeAt(i);
+    if(code > 0xFF) return null;
+    out[i] = code;
+  }
+  return out;
+}
+// Bajty podle Windows-1250 (česká Windows) — pokryje i rozbité znaky nad U+00FF.
+let _cp1250Map;
+function cp1250ByteMap(){
+  if(_cp1250Map !== undefined) return _cp1250Map;
+  _cp1250Map = null;
+  try{
+    const dec = new TextDecoder('windows-1250');
+    const map = {};
+    for(let b = 0; b < 256; b++){
+      const ch = dec.decode(new Uint8Array([b]));
+      if(ch && map[ch] === undefined) map[ch] = b;
+    }
+    _cp1250Map = map;
+  }catch(e){ _cp1250Map = null; }
+  return _cp1250Map;
+}
+function cp1250Bytes(text){
+  const map = cp1250ByteMap();
+  if(!map) return null;
+  const out = new Uint8Array(text.length);
+  for(let i = 0; i < text.length; i++){
+    const b = map[text.charAt(i)];
+    if(b === undefined) return null;
+    out[i] = b;
+  }
+  return out;
+}
+// Vrátí opravený text, nebo null (text rozbitý není / opravit ho nelze).
+function decodeUtf8Strict(text){
+  if(!text || typeof TextDecoder === 'undefined') return null;
+  const readers = [latin1Bytes, cp1250Bytes];
+  for(let i = 0; i < readers.length; i++){
+    const bytes = readers[i](text);
+    if(!bytes) continue;
+    try{
+      const decoded = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+      if(decoded && decoded !== text) return decoded;
+    }catch(e){}
+  }
+  return null;
+}
+// „MontÃ©rky“ → „Montérky“; co rozbité není (nebo opravit nelze), zůstane jak je.
+function fixMojibake(s){
+  const text = String(s == null ? '' : s);
+  // rozbitý text vždy obsahuje „Â“, „Ã“, „Ä“ nebo „Å“ — v češtině se jinak nepotká
+  if(!/[\u00c2-\u00c5\u0102\u0139]/.test(text)) return text;
+  const whole = decodeUtf8Strict(text);
+  if(whole != null) return whole;
+  // smíšený text (část správně, část rozbitá) → opravit po slovech
+  return text.replace(/\S+/g, function(word){
+    const fixed = decodeUtf8Strict(word);
+    return fixed == null ? word : fixed;
+  });
+}
+
 // Obecný název pro „má nárok“: „Nitrilové rukavice letní“ → „Rukavice“.
 // Co v seznamu typů není (např. „Ochranný krém“), zůstane celé.
 function genericClaimName(name){
@@ -1252,11 +1457,12 @@ function genericClaimName(name){
 function normalizeClaim(c){
   if(c == null) return null;
   const isText = typeof c === 'string';
-  const raw = isText ? c : String(c.name || '');
+  // název mohl v datech zůstat „překódovaný“ („MontÃ©rky“) → opraví se hned při čtení
+  const raw = fixMojibake(isText ? c : String(c.name || ''));
   const trimmed = raw.replace(/\s+/g, ' ').trim();
   if(!trimmed) return null;
   const name = genericClaimName(trimmed) || trimmed;
-  let lifetime = isText ? '' : String(c.lifetime || '').replace(/\s+/g, ' ').trim();
+  let lifetime = isText ? '' : fixMojibake(String(c.lifetime || '')).replace(/\s+/g, ' ').trim();
   if(!lifetime){
     const it = itemByName(name);
     lifetime = it ? lifetimeLabel(it) : genericClaimLifetime(name);
@@ -1332,8 +1538,8 @@ function employeeFunction(e){
 
 function employeeFunctionName(e){
   const fn = employeeFunction(e);
-  if(fn) return fn.name;
-  return (e && e.department) ? String(e.department).trim() : '';
+  if(fn) return fixMojibake(fn.name);
+  return (e && e.department) ? fixMojibake(String(e.department).trim()) : '';
 }
 
 // Životnost předmětu → text do tabulky i tisku.
@@ -1463,8 +1669,9 @@ function employeeEntitlement(e, issues){
       (issue.items || []).forEach(function(row){
         if(!row || !row.name) return;
         // i náhradní řádky z výdejů se slučují na obecné položky (jedny Rukavice)
-        const name = genericClaimName(row.name) || row.name;
-        const it = itemByName(row.name);
+        const rowName = fixMojibake(row.name);
+        const name = genericClaimName(rowName) || rowName;
+        const it = itemByName(rowName);
         push(name, it ? lifetimeLabel(it) : genericClaimLifetime(name));
       });
     });
@@ -1500,8 +1707,8 @@ function functionClaimsFor(functionId, fallback){
   const fn = functionById(functionId);
   if(fn) return functionClaimsSnapshot(fn);
   return (Array.isArray(fallback) ? fallback : []).map(function(c){
-    return {name: String((c && c.name) || '').trim(),
-            lifetime: String((c && c.lifetime) || '').trim()};
+    return {name: fixMojibake(String((c && c.name) || '')).trim(),
+            lifetime: fixMojibake(String((c && c.lifetime) || '')).trim()};
   }).filter(function(c){ return c.name; });
 }
 
@@ -1553,6 +1760,51 @@ function migrateFunctions(){
     }
     e.functionId = fn.id;
     changed = true;
+  });
+  return changed;
+}
+
+// Pročistí uložená data od „překódovaných“ textů (starší verze, import, cloud).
+// Vrací true, když se něco opravilo — volající pak data uloží (a tím i sesynchronizuje).
+function repairMojibakeData(){
+  let changed = false;
+  const fixText = function(holder, key){
+    if(!holder || typeof holder[key] !== 'string') return;
+    const before = holder[key];
+    const after = fixMojibake(before);
+    if(after !== before){ holder[key] = after; changed = true; }
+  };
+  const fixClaims = function(list){
+    if(!Array.isArray(list)) return;
+    list.forEach(function(c){
+      if(!c || typeof c !== 'object') return;
+      fixText(c, 'name');
+      fixText(c, 'lifetime');
+    });
+  };
+  (db.functions || []).forEach(function(f){
+    fixText(f, 'name');
+    fixClaims(f && f.claims);
+  });
+  (db.items || []).forEach(function(it){
+    fixText(it, 'name');
+  });
+  (db.issues || []).forEach(function(issue){
+    if(!issue || !Array.isArray(issue.items)) return;
+    issue.items.forEach(function(row){ fixText(row, 'name'); });
+  });
+  (db.employees || []).forEach(function(e){
+    fixText(e, 'name');
+    fixText(e, 'department');
+    fixText(e, 'note');
+    fixClaims(e && e.claims);
+    if(Array.isArray(e && e.functionHistory)) e.functionHistory.forEach(function(h){
+      if(!h || typeof h !== 'object') return;
+      fixText(h, 'functionName');
+      fixText(h, 'fromFunctionName');
+      fixClaims(h.claims);
+      fixClaims(h.fromClaims);
+    });
   });
   return changed;
 }
@@ -1742,7 +1994,7 @@ function resizeSignature(){
   sigCanvas.width = Math.round(rect.width * dpr);
   sigCanvas.height = Math.round(rect.height * dpr);
   sigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  sigCtx.lineWidth = 2.2;
+  sigCtx.lineWidth = 2.4;
   sigCtx.lineCap = 'round';
   sigCtx.lineJoin = 'round';
   sigCtx.strokeStyle = '#231f20';
@@ -1789,6 +2041,12 @@ function clearSignature(){
 
 function getSignatureData(){
   if(!sigHasContent) return '';
+  // Podpis se ořízne na tahy a ztmaví (PNG) — na papíře je pak sytě vidět.
+  // Kdyby cokoli selhalo, použije se původní cesta (JPEG).
+  try{
+    const png = sigInkDataUrl(sigCanvas, sigCanvas.width, sigCanvas.height);
+    if(png) return png;
+  }catch(e){}
   const scale = Math.min(1, 800 / sigCanvas.width);
   const w = Math.max(1, Math.round(sigCanvas.width * scale));
   const h = Math.max(1, Math.round(sigCanvas.height * scale));
@@ -3172,7 +3430,7 @@ function makeSigPad(canvas){
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#231f20';
@@ -3215,6 +3473,11 @@ function makeSigPad(canvas){
   }
   function getData(){
     if(!hasContent) return '';
+    // Stejná úprava jako u podpisu výdeje: ořez na tahy + ztmavení (PNG).
+    try{
+      const png = sigInkDataUrl(canvas, canvas.width, canvas.height);
+      if(png) return png;
+    }catch(e){}
     const scale = Math.min(1, 800 / canvas.width);
     const w = Math.max(1, Math.round(canvas.width * scale));
     const h = Math.max(1, Math.round(canvas.height * scale));
@@ -3666,13 +3929,29 @@ async function protocolSigs(p){
   };
 }
 
+// Podpisy protokolu pro tisk: starší (JPEG) se ztmaví jen v paměti, aby byly
+// na papíře sytě vidět. Uložená data protokolu se nemění.
+async function protocolSigsInk(p, s){
+  const keyFrom = 'p_' + p.id + '_from';
+  const keyTo = 'p_' + p.id + '_to';
+  await Promise.all([
+    sigInkPrepare(s.sigFrom, keyFrom),
+    sigInkPrepare(s.sigTo, keyTo)
+  ]);
+  return {
+    sigFrom: sigInkGet(keyFrom) || s.sigFrom,
+    sigTo: sigInkGet(keyTo) || s.sigTo
+  };
+}
+
 async function printProtocol(id){
   const p = db.protocols.find(function(x){ return x.id === id; });
   if(!p) return;
   const s = await protocolSigs(p);
+  const ink = await protocolSigsInk(p, s);
   const area = document.getElementById('printArea');
   area.className = 'print-area booklet';
-  area.innerHTML = buildProtocolPage(p, s.sigFrom, s.sigTo, s.missingFrom, s.missingTo, s.photos);
+  area.innerHTML = buildProtocolPage(p, ink.sigFrom, ink.sigTo, s.missingFrom, s.missingTo, s.photos);
   sigMissingNote((s.missingFrom ? 1 : 0) + (s.missingTo ? 1 : 0));
   protoMissingPhotosNote(s.missingPhotos);
   printWhenReady(area);
@@ -3719,9 +3998,11 @@ async function previewProtocol(id){
   overlay.classList.remove('hidden');
   const s = await protocolSigs(p);
   if(protoPreviewId !== id) return;            // mezitím se náhled zavřel
+  const ink = await protocolSigsInk(p, s);
+  if(protoPreviewId !== id) return;
   document.getElementById('protoPreviewTitle').textContent =
     'Předávací protokol · ' + formatDate(p.date) + ' · ' + (p.fromName || '') + ' → ' + (p.toName || '');
-  scaler.innerHTML = buildProtocolPage(p, s.sigFrom, s.sigTo, s.missingFrom, s.missingTo, s.photos);
+  scaler.innerHTML = buildProtocolPage(p, ink.sigFrom, ink.sigTo, s.missingFrom, s.missingTo, s.photos);
   fitProtocolPreview();
   sigMissingNote((s.missingFrom ? 1 : 0) + (s.missingTo ? 1 : 0));
   protoMissingPhotosNote(s.missingPhotos);
@@ -4609,11 +4890,13 @@ async function printIssue(id){
     try{ await sigPrefetch([id]); }catch(e){}
     if(!sigFor(issue)) sigMissingNote(1);
   }
+  // starší podpis (JPEG) se před tiskem ztmaví, aby byl na papíře vidět
+  await sigInkPrepare(sigFor(issue), 'i_' + id);
   const area = document.getElementById('printArea');
   let rows = issue.items.map(function(it){
     return '<tr><td>' + escapeHtml(it.name) + (it.size ? ' (vel. ' + escapeHtml(it.size) + ')' : '') + '</td><td>' + it.qty + ' ' + escapeHtml(it.unit || '') + '</td></tr>';
   }).join('');
-  const sigData = sigFor(issue);
+  const sigData = sigForPrint(issue);
   area.className = 'print-area';
   area.innerHTML = printDocHeader('Potvrzení o výdeji OOPP') +
     '<p class="meta"><strong>Zaměstnanec:</strong> ' + escapeHtml(issue.employeeName) + (issue.department ? ' (' + escapeHtml(issue.department) + ')' : '') + '</p>' +
@@ -4631,6 +4914,7 @@ async function printEmployeeHistory(id){
   if(!e) return;
   const missing = await sigPrefetchForEmployee(id);
   sigMissingNote(missing);
+  await sigInkPrepareForEmployee(id);   // starší podpisy ztmavit pro papír
   const issues = db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){
     const da = a.date || '', dbb = b.date || '';
     if(da !== dbb) return da < dbb ? -1 : 1;          // tisk chronologicky
@@ -4656,7 +4940,7 @@ async function printEmployeeHistory(id){
           '<td>' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
         if(idx === 0){
           html += '<td rowspan="' + items.length + '">' +
-            (sigFor(issue) ? '<img src="' + sigFor(issue) + '" style="width:110px;height:auto">'
+            (sigForPrint(issue) ? '<img src="' + sigForPrint(issue) + '" style="width:110px;height:auto">'
               : (issue.hasSignature ? 'v cloudu' : '—')) + '</td>';
         }
         html += '</tr>';
@@ -4699,7 +4983,7 @@ function bookletEntry(issue){
     date: issue.date ? formatDate(issue.date) : '',
     oopLines: oopLines,
     oop: oopLines.join(', '),
-    signature: sigFor(issue),
+    signature: sigForPrint(issue),
     hasSignature: !!(issue.hasSignature || issue.signature),
     height: Math.max(1, wrapped) * BK_ROW_MM
   };
@@ -4710,8 +4994,8 @@ function bookletCellsHtml(entry, mid){
   const cls = mid ? ' bk-mid' : '';
   if(!entry) return '<td class="bk-date' + cls + '"></td><td></td><td class="bk-sig"></td>';
   const oopHtml = (entry.oopLines && entry.oopLines.length)
-    ? entry.oopLines.map(escapeHtml).join('<br>')
-    : escapeHtml(entry.oop || '');
+    ? entry.oopLines.map(function(line){ return escapeHtml(fixMojibake(line)); }).join('<br>')
+    : escapeHtml(fixMojibake(entry.oop || ''));
   return '<td class="bk-date' + cls + '">' + escapeHtml(entry.date) + '</td>' +
     '<td>' + oopHtml + '</td>' +
     '<td class="bk-sig">' + (entry.signature
@@ -4766,7 +5050,7 @@ function bookletPadRows(block){
 }
 
 function bookletFooter(e, pageNo, pageCount){
-  const left = [e.name, (e.personalNumber ? 'os. č. ' + e.personalNumber : '')]
+  const left = [fixMojibake(e.name), (e.personalNumber ? 'os. č. ' + e.personalNumber : '')]
     .filter(Boolean).join(' • ');
   return '<div class="bk-foot"><span>' + escapeHtml(left) +
     '</span><span>strana ' + pageNo + ' / ' + pageCount + '</span></div>';
@@ -4785,7 +5069,7 @@ function bookletFrontSections(e, issues){
   // První blok = funkce, ze které se poprvé měnilo.
   const first = hist[0];
   const fromFn = functionById(first.fromFunctionId);
-  const fromName = first.fromFunctionName || (fromFn ? fromFn.name : '') || '';
+  const fromName = fixMojibake(first.fromFunctionName || (fromFn ? fromFn.name : '') || '');
   const fromClaims = functionClaimsFor(first.fromFunctionId, first.fromClaims);
   if(fromName || fromClaims.length){
     sections.push({date: baseDate, name: fromName || 'bez funkce',
@@ -4795,7 +5079,7 @@ function bookletFrontSections(e, issues){
     const fn = functionById(h.functionId);
     sections.push({
       date: formatDate(h.date),
-      name: h.functionName || (fn ? fn.name : '') || 'bez funkce',
+      name: fixMojibake(h.functionName || (fn ? fn.name : '') || 'bez funkce'),
       claims: functionClaimsFor(h.functionId, h.claims),
       changed: true
     });
@@ -4838,7 +5122,7 @@ function bookletFrontHtml(e, issues, pageCount){
       '<colgroup><col style="width:68%"><col style="width:32%"></colgroup>' +
       '<thead><tr><th>Jméno a příjmení</th><th>Osobní číslo zn.</th></tr></thead>' +
       '<tbody><tr>' +
-        '<td>' + escapeHtml(e.name) + '</td>' +
+        '<td>' + escapeHtml(fixMojibake(e.name)) + '</td>' +
         '<td>' + escapeHtml(e.personalNumber || '') + '</td>' +
       '</tr></tbody>' +
     '</table>' +
@@ -4933,6 +5217,7 @@ function buildBookletStage(id){
 // Podpisy se předem stáhnou z cloudu do paměti — po vytištění se zase uvolní.
 async function printEmployeeBooklet(id){
   const missing = await sigPrefetchForEmployee(id);
+  await sigInkPrepareForEmployee(id);   // sytější podpisy na papíře
   const stage = buildBookletStage(id);
   if(!stage){ toast('Zaměstnanec nenalezen.'); return; }
   const area = document.getElementById('printArea');
@@ -5089,6 +5374,7 @@ async function buildBookletPdfBytes(id){
   if(!e) throw new Error('zaměstnanec nenalezen');
   const missing = await sigPrefetchForEmployee(id);
   if(missing) sigMissingNote(missing);
+  await sigInkPrepareForEmployee(id);   // sytější podpisy i v PDF
   const stage = buildBookletStage(id);
   if(!stage) throw new Error('knížku nelze sestavit');
   try{
@@ -5808,6 +6094,8 @@ function importBackup(file){
       db = normalizeDbShape(data);
       migrateItemSizes();
       migrateFunctions();
+      // záloha ze starší verze může mít „překódované“ texty
+      repairMojibakeData();
       dedupeItems();   // ze starší zálohy se duplicitní předměty sloučí
       save();
       closeEmployeeDetail();
@@ -6315,6 +6603,8 @@ function cloudApplyData(data, incomingSignatures){
     pruneTombstones();
     migrateItemSizes();
     migrateFunctions();
+    // data z cloudu můžou nést staré „překódované“ texty — pročistit
+    repairMojibakeData();
     // po stažení dat ze cloudu znovu sloučit případné duplicitní předměty
     dedupeItems();
     save();
@@ -6978,7 +7268,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v54';
+const APP_VERSION = 'v56';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -7258,6 +7548,8 @@ document.addEventListener('DOMContentLoaded', function(){
   const functionsConverted = ensureFunctions();
   if(migrateFunctions()) save();
   else if(functionsConverted) save();
+  // texty, které se dřív uložily „překódované“ („MontÃ©rky“, „TriÄka“), se opraví
+  if(repairMojibakeData()) save();
   // duplicity, které na nových zařízeních vznikly dřívějšími verzemi, se sloučí
   const dupItems = dedupeItems();
   if(dupItems){
