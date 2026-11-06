@@ -271,6 +271,10 @@ tr.clickable:hover{background:#eef3fa}
 /* tabulka evidenčního listu */
 .bk-main thead th{font-size:8pt;height:8mm;vertical-align:middle;text-align:center}
 .bk-main tbody td{height:6mm}
+/* změna funkce na evidenčním listu = další blok tabulky (datum změny + nová
+   funkce + nárok z ní); silnější linka bloky oddělí, popisek je drobný */
+.bk-main tr.bk-chg td{border-top:1.5px solid #000}
+.bk-sub{display:block;font-size:6.8pt;font-style:italic;line-height:1.1;margin-top:.3mm}
 /* listy s výdejem */
 .bk-sheet-title{font-size:12pt;font-weight:700;text-align:center;margin:0 0 2mm;padding:0;color:#000}
 .bk-list thead th{font-size:9pt;text-align:center;vertical-align:middle;height:10mm;line-height:1.15}
@@ -452,6 +456,11 @@ tr.clickable:hover{background:#eef3fa}
         <label>Funkce (volitelné — určuje, na co má nárok)</label>
         <select id="empFunction"><option value="">— bez funkce —</option></select>
         <div class="sig-hint">Funkce/pozice a jejich nároky („má nárok“) spravujte v sekci <strong>Data → Funkce a pozice</strong>.</div>
+        <div id="empFuncChangeWrap" class="hidden">
+          <label>Datum změny funkce</label>
+          <input type="date" id="empFuncChangeDate">
+          <div class="sig-hint">Změna zařazení se zapíše na 1. stránku knížky (evidenční list) — datum, nová funkce a nárok na OOPP, který z ní vyplývá.</div>
+        </div>
         <div style="margin-top:12px" class="row">
           <button class="btn" id="btnAddEmployee">Přidat zaměstnance</button>
           <button class="btn outline hidden" id="btnCancelEditEmployee">Zrušit</button>
@@ -471,6 +480,7 @@ tr.clickable:hover{background:#eef3fa}
           <button class="btn danger" id="btnDeleteEmp" title="Smazat (jen správce, s potvrzením)">🗑 Smazat</button>
         </div>
         <div id="empIssues"></div>
+        <div id="empFuncHistory" class="hidden" style="margin-top:18px"></div>
       </div>
     </section>
 
@@ -1462,6 +1472,71 @@ function employeeEntitlement(e, issues){
   return out;
 }
 
+/* ---------- Změny funkce (zapisují se do evidenčního listu) ----------
+   Každá změna zařazení se u zaměstnance uloží i s datem a s nárokem na OOPP,
+   který z nové funkce vyplývá. První stránka knížky (evidenční list) tím
+   rozšíří svoji tabulku: další blok = datum změny, nová funkce a její nárok.
+
+   e.functionHistory = [{id, date, functionId, functionName, claims, fromFunctionId,
+                         fromFunctionName, fromClaims, at}, …]   (od nejstarší) */
+function functionClaimsSnapshot(fn){
+  const out = [];
+  const seen = {};
+  if(!fn || !Array.isArray(fn.claims)) return out;
+  fn.claims.forEach(function(c){
+    const claim = normalizeClaim(c);
+    if(!claim) return;
+    const key = normalizeFunctionName(claim.name);
+    if(!key || seen[key]) return;
+    seen[key] = true;
+    out.push({name: claim.name, lifetime: claim.lifetime || ''});
+  });
+  return out;
+}
+
+// Nárok funkce pro tisk: živě z číselníku (oprava nároku se tak propíše
+// i do starších zápisů), jinak uložená kopie z doby změny (funkce zmizela).
+function functionClaimsFor(functionId, fallback){
+  const fn = functionById(functionId);
+  if(fn) return functionClaimsSnapshot(fn);
+  return (Array.isArray(fallback) ? fallback : []).map(function(c){
+    return {name: String((c && c.name) || '').trim(),
+            lifetime: String((c && c.lifetime) || '').trim()};
+  }).filter(function(c){ return c.name; });
+}
+
+// Historie změn funkce od nejstarší (starší data tohle pole nemají).
+function employeeFunctionHistory(e){
+  if(!e || !Array.isArray(e.functionHistory)) return [];
+  return e.functionHistory.filter(function(h){
+    return h && typeof h === 'object' &&
+      (h.functionId || h.functionName || h.fromFunctionId || h.fromFunctionName);
+  }).slice().sort(function(a, b){
+    const d = String(a.date || '').localeCompare(String(b.date || ''));
+    return d !== 0 ? d : (Number(a.at || 0) - Number(b.at || 0));
+  });
+}
+
+// Zápis změny zařazení: odkud (předchozí funkce) → kam (nová funkce) + datum.
+function recordFunctionChange(e, prevId, fn, date){
+  if(!e) return false;
+  if(!Array.isArray(e.functionHistory)) e.functionHistory = [];
+  const prevFn = functionById(prevId);
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? String(date) : todayIso();
+  e.functionHistory.push({
+    id: uid(),
+    date: iso,
+    functionId: fn ? (fn.id || '') : '',
+    functionName: fn ? (fn.name || '') : '',
+    claims: fn ? functionClaimsSnapshot(fn) : [],
+    fromFunctionId: prevId || '',
+    fromFunctionName: prevFn ? (prevFn.name || '') : String(e.department || '').trim(),
+    fromClaims: prevFn ? functionClaimsSnapshot(prevFn) : [],
+    at: Date.now()
+  });
+  return true;
+}
+
 // Starší data znala jen volný text „oddělení“ — ten se převede na položku číselníku funkcí.
 function migrateFunctions(){
   ensureFunctions();
@@ -2067,9 +2142,33 @@ function resetEmployeeForm(){
   document.getElementById('empName').value = '';
   document.getElementById('empPersonalNumber').value = '';
   document.getElementById('empFunction').value = '';
+  const chgWrap = document.getElementById('empFuncChangeWrap');
+  if(chgWrap) chgWrap.classList.add('hidden');
+  const chgDate = document.getElementById('empFuncChangeDate');
+  if(chgDate) chgDate.value = '';
   document.getElementById('empAddTitle').textContent = 'Přidat zaměstnance';
   document.getElementById('btnAddEmployee').textContent = 'Přidat zaměstnance';
   document.getElementById('btnCancelEditEmployee').classList.add('hidden');
+}
+
+// Datum změny funkce: políčko se ukáže jen tehdy, když se u uloženého
+// zaměstnance funkce opravdu mění (jinak není co zapisovat). Předvyplní se
+// dneškem — datum jde přepsat (např. když se zařazení změnilo k 1. dni měsíce).
+function syncFuncChangeDate(){
+  const wrap = document.getElementById('empFuncChangeWrap');
+  const dateEl = document.getElementById('empFuncChangeDate');
+  const sel = document.getElementById('empFunction');
+  if(!wrap || !dateEl || !sel) return;
+  const e = editingEmployeeId
+    ? db.employees.find(function(x){ return x.id === editingEmployeeId; })
+    : null;
+  const show = !!e && String(sel.value || '') !== String(e.functionId || '');
+  wrap.classList.toggle('hidden', !show);
+  if(!show){
+    dateEl.value = '';
+    return;
+  }
+  if(!dateEl.value) dateEl.value = todayIso();
 }
 
 function addEmployee(){
@@ -2084,13 +2183,24 @@ function addEmployee(){
   if(editingEmployeeId){
     const e = db.employees.find(function(x){ return x.id === editingEmployeeId; });
     if(e){
+      const prevFnId = e.functionId || '';
+      const newFnId = fn ? fn.id : '';
+      // Změna zařazení se zapíše do evidenčního listu (1. stránka knížky) —
+      // datum, nová funkce a nárok na OOPP z ní.
+      let fnChanged = false;
+      if(newFnId !== prevFnId){
+        const dateEl = document.getElementById('empFuncChangeDate');
+        fnChanged = recordFunctionChange(e, prevFnId, fn, dateEl ? dateEl.value : '');
+      }
       e.name = name;
       e.personalNumber = personalNumber;
-      e.functionId = fn ? fn.id : '';
+      e.functionId = newFnId;
       e.department = fn ? fn.name : '';
       delete e.birthDate;
       touchRec(e);
-      toast('Zaměstnanec upraven.');
+      toast(fnChanged
+        ? 'Zaměstnanec upraven — změna funkce zapsána do evidenčního listu.'
+        : 'Zaměstnanec upraven.');
     }
   } else {
     db.employees.push(touchRec({id: uid(), name: name, personalNumber: personalNumber, functionId: fn ? fn.id : '', department: fn ? fn.name : ''}));
@@ -2118,6 +2228,7 @@ function editEmployee(id){
   document.getElementById('empName').value = e.name;
   document.getElementById('empPersonalNumber').value = e.personalNumber || '';
   refreshFunctionOptions(e.functionId || '');
+  syncFuncChangeDate();
   document.getElementById('empAddTitle').textContent = 'Upravit zaměstnance';
   document.getElementById('btnAddEmployee').textContent = 'Uložit změny';
   document.getElementById('btnCancelEditEmployee').classList.remove('hidden');
@@ -2667,6 +2778,7 @@ function refreshFunctionOptions(selectedId){
   });
   sel.innerHTML = opts.join('');
   sel.value = functionById(keep) ? keep : '';
+  syncFuncChangeDate();
 }
 
 function resetFunctionForm(){
@@ -4104,6 +4216,7 @@ function refreshEmployeeDetail(){
   const entEl = document.getElementById('empDetailEntitlement');
   if(entEl) entEl.textContent = entLine;
   renderEmployeeIssues(e.id, issues);
+  renderFuncHistory(e);
 }
 
 /* Podpisy se dotahují až ve chvíli, kdy je opravdu potřeba (náhled, tisk, PDF).
@@ -4207,6 +4320,70 @@ function renderEmployeeIssues(id, issues){
    jen „✔ podepsáno“ (viz cloudSyncSignatures). */
 let addSigPad = null;          // plátno v panelu „Doplnit podpis“ (vytvoří se jednou)
 let addSigIssueId = null;      // kterému výdeji se podpis doplňuje
+
+/* ---------- Změny funkce v kartě zaměstnance ----------
+   Přehled toho, co se tiskne na 1. stránku knížky. Chybný zápis (omylem
+   vybraná funkce) smí smazat jen přihlášený správce. */
+function renderFuncHistory(e){
+  const box = document.getElementById('empFuncHistory');
+  if(!box) return;
+  const hist = employeeFunctionHistory(e).slice().reverse();   // nejnovější nahoře
+  if(hist.length === 0){
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+  const admin = isAdmin();
+  const rows = hist.map(function(h){
+    const fn = functionById(h.functionId);
+    const name = h.functionName || (fn ? fn.name : '') || 'bez funkce';
+    const claims = functionClaimsFor(h.functionId, h.claims);
+    const prevFn = functionById(h.fromFunctionId);
+    const fromName = h.fromFunctionName || (prevFn ? prevFn.name : '');
+    return '<tr>' +
+      '<td class="nowrap">' + escapeHtml(formatDate(h.date)) + '</td>' +
+      '<td>' + escapeHtml(name) +
+        (fromName ? '<div class="sig-hint">dříve ' + escapeHtml(fromName) + '</div>' : '') + '</td>' +
+      '<td class="opt">' + (claims.length
+        ? escapeHtml(claims.map(function(c){ return c.name; }).join(', '))
+        : '<span class="sig-hint">bez nároku</span>') + '</td>' +
+      (admin
+        ? '<td style="text-align:right;white-space:nowrap">' +
+          '<button class="btn danger small" data-delfnchg="' + escapeHtml(h.id || '') + '" ' +
+          'title="Smazat zápis o změně (jen přihlášený správce)">🔒 Smazat</button></td>'
+        : '') +
+      '</tr>';
+  }).join('');
+  box.innerHTML =
+    '<h2 style="font-size:1rem;margin:0 0 4px">Změny funkce</h2>' +
+    '<div class="sig-hint" style="margin-bottom:8px">Zapisují se na 1. stránku knížky (evidenční list): datum změny, ' +
+    'nová funkce a nárok na OOPP, který z ní vyplývá. ' +
+    (admin ? 'Chybný zápis jde smazat tlačítkem „🔒 Smazat“.' : '') + '</div>' +
+    '<table><thead><tr><th>Datum změny</th><th>Nová funkce</th><th class="opt">Nárok na OOPP</th>' +
+    (admin ? '<th></th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  box.classList.remove('hidden');
+}
+
+// Smazání jednoho zápisu o změně funkce (jen správce, s potvrzením).
+function deleteFunctionChange(id){
+  if(!isAdmin()){
+    toast('Mazat může jen přihlášený správce.');
+    return;
+  }
+  const e = db.employees.find(function(x){ return x.id === currentEmployeeId; });
+  if(!e || !Array.isArray(e.functionHistory)) return;
+  const h = e.functionHistory.find(function(x){ return x && x.id === id; });
+  if(!h) return;
+  const fn = functionById(h.functionId);
+  const name = h.functionName || (fn ? fn.name : '') || 'bez funkce';
+  if(!confirm('Smazat zápis o změně funkce z ' + formatDate(h.date) + ' („' + name + '“)?\n\n' +
+      'Zápis zmizí i z evidenčního listu v knížce.')) return;
+  e.functionHistory = e.functionHistory.filter(function(x){ return !x || x.id !== id; });
+  touchRec(e);
+  save();
+  refreshEmployeeDetail();
+  toast('Zápis o změně funkce smazán.');
+}
 
 function openAddSignature(issueId){
   const issue = db.issues.find(function(i){ return i.id === issueId; });
@@ -4595,28 +4772,66 @@ function bookletFooter(e, pageNo, pageCount){
     '</span><span>strana ' + pageNo + ' / ' + pageCount + '</span></div>';
 }
 
+// Bloky evidenčního listu: první = původní zařazení (od prvního výdeje), další
+// = každá změna funkce (datum změny, nová funkce a nárok, který z ní vyplývá).
+function bookletFrontSections(e, issues){
+  const baseDate = issues.length ? formatDate(issues[0].date) : '';
+  const hist = employeeFunctionHistory(e);
+  if(hist.length === 0){
+    return [{date: baseDate, name: employeeFunctionName(e),
+             claims: employeeEntitlement(e, issues), changed: false}];
+  }
+  const sections = [];
+  // První blok = funkce, ze které se poprvé měnilo.
+  const first = hist[0];
+  const fromFn = functionById(first.fromFunctionId);
+  const fromName = first.fromFunctionName || (fromFn ? fromFn.name : '') || '';
+  const fromClaims = functionClaimsFor(first.fromFunctionId, first.fromClaims);
+  if(fromName || fromClaims.length){
+    sections.push({date: baseDate, name: fromName || 'bez funkce',
+                   claims: fromClaims, changed: false});
+  }
+  hist.forEach(function(h){
+    const fn = functionById(h.functionId);
+    sections.push({
+      date: formatDate(h.date),
+      name: h.functionName || (fn ? fn.name : '') || 'bez funkce',
+      claims: functionClaimsFor(h.functionId, h.claims),
+      changed: true
+    });
+  });
+  return sections;
+}
+
 // Přední stránka — evidenční list (předloha ev.jpg)
 function bookletFrontHtml(e, issues, pageCount){
-  const firstIssue = issues.length ? issues[0] : null;
-  const entitlement = employeeEntitlement(e, issues);
-  // Řádky evidenčního listu: první nese datum a funkci, pak jeden řádek na každý OOPP z nároku.
-  // Formulář má 8 řádků (výška řádku odpovídá velikosti textu); kdyby měl nárok víc položek,
-  // řádky se přidají, aby se nic neztratilo.
-  const totalRows = Math.max(8, entitlement.length);
+  const sections = bookletFrontSections(e, issues);
+  // Jeden řádek = jeden OOPP z nároku. Formulář má 8 řádků (výška řádku
+  // odpovídá velikosti textu); když má nárok (nebo změn funkce) víc položek,
+  // řádky se přidají, aby se nic neztratilo. Každý blok začíná datem
+  // a funkcí, změna funkce je navíc popsaná drobným popiskem.
   const rows = [];
-  for(let r = 0; r < totalRows; r++) rows.push(['', '', '', '']);
-  if(firstIssue) rows[0][0] = formatDate(firstIssue.date);
-  rows[0][1] = employeeFunctionName(e);
-  entitlement.forEach(function(en, i){
-    if(i < rows.length){
-      rows[i][2] = en.name;
-      rows[i][3] = en.lifetime || '';
-    }
+  sections.forEach(function(sec){
+    const claims = sec.claims.length ? sec.claims : [{name: '', lifetime: ''}];
+    claims.forEach(function(c, i){
+      rows.push({
+        date: i === 0 ? sec.date : '',
+        name: i === 0 ? sec.name : '',
+        claim: c.name || '',
+        lifetime: c.lifetime || '',
+        changed: i === 0 && sec.changed
+      });
+    });
   });
+  while(rows.length < 8) rows.push({date: '', name: '', claim: '', lifetime: '', changed: false});
   let body = '';
   rows.forEach(function(row){
-    body += '<tr><td>' + escapeHtml(row[0]) + '</td><td>' + escapeHtml(row[1]) + '</td>' +
-      '<td>' + escapeHtml(row[2]) + '</td><td>' + escapeHtml(row[3]) + '</td></tr>';
+    body += '<tr' + (row.changed ? ' class="bk-chg"' : '') + '>' +
+      '<td>' + escapeHtml(row.date) + '</td>' +
+      '<td>' + escapeHtml(row.name) +
+        (row.changed ? '<span class="bk-sub">změna funkce</span>' : '') + '</td>' +
+      '<td>' + escapeHtml(row.claim) + '</td>' +
+      '<td>' + escapeHtml(row.lifetime) + '</td></tr>';
   });
   return '<div class="bk-page">' +
     '<table class="bk-id">' +
@@ -6763,7 +6978,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v53';
+const APP_VERSION = 'v54';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -7076,6 +7291,8 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnAddEmployee').addEventListener('click', addEmployee);
   document.getElementById('btnCancelEditEmployee').addEventListener('click', resetEmployeeForm);
   document.getElementById('empFilter').addEventListener('input', renderEmployees);
+  // Změna funkce ve formuláři → nabídnout datum změny (zapíše se do evidenčního listu).
+  document.getElementById('empFunction').addEventListener('change', syncFuncChangeDate);
 
   // Předávací protokoly: dvě pole pro výběr zaměstnance (předávající / přebírající)
   function bindProtocolSuggestion(which){
@@ -7439,6 +7656,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(addSigBtn){ openAddSignature(addSigBtn.dataset.addsig); return; }
     const delIssueBtn = e.target.closest('button[data-delissue]');
     if(delIssueBtn){ deleteIssue(delIssueBtn.dataset.delissue); return; }
+    const delFnChgBtn = e.target.closest('button[data-delfnchg]');
+    if(delFnChgBtn){ deleteFunctionChange(delFnChgBtn.dataset.delfnchg); return; }
     const empRow = e.target.closest('tr[data-open]');
     if(empRow){ openEmployeeDetail(empRow.dataset.open); return; }
     const editItemBtn = e.target.closest('button[data-edititem]');

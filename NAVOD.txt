@@ -299,7 +299,9 @@ Knížka OOPP zaměstnance
   • „Tisk knížky" vytiskne stejnou podobu na tiskárně,
   • „Export CSV" uloží výdeje pro Excel.
 - První strana (evidenční list) má 8 řádků se sloupci Datum, Funkce,
-  Nárok na přidělení OOPP („má nárok") a Životnost.
+  Nárok na přidělení OOPP („má nárok") a Životnost. Když se zaměstnanci
+  změní funkce, tabulka se na téhle straně rozšíří o další blok — viz
+  „Změna funkce zaměstnance" níže.
 - Životnost předmětu se vybírá v záložce Předměty: „14 dní / dle potřeby"
   (rukavice, respirátory), 1/3/6/12/24/36 měsíců, nebo „vlastní…".
 
@@ -328,7 +330,25 @@ Knížka OOPP zaměstnance
 - Smazání se pamatuje i pro cloud, takže se záznam z jiného zařízení
   nevrátí.
 
-Doplnění podpisu k už uloženému výdeji
+Změna funkce zaměstnance (zapisuje se do evidenčního listu)
+- Když u uloženého zaměstnance změníte funkci (Upravit → Funkce), objeví se
+  políčko „Datum změny funkce" — předvyplní se dneškem, datum jde přepsat
+  (např. když se zařazení mění k 1. dni měsíce).
+- Aplikace změnu zapíše a na 1. stránce knížky (evidenční list) se tabulka
+  prodlouží o nový blok: silnější linka, datum změny, nová funkce
+  s drobným popiskem „změna funkce", nárok na OOPP z nové funkce
+  a životnosti. Původní řádky zůstávají — je vidět, odkud se kam funkce
+  změnila.
+- Nárok se bere živě z číselníku funkcí (Data → Funkce a pozice), takže
+  pozdější oprava nároku se propíše i do starších zápisů. Když funkce
+  z číselníku zmizí, použije se kopie nároku z doby změny.
+- Přehled změn je i v kartě zaměstnance pod tabulkou výdejů („Změny
+  funkce": datum, nová funkce, nárok). Chybný zápis smí smazat jen
+  přihlášený správce tlačítkem „🔒 Smazat" — zápis pak zmizí i z knížky.
+- Změna se zapíše jen tehdy, když se funkce opravdu změní; samotná úprava
+  jména nebo osobního čísla evidenční list nerozšíří.
+
+
 - Když se výdej uloží bez podpisu (zaměstnanec si pro OOPP přišel později,
   podpis se nepovedl), jde podpis doplnit kdykoli později — v kartě
   zaměstnance u výdeje klepněte na „✍ Doplnit podpis".
