@@ -185,11 +185,13 @@ Aplikace na mobil a tablet (stejná data jako na PC)
   Záložka Data → karta „Instalace do telefonu / tabletu“ dole vypisuje
   „Verze aplikace: vXX · offline paměť: oopp-app-vXX“ — podle toho poznáte,
   jakou verzi zařízení používá. Kdyby se někdy aktualizace zasekla, klepněte
-  na ikonku „⟳“ vpravo nahoře v modré liště (je vždy po ruce, na každé
+  na mráček „☁“ vpravo nahoře v modré liště (je vždy po ruce, na každé
   záložce a bez zadávání hesla) nebo na tlačítko „⟳ Aktualizovat aplikaci“
   v Data → Instalace (smaže offline paměť a načte aktuální verzi;
-  data v zařízení ani v cloudu to nesmaže). Když aplikace zjistí, že je na
-  serveru novější verze, ikonka v liště zezelená a stačí na ni klepnout.
+  data v zařízení ani v cloudu to nesmaže). Mráček v liště ukazuje stav:
+  točí se = synchronizace, zeleně ✔ = hotovo, červeně ! = chyba.
+  Když aplikace zjistí, že je na serveru novější verze, mráček svítí
+  ORANŽOVĚ — stačí na něj klepnout a aplikace se aktualizuje.
 
 Aplikace jako APK (Android — ikona a instalace jako běžná aplikace)
 - Postup je v souboru APK.md. Ve zkratce:
