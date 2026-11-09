@@ -49,8 +49,8 @@ header .sub{font-size:.8rem;opacity:.85;text-align:right}
 /* Malá ikonka „⟳ aktualizovat“ v hlavičce — po ruce na každé záložce a bez
    přihlášení správce (dřív bylo tlačítko jen v Data → Instalace, kam se bez
    hesla nedá dostat). Když je na serveru novější verze, ikonka zezelená. */
-.head-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:1.05rem;line-height:1;flex:0 0 auto;cursor:pointer;transition:background .25s,box-shadow .25s}
-.head-icon:hover{background:rgba(255,255,255,.26)}
+.head-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:1.05rem;line-height:1;flex:0 0 auto;cursor:pointer;transition:background .25s,box-shadow .25s}
+.head-icon:hover{background:rgba(255,255,255,.32)}
 .head-icon:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .head-icon.busy{background:rgba(255,255,255,.26)}
 .head-icon.busy .ic{display:block;animation:splashSpin .9s linear infinite}
@@ -7279,7 +7279,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v57';
+const APP_VERSION = 'v58';
 let installPromptEvent = null;
 
 function isAppStandalone(){
