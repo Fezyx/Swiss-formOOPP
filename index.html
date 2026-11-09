@@ -46,6 +46,16 @@ header .sub{font-size:.8rem;opacity:.85;text-align:right}
 .sync-pill .sync-ic{display:block;pointer-events:none}
 .sync-pill.busy .sync-ic{animation:splashSpin .9s linear infinite}
 @media (prefers-reduced-motion: reduce){.sync-pill.busy .sync-ic{animation:none}}
+/* Malá ikonka „⟳ aktualizovat“ v hlavičce — po ruce na každé záložce a bez
+   přihlášení správce (dřív bylo tlačítko jen v Data → Instalace, kam se bez
+   hesla nedá dostat). Když je na serveru novější verze, ikonka zezelená. */
+.head-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:1.05rem;line-height:1;flex:0 0 auto;cursor:pointer;transition:background .25s,box-shadow .25s}
+.head-icon:hover{background:rgba(255,255,255,.26)}
+.head-icon:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.head-icon.busy{background:rgba(255,255,255,.26)}
+.head-icon.busy .ic{display:block;animation:splashSpin .9s linear infinite}
+.head-icon.new{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.35)}
+@media (prefers-reduced-motion: reduce){.head-icon.busy .ic{animation:none}}
 .btn.light{background:#fff;color:#3663ae}
 nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(30,55,96,.10);flex:0 0 auto;z-index:10}
 nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#48586e;border-bottom:3px solid transparent}
@@ -369,6 +379,7 @@ tr.clickable:hover{background:#eef3fa}
           <span class="admin-badge-who">👤 přihlášen jako admin</span>
           <button class="btn light small" id="btnLogout" title="Odhlásit správce">Odhlásit</button>
         </div>
+        <button class="head-icon" id="btnUpdateTop" type="button" title="Aktualizovat aplikaci — smaže offline paměť a načte nejnovější verzi (data zůstanou)" aria-label="Aktualizovat aplikaci"><span class="ic" aria-hidden="true">⟳</span></button>
         <button class="btn light small hidden" id="btnInstall" title="Nainstalovat aplikaci do zařízení">⬇ Nainstalovat aplikaci</button>
       </div>
     </div>
@@ -825,7 +836,7 @@ tr.clickable:hover{background:#eef3fa}
                 <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
                 <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
                 Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
-                <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
+                <strong>Zobrazuje mobil starou verzi?</strong> Klepněte na ikonku <strong>⟳</strong> vpravo nahoře (je vždy po ruce, bez přihlášení) nebo na tlačítko „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
                 <strong>Otevírá se aplikace s adresním řádkem prohlížeče?</strong> Je to jen zástupce (shortcut), ne nainstalovaná aplikace — nainstalujte ji znovu přes menu ⋮ → „Instalovat aplikaci“; pak se otevírá bez adresního řádku a aktualizuje se sama.
               </div>
             </div>
@@ -7268,7 +7279,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v56';
+const APP_VERSION = 'v57';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -7356,6 +7367,24 @@ async function forceAppUpdate(){
   location.replace(location.origin + location.pathname + '?v=' + Date.now());
 }
 
+// Ikonka ⟳ v hlavičce: stejná akce jako tlačítko v Data → Instalace, ale po ruce
+// a bez přihlášení správce. Když aplikace zjistí, že je na serveru novější verze,
+// ikonka zezelená, aby ji člověk nemusel hledat.
+function markUpdateAvailable(on){
+  const b = document.getElementById('btnUpdateTop');
+  if(!b) return;
+  b.classList.toggle('new', !!on);
+  b.title = on
+    ? 'Je dostupná nová verze — klepněte pro aktualizaci'
+    : 'Aktualizovat aplikaci — smaže offline paměť a načte nejnovější verze (data zůstanou)';
+}
+
+function forceAppUpdateFromHeader(){
+  const b = document.getElementById('btnUpdateTop');
+  if(b) b.classList.add('busy');     // roztočí ikonku, než se stránka načte znovu
+  forceAppUpdate();
+}
+
 // Porovná verzi běžící aplikace s verzí na serveru (v sw.js) a při rozdílu se
 // sám aktualizuje. Bez toho zůstane nainstalovaná aplikace v telefonu na staré
 // verzi, dokud se nesmaže a znovu nenainstaluje.
@@ -7375,10 +7404,12 @@ async function autoUpdateCheck(autoReload){
   if(!server) return;
   if(server === 'oopp-app-' + APP_VERSION){
     try{ sessionStorage.removeItem('ooppUpdateTries'); }catch(e){}
+    markUpdateAvailable(false);
     return;
   }
   if(!autoReload){
-    toast('Je dostupná nová verze — ⟳ Aktualizovat aplikaci (Data).');
+    markUpdateAvailable(true);
+    toast('Je dostupná nová verze — klepněte na ⟳ vpravo nahoře.');
     return;
   }
   let tries = 0;
@@ -7747,6 +7778,8 @@ document.addEventListener('DOMContentLoaded', function(){
     btn.addEventListener('click', promptInstall);
   });
   document.getElementById('btnForceUpdate').addEventListener('click', forceAppUpdate);
+  const btnUpdateTop = document.getElementById('btnUpdateTop');
+  if(btnUpdateTop) btnUpdateTop.addEventListener('click', forceAppUpdateFromHeader);
   refreshInstallUI();
   renderAppVersion();
   // Sdílecí QR kód (odkaz ke stažení APK) — kreslí se hned, funguje i offline.
@@ -7766,7 +7799,7 @@ document.addEventListener('DOMContentLoaded', function(){
       try{ reg.update(); }catch(e){}
       const hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', function(){
-        if(hadController) toast('Nová verze je připravena — ⟳ Aktualizovat aplikaci (Data).');
+        if(hadController) toast('Nová verze je připravena — klepněte na ⟳ vpravo nahoře.');
       });
       // Vlastní kontrola verze — aplikace se takto zaktualizuje sama, i když
       // je nainstalovaná na ploše telefonu.
