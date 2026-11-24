@@ -77,7 +77,14 @@ service cloud.firestore {
     // profily uživatelů: ID dokumentu = vnitřní adresa nicku (novak@oopp.local)
     match /oopp_users/{email} {
       allow read: if signedIn();                              // jména a iniciály vidí přihlášení
-      allow create: if signedIn() && (isAdmin() || email == myEmail()); // správce přidá kohokoli, nováček sám sebe
+      // Správce založí profil komukoli (i s role: admin). Nováček si smí
+      // založit jen SVŮJ profil a JEN jako uživatel — správcem se tak nikdo
+      // nemůže udělat sám (dřív tu bylo jen `email == myEmail()` a role
+      // v novém dokumentu nebyla nijak omezená).
+      allow create: if isAdmin()
+        || (signedIn() && email == myEmail()
+            && request.resource.data.role == 'user'
+            && request.resource.data.active == true);
       // Správce smí vše. Uživatel si smí upravit jen SVOJE jméno, iniciály
       // a telefon (tlačítko „✍ Změnit“ / první přihlášení) — práva ani
       // aktivaci změnit nemůže.
@@ -103,7 +110,7 @@ Co pravidla znamenají:
 | kolekce | kdo smí číst | kdo smí zapisovat |
 |---|---|---|
 | `oopp_logins` (přihlašovací jména) | **kdokoli** (i nepřihlášený — podle nicku se pozná účet a jeho verze; nejsou tam žádná data) | jen správce |
-| `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce; nováček si při prvním přihlášení smí založit vlastní profil a každý si smí upravit jen svoje jméno, iniciály a telefon |
+| `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce (i s `role: admin`); nováček si smí založit jen **vlastní** profil a jen s `role: user`; každý si smí upravit jen svoje jméno, iniciály a telefon |
 | `oopp` (data evidence) | jen uživatel, který má profil v `oopp_users` | totéž |
 | `oopp_sig` (podpisy) | jen uživatel s profilem | totéž |
 
@@ -116,9 +123,15 @@ Podrobný návod k účtům je v souboru **UZIVATELE.md**.
 > `allow read, write: if request.auth != null;` — aplikace pak funguje jako
 > dřív (každý přihlášený účet vidí všechno), jen bez rozlišení správce/uživatel.
 
-> První profil správce: přihlaste se e-mailem a heslem, v záložce Data otevřete
-> kartu „☁ Cloud“ nebo „👤 Uživatelé“ a klikněte na **✚ Založit profil správce**.
-> Tlačítko se ukáže jen tehdy, když v cloudu ještě žádný profil není.
+> **První profil správce (nový projekt) — jen v konzoli Firebase.** Pravidla
+> od v72 nedovolí, aby si kdokoli založil profil s `role: admin` sám (jinak by
+> si každý účet mohl dát práva). Postup: Firestore → `oopp_users` →
+> **Add document** → *Document ID* = přesně přihlašovací adresa účtu (malými
+> písmeny, např. `lukas.dvorak@swissform.cz`) → pole `role` = `admin`,
+> `active` = `true` (boolean), `name` = „Jméno Příjmení“, `initials` = „J.P.“,
+> `email` = stejná adresa → **Save**. Pak se v aplikaci přihlaste — v hlavičce
+> musí být „· správce“. Další účty už přidáváte v aplikaci (nickem) a práva
+> správce dáváte tlačítkem **⭐ Udělat správcem**.
 
 ## 2.1 Přihlašovací jména (nicky) — bez e-mailů
 
@@ -182,12 +195,14 @@ ručně v konzoli pod jiným ID (např. ID `lukas.dvorak@swissform.cz`, ale uvni
 `email: lukas.dvorak@gmail.com`), účet se přihlásí, ale práva správce mít
 nebude — a nepůjde mu ani přidávat uživatele (`permission-denied`).
 
-Rychlá kontrola i oprava bez konzole: v aplikaci (přihlašovací karta nebo
+Rychlá kontrola bez konzole: v aplikaci (přihlašovací karta nebo
 Data → 👤 Uživatelé a přístup) klikněte **🔍 Zkontrolovat profil** — vypíše
-adresu z Firebase, existenci profilu, jeho roli a případný duplikát pod jiným
-ID. Když profil na vaší adrese chybí, tlačítko **🛠 Založit mi profil správce**
-ho založí přesně pod ní. Pravidla `create` dovolují nováčkovi založit si
-vlastní profil (`email == myEmail()`), takže to projde i bez správce.
+adresu z Firebase, existenci profilu, jeho roli, duplikát pod jiným ID a
+seznam **všech správců** v cloudu (tak poznáte, když někdo přibyl). Když profil
+na vaší adrese chybí, tlačítko **🛠 Založit mi profil** ho založí přesně pod ní
+— ale vždy jen s `role: user`, protože pravidla `create` dovolí nováčkovi
+založit si vlastní profil jen jako uživatel. Práva správce pak přidá stávající
+správce (⭐ Udělat správcem), nebo je nastavte v konzoli.
 
 Alternativa v konzoli: zkopírujte dokument pod správné ID (malými písmeny)
 a v něm nechte `role: admin`, `active: true`, `name`, `initials`; starý

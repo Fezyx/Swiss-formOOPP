@@ -60,10 +60,11 @@ Uživatelé a hesla (vlastní účet pro každého)
   tlačítko se u sebe neukazuje, aby si nikdo nezamkl dveře.
 - Přihlášený, ale bez práv? Klikněte „🔍 Zkontrolovat profil“ (v přihlašovací
   kartě nebo v kartě „👤 Uživatelé a přístup“). Vypíše, pod jakou adresou vás
-  vede Firebase, jestli tam existuje profil a s jakou rolí. Když profil chybí,
-  nabídne „🛠 Založit mi profil správce“ — práva platí hned a konzole Firebase
-  není potřeba. Práva ve Firestore se totiž počítají jen z dokumentu, jehož ID
-  je přesně vaše přihlašovací adresa (ne z pole email uvnitř dokumentu).
+  vede Firebase, jestli tam existuje profil, s jakou rolí, a seznam všech
+  správců. Když profil chybí, nabídne „🛠 Založit mi profil“ — vznikne ale jen
+  jako uživatel. Práva správce dává jen správce („⭐ Udělat správcem“), sám si
+  je nikdo dát nemůže. Práva ve Firestore se totiž počítají jen z dokumentu,
+  jehož ID je přesně vaše přihlašovací adresa (ne z pole email uvnitř).
 - „🚫 Odebrat“ přístup odebere (profil se smaže a nick přestane platit; když
   ho znovu přidáte, dotyčný si nastaví nové heslo). Podrobný návod: soubor
   UZIVATELE.md, technické detaily: FIREBASE.md (kapitola 2.1).

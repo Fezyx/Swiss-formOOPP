@@ -2343,9 +2343,18 @@ async function saveOwnProfileName(name){
   if(!s || !s.email) return false;
   try{
     await fbEnsureAuth();
-    await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(s.email)).set({
-      name: name, initials: initialsOf(name), nameUpdatedAt: Date.now()
-    }, {merge: true});
+    const mail = userKeyFor(s.email);
+    const ref = fbFs().collection(USERS_COLLECTION).doc(mail);
+    const payload = {name: name, initials: initialsOf(name), nameUpdatedAt: Date.now()};
+    try{
+      await ref.update(payload);           // běžný případ: profil existuje
+    }catch(e){
+      // Profil ještě není — založí se jako uživatel (víc pravidla nedovolí;
+      // práva správce přiděluje správce).
+      await ref.set(Object.assign({
+        uid: s.uid || '', email: mail, role: 'user', active: true
+      }, payload), {merge: true});
+    }
     profileSyncAt = 0;
     await afterAuthUser({uid: s.uid, email: s.email});
     toast('Jméno uloženo — výdeje se podepíší ' + initialsOf(name) + '.');
@@ -7431,12 +7440,24 @@ async function createOwnPassword(){
       const pn = prof ? String(prof.name || '').trim().replace(/\s+/g, ' ') : '';
       if(pn) finalName = pn;
     }catch(e){}
-    await fbFs().collection(USERS_COLLECTION).doc(email).set({
-      email: email, login: nick, v: Math.max(1, parseInt(entry.v, 10) || 1),
-      name: finalName, initials: initialsOf(finalName),
-      employeeId: (prof && prof.employeeId) || entry.employeeId || '',
-      role: role, active: true, passSetAt: now, profileCompletedAt: now
-    }, {merge: true});
+    const writeOwnProfile = function(roleValue){
+      return fbFs().collection(USERS_COLLECTION).doc(email).set({
+        email: email, login: nick, v: Math.max(1, parseInt(entry.v, 10) || 1),
+        name: finalName, initials: initialsOf(finalName),
+        employeeId: (prof && prof.employeeId) || entry.employeeId || '',
+        role: roleValue, active: true, passSetAt: now, profileCompletedAt: now
+      }, {merge: true});
+    };
+    try{
+      await writeOwnProfile(role);
+    }catch(e){
+      // Pravidla od v72 nedovolí, aby si nováček založil profil s role: admin.
+      // Účet ale vzniknout má — profil se zapíše jako uživatel a práva přidělí správce.
+      const code = String((e && (e.code || e.message)) || '');
+      if(role !== 'admin' || !/permission|insufficient/i.test(code)) throw e;
+      await writeOwnProfile('user');
+      toast('Účet je vytvořený. Práva správce přidělí stávající správce (sám si je nikdo dát nemůže).', 14000);
+    }
     profileSyncAt = 0;
     await afterAuthUser(user);
     const s = userSession();
@@ -7606,34 +7627,11 @@ async function setAppUserRole(email, role){
   }
 }
 
-// První nastavení: přihlášený účet si založí profil správce. Používá se jen
-// tehdy, když v cloudu ještě žádný profil není (jinak práva přiděluje správce).
-async function createSelfAdminProfile(){
-  const s = userSession();
-  if(!s || !s.email){ toast('Nejdřív se přihlaste přihlašovacím jménem a heslem.'); return; }
-  const known = usersCacheGet();
-  if(known.length && !isAdmin()){ toast('Profily uživatelů už existují — práva správce přidělí stávající správce.'); return; }
-  const name = String(prompt('Vaše jméno a příjmení (z něj budou iniciály v kolonce Vydal):', s.name || '') || '').trim().replace(/\s+/g, ' ');
-  if(!name) return;
-  if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
-  if(!confirm('Založit profil správce pro účet „' + nickFromEmail(s.email) + '“?')) return;
-  try{
-    await fbEnsureAuth();
-    await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(s.email)).set({
-      uid: s.uid || '', name: name, email: userKeyFor(s.email), initials: initialsOf(name),
-      role: 'admin', active: true, createdAt: Date.now()
-    }, {merge: true});
-    profileSyncAt = 0;
-    await loadUsersFromCloud(false);
-    await afterAuthUser({uid: s.uid, email: s.email});
-    // Profil správce = práva správce i v tomto zařízení (jinak by Data zůstala zamčená).
-    setAdminSession(true);
-    unlockData();
-    toast('Profil správce založen — od teď se počítá s právy správce.');
-  }catch(e){
-    toast('Nepodařilo se: ' + friendlyAuthError(e), 9000);
-  }
-}
+// Pozn.: dřív tu byla funkce createSelfAdminProfile(), která si sama založila
+// profil s role: admin. Od v72 to nejde — pravidla ve Firestore dovolí nováčkovi
+// založit si vlastní profil jen s role: 'user'. Správcem se stane jen ten, komu
+// to přidělí stávající správce (⭐ Udělat správcem), nebo první správce
+// založený v konzoli Firebase (viz FIREBASE.md).
 
 function copyCurrentUserId(){
   const s = userSession();
@@ -7689,17 +7687,33 @@ async function checkMyCloudProfile(){
     }
     // Stejný člověk může být uložený pod jiným ID dokumentu (v profilu je jiný
     // e-mail nebo sedí UID) — to je nejčastější důvod „přihlášený, ale bez práv“.
+    // Při téže kontrole se vypíšou i VŠICHNI správci v cloudu, aby bylo vidět,
+    // když někdo přibyl.
+    const admins = [];
     try{
       const snap = await fbFs().collection(USERS_COLLECTION).get();
       snap.forEach(function(doc){
-        if(doc.id === mail) return;
         const d = doc.data() || {};
+        if(String(d.role || '') === 'admin' && d.active !== false){
+          admins.push((d.name ? String(d.name) + ' — ' : '') + doc.id);
+        }
+        if(doc.id === mail) return;
         if(userKeyFor(d.email) === mail || (uid && d.uid && d.uid === uid)){
           twins.push(doc.id + ' (role: ' + String(d.role == null ? '—' : d.role) +
             ', jméno: ' + String(d.name || '—') + ')');
         }
       });
     }catch(e){}
+    if(admins.length){
+      lines.push('Správci v cloudu (' + admins.length + '): ' + escapeHtml(admins.join('; ')) + '.');
+    } else {
+      lines.push('⚠ V cloudu <strong>není žádný správce</strong> — prvního založte v konzoli ' +
+        'Firebase (Firestore → oopp_users → dokument s ID přesně jako přihlašovací adresa, ' +
+        '<strong>role: admin</strong>, <strong>active: true</strong>). Návod: FIREBASE.md.');
+    }
+    lines.push('Práva správce si <strong>nikdo nemůže dát sám</strong>: pravidla dovolí založit ' +
+      'vlastní profil jen s <strong>role: user</strong>. Práva přidává správce v seznamu ' +
+      'uživatelů tlačítkem <strong>⭐ Udělat správcem</strong>.');
     if(twins.length){
       lines.push('⚠ <strong>Pozor:</strong> stejný účet je uložený pod jiným ID: ' + escapeHtml(twins.join('; ')) +
         '. Práva se ale berou jen z dokumentu, jehož ID je přesně <strong>' + escapeHtml(mail) + '</strong>.');
@@ -7711,17 +7725,18 @@ async function checkMyCloudProfile(){
   box.innerHTML = '<div class="sig-hint">' + lines.map(function(l){ return '<div>' + l + '</div>'; }).join('') + '</div>' +
     '<div class="row" style="margin-top:8px">' +
       '<button class="btn outline small" data-check-profile="1">🔍 Zkontrolovat znovu</button>' +
-      (prof ? '' : '<button class="btn small" data-fix-profile="1">🛠 Založit mi profil správce</button>') +
+      (prof ? '' : '<button class="btn small" data-fix-profile="1">🛠 Založit mi profil</button>') +
       '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
     '</div>';
   box.classList.remove('hidden');
 }
 
 // Záchrana bez konzole Firebase: založí profil přesně pod ID, které odpovídá
-// adrese přihlášeného účtu. Tím se splní pravidlo isAdmin() a účet získá práva
-// správce, takže může v aplikaci přidávat uživatele. Když existuje stejný
-// profil pod jiným ID, převezme z něj jméno, iniciály i nick.
-async function fixMyCloudProfile(){
+// adrese přihlášeného účtu (tím se srovná nesouhlas ID dokumentu a adresy).
+// Profil vzniká VŽDY s role: 'user' — pravidla ve Firestore nedovolí, aby si
+// kdokoli založil správce sám. Práva správce pak přidělí stávající správce.
+// Když existuje stejný profil pod jiným ID, převezme z něj jméno, iniciály i nick.
+async function createMyCloudProfile(){
   const s = userSession();
   if(!s || !s.email){ toast('Nejdřív se přihlaste přihlašovacím jménem a heslem.'); return; }
   let mail = userKeyFor(s.email);
@@ -7757,18 +7772,23 @@ async function fixMyCloudProfile(){
     if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
   }
   if(!initials) initials = initialsOf(name);
-  if(!confirm('Založit profil správce pro přihlášený účet?\n\nID dokumentu: oopp_users/' + mail +
-    '\nJméno: ' + name + '\n\nTím získají práva správce (přidávání uživatelů, Předměty, Objednávky).')) return;
+  if(!confirm('Založit profil pro přihlášený účet?\n\nID dokumentu: oopp_users/' + mail +
+    '\nJméno: ' + name + '\n\nProfil vznikne s právy uživatele — správcem se nikdo nemůže ' +
+    'udělat sám. Když práva správce potřebujete, přidělí je stávající správce\n' +
+    '(v seznamu uživatelů tlačítkem „⭐ Udělat správcem“).')) return;
   try{
     const now = Date.now();
+    // Nováček si smí založit jen VLASTNÍ profil a jen jako uživatel — pravidla
+    // (create s role == 'user') nedovolí, aby si kdokoli dal práva sám.
     await fbFs().collection(USERS_COLLECTION).doc(mail).set({
       uid: uid, email: mail, login: login, name: name, initials: initials,
-      role: 'admin', active: true, passSetAt: now, createdAt: now, repairedAt: now
+      role: 'user', active: true, passSetAt: now, createdAt: now, repairedAt: now
     }, {merge: true});
-    // Nick v oopp_logins: po založení profilu už pravidla isAdmin() platí,
-    // takže zápis projde a práva platí i při přihlášení nickem. Verzi nicku
-    // (po smazání hesla bývá .v2) přebíráme, aby se nerozbilo přihlášení.
-    if(login && login.indexOf('@') < 0){
+    // Nick v oopp_logins smí zapsat jen správce (pravidla). Když si profil
+    // zakládá sám uživatel, zápis se přeskočí — nick platí dál, jen k němu
+    // nejsou práva. Verzi nicku (po smazání hesla bývá .v2) přebíráme, aby se
+    // nerozbilo přihlášení.
+    if(login && login.indexOf('@') < 0 && isAdmin()){
       try{
         const entry = await loginEntryGet(login);
         const vm = /\.v(\d+)@oopp\.local$/.exec(mail);
@@ -7781,10 +7801,10 @@ async function fixMyCloudProfile(){
     profileSyncAt = 0;
     try{ await loadUsersFromCloud(false); }catch(e){}
     await afterAuthUser({uid: uid, email: mail});
-    setAdminSession(true);
-    unlockData();
     refreshIssuerUI();
-    toast('Profil správce založen pro ' + mail + ' — práva platí hned. V seznamu uživatelů musíte být u sebe „správce“.', 15000);
+    renderUsersUI();
+    updateAdminUI();
+    toast('Profil ' + mail + ' je založený. Práva správce se přidávají jen z účtu správce (⭐ Udělat správcem) — sám si je nikdo dát nemůže.', 16000);
   }catch(e){
     toast('Nepodařilo se: ' + friendlyAuthError(e), 10000);
   }
@@ -7867,16 +7887,15 @@ function renderUsersUI(){
       if(s && s.email && s.missing){
         const myNick = nickFromEmail(s.email) || '';
         const myId = userKeyFor(s.email);
-        // Profil správce smí založit sám jen ten, kdo je přihlášený správcem
-        // (nebo když v cloudu ještě žádný profil není) — jinak práva přiděluje
-        // správce, aby si je nikdo nedal sám.
-        const canBootstrap = !!(admin || !users.length);
+        // Tlačítko založí profil (vždy s role: user) — správcem se nikdo
+        // nedělá sám, práva přidává stávající správce.
         loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(myNick) +
           '</strong> je přihlášený, ale v cloudu nemá profil v kolekci <strong>oopp_users</strong>, takže nemá práva správce a výdej by se nepodepsal iniciály.' +
-          (canBootstrap ? '' : ' Požádejte správce, ať vás přidá v kartě „👤 Uživatelé a přístup“ (tlačítko ⭐ Udělat správcem). Máte-li přístup do konzole Firebase, jde to i tam: Firestore → oopp_users → dokument <strong>' +
-            escapeHtml(myId) + '</strong> s položkami <strong>role: admin</strong>, <strong>active: true</strong>, <strong>name</strong> a <strong>initials</strong>.') +
+          ' Práva správce přiděluje správce v kartě „👤 Uživatelé a přístup“ (tlačítko ⭐ Udělat správcem) — sám si je nikdo dát nemůže.' +
+          (users.length ? '' : ' Cloud je zatím prázdný: prvního správce založte v konzoli Firebase — Firestore → oopp_users → dokument <strong>' +
+            escapeHtml(myId) + '</strong> s položkami <strong>role: admin</strong>, <strong>active: true</strong>, <strong>name</strong>, <strong>initials</strong> (návod v FIREBASE.md).') +
           '</div><div class="row" style="margin-top:8px">' +
-          (canBootstrap ? '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' : '') +
+          '<button class="btn small" data-fix-profile="1">🛠 Založit mi profil</button>' +
           '<button class="btn outline small" data-check-profile="1">🔍 Zkontrolovat profil</button>' +
           '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button></div>';
         loginBox.classList.remove('hidden');
@@ -8803,7 +8822,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v71';
+const APP_VERSION = 'v72';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -9676,12 +9695,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if(userNameBtn){ editAppUserName(userNameBtn.dataset.userName); return; }
     const userDelBtn = e.target.closest('button[data-user-del]');
     if(userDelBtn){ removeAppUser(userDelBtn.dataset.userDel); return; }
-    const bootAdminBtn = e.target.closest('button[data-bootstrap-admin]');
-    if(bootAdminBtn){ createSelfAdminProfile(); return; }
     const checkProfileBtn = e.target.closest('button[data-check-profile]');
     if(checkProfileBtn){ checkMyCloudProfile(); return; }
     const fixProfileBtn = e.target.closest('button[data-fix-profile]');
-    if(fixProfileBtn){ fixMyCloudProfile(); return; }
+    if(fixProfileBtn){ createMyCloudProfile(); return; }
     const copyIdBtn = e.target.closest('button[data-copy-id]');
     if(copyIdBtn){ copyCurrentUserId(); return; }
   });

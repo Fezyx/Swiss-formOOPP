@@ -135,12 +135,16 @@ správce po přihlášení omylem bez práv.
 1. Ve Firebase Authentication → Users založte první účet (e-mail + heslo).
    To je jediné místo, kde e-mail zůstává — patří správci, který projekt
    zakládá. Další lidi už přidáváte nickem přímo v aplikaci.
-2. V aplikaci se přihlaste (Data → „🔒 Přihlášení k datům“) tím e-mailem
-   a heslem.
-3. V kartě „👤 Uživatelé a přístup“ klikněte „✚ Založit profil správce“
-   a napište jméno a příjmení. Tlačítko se ukazuje, jen když v cloudu ještě
-   žádný profil není.
-4. Od té chvíle přidává další účty správce přímo v aplikaci.
+2. Ve Firestore založte jeho profil: dokument v oopp_users, jehož ID je
+   PŘESNĚ ta přihlašovací adresa (malými písmeny), s položkami
+   role = admin, active = true (boolean), name = „Jméno Příjmení“,
+   initials = „J.P.“, email = stejná adresa. Podrobný návod: FIREBASE.md.
+   Proč ručně: pravidla od v72 nedovolí, aby si kdokoli založil profil
+   s role = admin sám — jinak by si každý přihlášený mohl dát práva sám.
+3. V aplikaci se přihlaste (Data → „🔒 Přihlášení k datům“) tím e-mailem
+   a heslem — v hlavičce musí být „· správce“.
+4. Od té chvíle přidává další účty správce přímo v aplikaci (nickem)
+   a práva dává tlačítkem „⭐ Udělat správcem“.
 
 7) Pravidla ve Firestore
 ------------------------
@@ -149,6 +153,9 @@ v souboru FIREBASE.md → kapitola 2. Navíc je potřeba kolekce oopp_logins:
 číst ji smí kdokoli (aplikace z ní před přihlášením zjistí verzi a práva
 nicku), zapisovat smí jen správce. Zkráceně: číst a zapisovat data smí jen
 přihlášený uživatel, který má profil; profily zapisuje jen správce.
+Od v72 navíc platí, že nováček si smí založit jen VLASTNÍ profil a jen
+s role = user — správcem se tak nikdo nemůže udělat sám (prvního správce
+je proto potřeba založit v konzoli, viz bod 6).
 Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
 
 8) Časté potíže
@@ -161,10 +168,10 @@ Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
 - „Tomuto přihlašovacímu jménu správce odebral přístup“ — nick má odebraný
   přístup (🚫 Odebrat). Správce ho znovu přidá stejným nickem.
 - „Přihlášený účet zatím nemá profil“ — e-mail existuje, ale chybí dokument
-  v oopp_users (typicky první správce). V přihlašovací kartě se objeví rámeček
-  s tlačítkem „✚ Založit profil správce“ (když je cloud prázdný nebo jste
-  správce) a s tlačítkem „📋 Kopírovat ID profilu“ — jinak požádejte správce
-  o přidání.
+  v oopp_users. V přihlašovací kartě se objeví rámeček s tlačítkem
+  „🛠 Založit mi profil“ (vznikne jako uživatel — práva správce přiděluje
+  správce), „🔍 Zkontrolovat profil“ a „📋 Kopírovat ID profilu“. Když je
+  cloud úplně prázdný, založte prvního správce v konzoli (bod 6).
 - „Jsem přihlášený jako správce, ale nemám práva“ — poznáte to podle odznaku
   vpravo nahoře („· uživatel“ místo „· správce“) a podle hlášky v přihlašovací
   kartě. Nejčastěji je to tak, že účet má nick s právy uživatele, nebo profil
@@ -195,9 +202,13 @@ Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
         „🔍 Zkontrolovat profil“. Vypíše: pod jakou adresou vás Firebase vede,
         jestli na ní profil existuje, jakou má roli, a jestli stejný účet
         neexistuje ještě pod jiným ID.
-     3. Když profil na vaší adrese chybí, objeví se „🛠 Založit mi profil
-        správce“ — založí dokument přesně pod vaší adresou (jméno, iniciály
-        i nick převezme z profilu uloženého pod jiným ID) a práva platí hned.
+     3. Když profil na vaší adrese chybí, objeví se „🛠 Založit mi profil“ —
+        založí dokument přesně pod vaší adresou (jméno, iniciály i nick
+        převezme z profilu uloženého pod jiným ID). Vznikne ale jako
+        uživatel: pravidla od v72 nedovolí, aby si kdokoli založil správce
+        sám. Práva pak přidá jiný správce („⭐ Udělat správcem“), nebo je
+        nastavte v konzoli (role = admin) — tam jde i založit dokument
+        rovnou pod správným ID.
      4. Když profil existuje, ale má role = user, práva nepůjdou přidat z
         aplikace (pravidla to nedovolí) — musí je přidat stávající správce
         tlačítkem „⭐ Udělat správcem“, nebo je upravte v konzoli Firebase.
