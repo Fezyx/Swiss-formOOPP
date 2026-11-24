@@ -6904,8 +6904,10 @@ let usersLoading = false;
 async function loadUsersFromCloud(announce){
   const cfg = cloudConfig();
   if(!cfg.key || cfg.provider !== 'firebase'){
+    // Bez Firebase seznam v cloudu není — jen seznam v zařízení. Čas si
+    // poznamenáme, aby se renderUsersUI neptal pořád dokola (a nerekurzovalo).
+    usersLoadAt = Date.now();
     if(announce) toast('Seznam uživatelů je jen u Firebase.');
-    renderUsersUI();
     return false;
   }
   if(usersLoading) return false;
@@ -7213,8 +7215,12 @@ function renderUsersUI(){
       rows + '</tbody></table>' +
       '<div class="sig-hint">Odebraný uživatel se k datům nedostane. Účet ve Firebase Authentication smažete v konzoli (Users → ⋮ → Delete).</div>';
   }
-  // Seznam se sám dotáhne z cloudu, ale nejvýš jednou za 5 minut.
-  if(!usersLoading && (Date.now() - usersLoadAt) > 300000) loadUsersFromCloud(false);
+  // Seznam se sám dotáhne z cloudu, ale nejvýš jednou za 5 minut — a jen když
+  // je Firebase vůbec nastavené (jinak by se volání zacyklilo).
+  const cfg = cloudConfig();
+  if(cfg.key && cfg.provider === 'firebase' && !usersLoading && (Date.now() - usersLoadAt) > 300000){
+    loadUsersFromCloud(false);
+  }
 }
 
 // Zkopírování textu do schránky (stejná záložní cesta jako u sdílecího odkazu).
@@ -8056,7 +8062,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v61';
+const APP_VERSION = 'v62';
 let installPromptEvent = null;
 
 function isAppStandalone(){
