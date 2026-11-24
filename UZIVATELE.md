@@ -32,6 +32,11 @@ a heslo. Díky tomu je v tabulce výdejů vidět, kdo výdej vydal (kolonka
   ale NEDÁVÁ práva správce v cloudu — cloudová práva určuje profil.
   Odemkne ale Data a seznam uživatelů, takže jím lze chybějící práva udělit
   („⭐ Udělat správcem“). To je záchranná cesta, když se práva ztratí.
+- Když si nejste jistí, proč účet práva nemá, klikněte v přihlašovací kartě
+  (nebo v kartě „👤 Uživatelé a přístup“) na „🔍 Zkontrolovat profil“ —
+  vypíše adresu, pod kterou vás vede Firebase, existenci profilu a jeho roli.
+  Práva ve Firestore se počítají jen z dokumentu oopp_users, jehož ID je
+  přesně tato adresa (viz §8).
 - Bez přihlášení se nepřidávají ani neupravují zaměstnanci a neukládají se
   předávací protokoly. V hlavičce vedle mráčku ☁ přitom svítí velké
   „PŘIHLÁSTE SE“; klepnutím se otevře přihlašovací karta.
@@ -178,6 +183,29 @@ Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
      zkopírovat tlačítkem „📋 Kopírovat ID profilu“.
   4. Role v profilu jde měnit jen správcem (pravidla ve Firestore) — sám si
      ji uživatel přepsat nemůže.
+  5. **Nejčastější příčina: profil je uložený pod jiným ID, než je adresa,
+     pod kterou vás Firebase přihlašuje.** Například dokument se jmenuje
+     lukas.dvorak@swissform.cz, ale uvnitř má pole email =
+     lukas.dvorak@gmail.com (ručně založeno v konzoli). Práva ve Firestore
+     (pravidlo isAdmin) se počítají VÝHRADNĚ z dokumentu, jehož ID = přesně
+     přihlašovací adresa — na poli email uvnitř dokumentu vůbec nezáleží.
+     Oprava v aplikaci (bez konzole):
+     1. Přihlaste se účtem, kterému chcete dát práva.
+     2. V přihlašovací kartě (nebo v kartě „👤 Uživatelé a přístup“) klikněte
+        „🔍 Zkontrolovat profil“. Vypíše: pod jakou adresou vás Firebase vede,
+        jestli na ní profil existuje, jakou má roli, a jestli stejný účet
+        neexistuje ještě pod jiným ID.
+     3. Když profil na vaší adrese chybí, objeví se „🛠 Založit mi profil
+        správce“ — založí dokument přesně pod vaší adresou (jméno, iniciály
+        i nick převezme z profilu uloženého pod jiným ID) a práva platí hned.
+     4. Když profil existuje, ale má role = user, práva nepůjdou přidat z
+        aplikace (pravidla to nedovolí) — musí je přidat stávající správce
+        tlačítkem „⭐ Udělat správcem“, nebo je upravte v konzoli Firebase.
+     Oprava v konzoli (stejný výsledek): vytvořte dokument oopp_users s ID =
+     přesně vaše přihlašovací adresa (malými písmeny), do něj zkopírujte
+     name, initials, login a nastavte role = admin, active = true. Starý
+     dokument pod špatným ID pak můžete smazat.
+  6. Až práva platí, ověřte to v hlavičce: musí tam být „· správce“.
 - „Missing or insufficient permissions“ — chybí pravidla z FIREBASE.md
   (hlavně veřejné čtení oopp_logins), nebo účet nemá profil.
 - Data se nesynchronizují — v kartě „☁ Cloud“ klikněte „🔑 Přihlásit“

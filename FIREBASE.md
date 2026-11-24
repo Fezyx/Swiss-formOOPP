@@ -174,6 +174,26 @@ z konzole může napsat i e-mail — pozná se podle `@`).
 > pošta na ni nechodí. Nemažte je ručně; heslo se „maže“ tlačítkem
 > v aplikaci (🔑 Smazat heslo), aby se správně zvedla verze.
 
+### Dokument v `oopp_users` musí mít ID přesně jako přihlašovací adresa
+
+Pravidlo `isAdmin()` hledá dokument `oopp_users/<e-mail z přihlášení>`, takže
+**rozhoduje ID dokumentu, ne pole `email` uvnitř něj**. Když dokument založíte
+ručně v konzoli pod jiným ID (např. ID `lukas.dvorak@swissform.cz`, ale uvnitř
+`email: lukas.dvorak@gmail.com`), účet se přihlásí, ale práva správce mít
+nebude — a nepůjde mu ani přidávat uživatele (`permission-denied`).
+
+Rychlá kontrola i oprava bez konzole: v aplikaci (přihlašovací karta nebo
+Data → 👤 Uživatelé a přístup) klikněte **🔍 Zkontrolovat profil** — vypíše
+adresu z Firebase, existenci profilu, jeho roli a případný duplikát pod jiným
+ID. Když profil na vaší adrese chybí, tlačítko **🛠 Založit mi profil správce**
+ho založí přesně pod ní. Pravidla `create` dovolují nováčkovi založit si
+vlastní profil (`email == myEmail()`), takže to projde i bez správce.
+
+Alternativa v konzoli: zkopírujte dokument pod správné ID (malými písmeny)
+a v něm nechte `role: admin`, `active: true`, `name`, `initials`; starý
+dokument pod špatným ID smažte. Stejně nastavte `oopp_logins/<nick>` →
+`role: admin` (jinak práva neplatí při přihlášení nickem).
+
 ## 3. Údaje do aplikace
 
 > **Projekt `swissformoopp` je v aplikaci už přednastavený.** `Project ID`

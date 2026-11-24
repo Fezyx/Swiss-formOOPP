@@ -757,6 +757,7 @@ tr.clickable:hover{background:#eef3fa}
             <div class="acc-body">
               <p class="desc">Každý, kdo vydává OOPP, má vlastní <strong>přihlašovací jméno</strong> (nick) a heslo. Heslo si dotyčný <strong>zvolí sám</strong> při prvním přihlášení — aplikace ho nikde neukládá a správce ho nevidí. Správce ho umí jen <strong>smazat</strong>; dotyčný si pak stejným jménem nastaví nové. Nic se neposílá e-mailem.</p>
               <div id="usersCurrent"></div>
+              <div id="profileCheckBox" class="hidden" style="margin-top:10px"></div>
               <div class="sig-hint" id="usersHint" style="margin-top:10px"></div>
               <div id="usersAdminBox" class="hidden" style="margin-top:16px">
                 <label>Přihlašovací jméno (nick)</label>
@@ -7238,9 +7239,8 @@ async function tryDataLoginCloud(u, p){
       if(errEl) errEl.textContent = 'Přihlášeno jako ' + ((s && (s.name || s.email)) ? (s.name || nickFromEmail(s.email)) : who) +
         ' — účet nemá práva správce, takže Data zůstávají zamčená. Výdeje se podepisují iniciálami ' +
         ((s && s.initials) ? s.initials : '—') + '. ' +
-        'Práva správce se zapínají u profilu: ve Firestore v kolekci oopp_users otevřete dokument „' +
-        ((s && s.email) || '') + '“ a nastavte role = admin (stejně tak oopp_logins → ' +
-        (nickFromEmail((s && s.email) || '') || 'nick') + ').';
+        'Práva správce se ve Firestore počítají z dokumentu oopp_users, jehož ID je přesně adresa, pod kterou vás Firebase vede (' +
+        ((s && s.email) || '') + '). V přihlašovací kartě výše klikněte na „🔍 Zkontrolovat profil“ — napíše, pod jakou adresou vás Firebase zná a jestli na ní profil existuje (a nabídne „🛠 Založit mi profil správce“).';
       toast('Přihlášeno.');
     }
     try{ renderCloudUI(); updateCloudBanner(); renderUsersUI(); }catch(e){}
@@ -7328,7 +7328,9 @@ async function clearAppUserPassword(email){
   if(!isAdmin()){ toast('Heslo může smazat jen správce.'); return; }
   const mail = userKeyFor(email);
   if(!mail) return;
-  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  // Klíčem je ID dokumentu (to je vždy adresa účtu); pole email v profilu
+  // může být zastaralé, kdyby dokument někdo zakládal ručně v konzoli.
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.id || x.email) === mail; });
   const nick = normNick((u && u.login) || nickFromEmail(mail));
   if(!nick){ toast('U profilu chybí přihlašovací jméno — přidejte uživatele znovu.'); return; }
   const who = (u && u.name) ? (u.name + ' (' + nick + ')') : nick;
@@ -7488,7 +7490,7 @@ async function editAppUserName(email){
   if(!isAdmin()){ toast('Jméno může měnit jen správce.'); return; }
   const mail = userKeyFor(email);
   if(!mail) return;
-  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.id || x.email) === mail; });
   const cur = (u && u.name) || '';
   const label = (u && u.login) ? u.login : (nickFromEmail(mail) || mail);
   const answer = prompt('Jméno a příjmení pro ' + label + ':\n\nZ něj se udělají iniciály do kolonky „Vydal“ (Lukáš Dvořák → L.D.).', cur);
@@ -7529,7 +7531,7 @@ async function removeAppUser(email){
   if(!isAdmin()){ toast('Odebírat přístup může jen správce.'); return; }
   const mail = userKeyFor(email);
   if(!mail) return;
-  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.id || x.email) === mail; });
   const nick = normNick((u && u.login) || nickFromEmail(mail));
   const who = (u && u.name) ? (u.name + ' (' + (nick || mail) + ')') : (nick || mail);
   if(!confirm('Odebrat přístup uživateli ' + who + '?\n\nPřestane se dostat k datům v cloudu a jeho heslo přestane platit. Když mu ho budete chtít vrátit, přidejte ho znovu stejným přihlašovacím jménem — nastaví si nové heslo.')) return;
@@ -7566,7 +7568,7 @@ async function setAppUserRole(email, role){
     toast('Svá vlastní práva správce odebrat nemůžete — udělal by to jiný správce. Jinak byste si zamkl(a) dveře.', 12000);
     return;
   }
-  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.id || x.email) === mail; });
   const nick = normNick((u && u.login) || nickFromEmail(mail));
   const who = (u && u.name) ? (u.name + (nick ? ' (' + nick + ')' : '')) : (nick || mail);
   const q = (next === 'admin')
@@ -7639,6 +7641,155 @@ function copyCurrentUserId(){
   copyTextToClipboard(userKeyFor(s.email), 'Interní ID profilu zkopírováno (jen pro Firestore).');
 }
 
+// Kam vypsat výsledek kontroly profilu: do karty Uživatelé, když je odemčená
+// (Data), jinak do přihlašovací karty (když účet práva nemá a Data jsou zamčená).
+function profileCheckTarget(){
+  const inUsers = document.getElementById('profileCheckBox');
+  const dataOpen = document.getElementById('dataContent');
+  if(inUsers && dataOpen && !dataOpen.classList.contains('hidden')) return inUsers;
+  return document.getElementById('loginProfileBox');
+}
+
+// Kontrola, PROČ přihlášený účet nemá práva. Firestore pravidlo isAdmin()
+// počítá práva výhradně z dokumentu oopp_users/<přihlašovací e-mail>, takže
+// když ID dokumentu nesedí s adresou, pod kterou účet přihlašuje Firebase
+// (typicky ručně založený dokument v konzoli), nemá práva ani s role: admin.
+async function checkMyCloudProfile(){
+  const s = userSession();
+  if(!s || !s.email){ toast('Nejdřív se přihlaste přihlašovacím jménem a heslem.'); return; }
+  const box = profileCheckTarget();
+  if(box){
+    box.classList.remove('hidden');
+    box.innerHTML = '<div class="sig-hint">Zjišťuji, pod jakou adresou vás zná Firebase…</div>';
+  }
+  const lines = [];
+  let mail = userKeyFor(s.email);
+  let uid = s.uid || '';
+  let prof = null;
+  const twins = [];
+  try{
+    const cfg = cloudConfig();
+    if(cfg.provider !== 'firebase' || !cfg.key) throw new Error('Cloud (Firebase) není v aplikaci nastavený.');
+    const user = await fbEnsureAuth();
+    if(user && user.email) mail = userKeyFor(user.email);
+    uid = (user && user.uid) || uid;
+    lines.push('<strong>Firebase vás přihlásil jako:</strong> ' + escapeHtml(mail) +
+      (uid ? ' <span class="sig-hint">(UID ' + escapeHtml(uid) + ')</span>' : ''));
+    prof = await fetchUserProfile(mail);
+    if(prof){
+      lines.push('Profil <strong>oopp_users/' + escapeHtml(mail) + '</strong> existuje — role: <strong>' +
+        escapeHtml(String(prof.role == null ? '(chybí)' : prof.role)) + '</strong>, active: <strong>' +
+        (prof.active === false ? 'false' : 'true') + '</strong>.');
+      if(prof.role !== 'admin'){
+        lines.push('Práva správce (i možnost přidávat uživatele) se ve Firestore počítají z této role — musí tam být <strong>admin</strong>.');
+      }
+    } else {
+      lines.push('Profil <strong>oopp_users/' + escapeHtml(mail) + '</strong> <strong>neexistuje</strong> — ' +
+        'a právě ten určuje práva (pravidlo isAdmin()). Bez něj nejde přidávat uživatele ani ukládat data do cloudu.');
+    }
+    // Stejný člověk může být uložený pod jiným ID dokumentu (v profilu je jiný
+    // e-mail nebo sedí UID) — to je nejčastější důvod „přihlášený, ale bez práv“.
+    try{
+      const snap = await fbFs().collection(USERS_COLLECTION).get();
+      snap.forEach(function(doc){
+        if(doc.id === mail) return;
+        const d = doc.data() || {};
+        if(userKeyFor(d.email) === mail || (uid && d.uid && d.uid === uid)){
+          twins.push(doc.id + ' (role: ' + String(d.role == null ? '—' : d.role) +
+            ', jméno: ' + String(d.name || '—') + ')');
+        }
+      });
+    }catch(e){}
+    if(twins.length){
+      lines.push('⚠ <strong>Pozor:</strong> stejný účet je uložený pod jiným ID: ' + escapeHtml(twins.join('; ')) +
+        '. Práva se ale berou jen z dokumentu, jehož ID je přesně <strong>' + escapeHtml(mail) + '</strong>.');
+    }
+  }catch(e){
+    lines.push('Kontrolu nešlo dokončit: <strong>' + escapeHtml(friendlyAuthError(e)) + '</strong>');
+  }
+  if(!box) return;
+  box.innerHTML = '<div class="sig-hint">' + lines.map(function(l){ return '<div>' + l + '</div>'; }).join('') + '</div>' +
+    '<div class="row" style="margin-top:8px">' +
+      '<button class="btn outline small" data-check-profile="1">🔍 Zkontrolovat znovu</button>' +
+      (prof ? '' : '<button class="btn small" data-fix-profile="1">🛠 Založit mi profil správce</button>') +
+      '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
+    '</div>';
+  box.classList.remove('hidden');
+}
+
+// Záchrana bez konzole Firebase: založí profil přesně pod ID, které odpovídá
+// adrese přihlášeného účtu. Tím se splní pravidlo isAdmin() a účet získá práva
+// správce, takže může v aplikaci přidávat uživatele. Když existuje stejný
+// profil pod jiným ID, převezme z něj jméno, iniciály i nick.
+async function fixMyCloudProfile(){
+  const s = userSession();
+  if(!s || !s.email){ toast('Nejdřív se přihlaste přihlašovacím jménem a heslem.'); return; }
+  let mail = userKeyFor(s.email);
+  let uid = s.uid || '';
+  let name = String(s.name || '').trim();
+  let initials = String(s.initials || '').trim();
+  let login = '';
+  try{
+    const user = await fbEnsureAuth();
+    if(user && user.email) mail = userKeyFor(user.email);
+    uid = (user && user.uid) || uid;
+    try{
+      const snap = await fbFs().collection(USERS_COLLECTION).get();
+      snap.forEach(function(doc){
+        if(doc.id === mail || login) return;
+        const d = doc.data() || {};
+        if(userKeyFor(d.email) === mail || (uid && d.uid && d.uid === uid)){
+          if(!name) name = String(d.name || '').trim();
+          if(!initials) initials = String(d.initials || '').trim();
+          login = normNick(d.login) || '';
+        }
+      });
+    }catch(e){}
+  }catch(e){
+    toast('Nepodařilo se připojit k Firebase: ' + friendlyAuthError(e), 9000);
+    return;
+  }
+  if(!login) login = normNick(nickFromEmail(mail));
+  if(!name){
+    name = String(prompt('Vaše jméno a příjmení (z něj budou iniciály v kolonce Vydal):', '') || '')
+      .trim().replace(/\s+/g, ' ');
+    if(!name) return;
+    if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
+  }
+  if(!initials) initials = initialsOf(name);
+  if(!confirm('Založit profil správce pro přihlášený účet?\n\nID dokumentu: oopp_users/' + mail +
+    '\nJméno: ' + name + '\n\nTím získají práva správce (přidávání uživatelů, Předměty, Objednávky).')) return;
+  try{
+    const now = Date.now();
+    await fbFs().collection(USERS_COLLECTION).doc(mail).set({
+      uid: uid, email: mail, login: login, name: name, initials: initials,
+      role: 'admin', active: true, passSetAt: now, createdAt: now, repairedAt: now
+    }, {merge: true});
+    // Nick v oopp_logins: po založení profilu už pravidla isAdmin() platí,
+    // takže zápis projde a práva platí i při přihlášení nickem. Verzi nicku
+    // (po smazání hesla bývá .v2) přebíráme, aby se nerozbilo přihlášení.
+    if(login && login.indexOf('@') < 0){
+      try{
+        const entry = await loginEntryGet(login);
+        const vm = /\.v(\d+)@oopp\.local$/.exec(mail);
+        const v = Math.max(1, parseInt(entry && entry.v, 10) || parseInt(vm && vm[1], 10) || 1);
+        await fbFs().collection(LOGINS_COLLECTION).doc(login).set({
+          nick: login, v: v, role: 'admin', active: true, name: name, updatedAt: now
+        }, {merge: true});
+      }catch(e){}
+    }
+    profileSyncAt = 0;
+    try{ await loadUsersFromCloud(false); }catch(e){}
+    await afterAuthUser({uid: uid, email: mail});
+    setAdminSession(true);
+    unlockData();
+    refreshIssuerUI();
+    toast('Profil správce založen pro ' + mail + ' — práva platí hned. V seznamu uživatelů musíte být u sebe „správce“.', 15000);
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 10000);
+  }
+}
+
 // Vykreslení karty „👤 Uživatelé a přístup“: kdo je přihlášený, seznam profilů
 // a tlačítka pro nové heslo / odebrání přístupu.
 // Nabídka zaměstnanců do formuláře „Přidat uživatele“: správce vybere
@@ -7664,6 +7815,8 @@ function fillNewUserEmployees(){
   sel.innerHTML = html;
   if(prev) sel.value = prev;
 }
+
+let loginBoxState = '';
 
 function renderUsersUI(){
   const listEl = document.getElementById('userList');
@@ -7700,27 +7853,45 @@ function renderUsersUI(){
   }
   const users = usersCacheGet();
   // Box v přihlašovací kartě: přihlášený účet bez profilu si může založit první
-  // profil správce (jen když v cloudu ještě žádný profil není).
+  // profil správce (jen když v cloudu ještě žádný profil není); každý účet si
+  // tu může nechat zkontrolovat, pod jakou adresou ho Firebase vede.
   const loginBox = document.getElementById('loginProfileBox');
   if(loginBox){
-    if(s && s.email && s.missing){
-      const myNick = nickFromEmail(s.email) || '';
-      const myId = userKeyFor(s.email);
-      // Profil správce smí založit sám jen ten, kdo je přihlášený správcem
-      // (nebo když v cloudu ještě žádný profil není) — jinak práva přiděluje
-      // správce, aby si je nikdo nedal sám.
-      const canBootstrap = !!(admin || !users.length);
-      loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(myNick) +
-        '</strong> je přihlášený, ale v cloudu nemá profil v kolekci <strong>oopp_users</strong>, takže nemá práva správce a výdej by se nepodepsal iniciály.' +
-        (canBootstrap ? '' : ' Požádejte správce, ať vás přidá v kartě „👤 Uživatelé a přístup“ (tlačítko ⭐ Udělat správcem). Máte-li přístup do konzole Firebase, jde to i tam: Firestore → oopp_users → dokument <strong>' +
-          escapeHtml(myId) + '</strong> s položkami <strong>role: admin</strong>, <strong>active: true</strong>, <strong>name</strong> a <strong>initials</strong>.') +
-        '</div><div class="row" style="margin-top:8px">' +
-        (canBootstrap ? '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' : '') +
-        '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button></div>';
-      loginBox.classList.remove('hidden');
-    } else {
-      loginBox.innerHTML = '';
-      loginBox.classList.add('hidden');
+    // Překresluje se jen při změně stavu, aby výsledek kontroly profilu
+    // nezmizel při každém překreslení seznamu uživatelů.
+    const boxKey = (s && s.email)
+      ? (userKeyFor(s.email) + '|' + (s.missing ? 'missing' : 'ok') + '|' + (s.role || ''))
+      : '';
+    if(boxKey !== loginBoxState){
+      loginBoxState = boxKey;
+      if(s && s.email && s.missing){
+        const myNick = nickFromEmail(s.email) || '';
+        const myId = userKeyFor(s.email);
+        // Profil správce smí založit sám jen ten, kdo je přihlášený správcem
+        // (nebo když v cloudu ještě žádný profil není) — jinak práva přiděluje
+        // správce, aby si je nikdo nedal sám.
+        const canBootstrap = !!(admin || !users.length);
+        loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(myNick) +
+          '</strong> je přihlášený, ale v cloudu nemá profil v kolekci <strong>oopp_users</strong>, takže nemá práva správce a výdej by se nepodepsal iniciály.' +
+          (canBootstrap ? '' : ' Požádejte správce, ať vás přidá v kartě „👤 Uživatelé a přístup“ (tlačítko ⭐ Udělat správcem). Máte-li přístup do konzole Firebase, jde to i tam: Firestore → oopp_users → dokument <strong>' +
+            escapeHtml(myId) + '</strong> s položkami <strong>role: admin</strong>, <strong>active: true</strong>, <strong>name</strong> a <strong>initials</strong>.') +
+          '</div><div class="row" style="margin-top:8px">' +
+          (canBootstrap ? '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' : '') +
+          '<button class="btn outline small" data-check-profile="1">🔍 Zkontrolovat profil</button>' +
+          '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button></div>';
+        loginBox.classList.remove('hidden');
+      } else if(s && s.email){
+        loginBox.innerHTML = '<div class="sig-hint">Přihlášený účet <strong>' + escapeHtml(nickFromEmail(s.email)) +
+          '</strong> — ' + (s.role === 'admin' ? 'správce' : 'uživatel') +
+          '. Máte-li mít práva správce a nemáte je, nechte profil zkontrolovat: práva ve Firestore se počítají z dokumentu <strong>oopp_users/' +
+          escapeHtml(userKeyFor(s.email)) + '</strong>.</div>' +
+          '<div class="row" style="margin-top:8px">' +
+          '<button class="btn outline small" data-check-profile="1">🔍 Zkontrolovat profil</button></div>';
+        loginBox.classList.remove('hidden');
+      } else {
+        loginBox.innerHTML = '';
+        loginBox.classList.add('hidden');
+      }
     }
   }
   if(curEl){
@@ -7734,9 +7905,10 @@ function renderUsersUI(){
         '<div class="sig-hint">' + escapeHtml(nickFromEmail(s.email)) + '</div>' +
         (s.missing ? '<div class="sig-hint">Účet je přihlášený, ale nemá profil v kolekci <strong>oopp_users</strong> — ' +
           'k datům se nedostane a výdej neuloží. Požádejte správce o přidání (nebo si profil založte v přihlašovací kartě výše).</div>' : '') +
-        (s.missing ? '<div class="row" style="margin-top:8px">' +
-          '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
-          '</div>' : '') +
+        '<div class="row" style="margin-top:8px">' +
+          '<button class="btn outline small" data-check-profile="1" title="Zjistí, pod jakou adresou vás vede Firebase a jestli na té adrese existuje profil s právy">🔍 Zkontrolovat profil</button>' +
+          (s.missing ? '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' : '') +
+        '</div>' +
         '</div>';
     } else {
       html += '<div class="user-me"><strong>Nepřihlášeno.</strong> ' +
@@ -7751,7 +7923,7 @@ function renderUsersUI(){
   } else {
     let rows = '';
     users.forEach(function(u){
-      const email = userKeyFor(u.email || u.id);
+      const email = userKeyFor(u.id || u.email);
       const mine = !!(s && userKeyFor(s.email) === email);
       const role = u.role === 'admin' ? 'admin' : 'user';
       const nick = u.login ? String(u.login) : nickFromEmail(email);
@@ -8631,7 +8803,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v70';
+const APP_VERSION = 'v71';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -9506,6 +9678,10 @@ document.addEventListener('DOMContentLoaded', function(){
     if(userDelBtn){ removeAppUser(userDelBtn.dataset.userDel); return; }
     const bootAdminBtn = e.target.closest('button[data-bootstrap-admin]');
     if(bootAdminBtn){ createSelfAdminProfile(); return; }
+    const checkProfileBtn = e.target.closest('button[data-check-profile]');
+    if(checkProfileBtn){ checkMyCloudProfile(); return; }
+    const fixProfileBtn = e.target.closest('button[data-fix-profile]');
+    if(fixProfileBtn){ fixMyCloudProfile(); return; }
     const copyIdBtn = e.target.closest('button[data-copy-id]');
     if(copyIdBtn){ copyCurrentUserId(); return; }
   });
