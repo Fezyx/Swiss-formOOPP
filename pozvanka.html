@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3663ae">
+<title>Dokončení účtu — Evidence OOPP</title>
+<link rel="icon" href="./dependencies/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./dependencies/icons/apple-touch-icon.png">
+<style>
+  :root{ --blue:#3663ae; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f5f7fb; --ok:#15803d; --err:#dc2626; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; padding:24px 16px 40px; background:var(--bg); color:var(--ink);
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+        font-size:16px; line-height:1.5; }
+  main{ max-width:520px; margin:0 auto; background:#fff; border-radius:14px;
+        box-shadow:0 6px 24px rgba(15,23,42,.08); padding:22px 20px 26px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .brand img{ width:44px; height:44px; object-fit:contain; }
+  .brand strong{ font-size:15px; letter-spacing:.02em; color:var(--blue); }
+  h1{ font-size:21px; margin:0 0 8px; }
+  p{ margin:0 0 12px; }
+  .desc{ color:var(--muted); font-size:15px; }
+  label{ display:block; margin:14px 0 6px; font-weight:600; font-size:14px; }
+  input{ width:100%; padding:12px 14px; font-size:16px; border:1px solid var(--line);
+         border-radius:10px; background:#fff; color:var(--ink); }
+  input:focus{ outline:2px solid rgba(54,99,174,.35); border-color:var(--blue); }
+  input[readonly]{ background:#f3f4f6; color:var(--muted); }
+  .hint{ color:var(--muted); font-size:13px; margin-top:6px; }
+  .btn{ display:inline-block; width:100%; margin-top:18px; padding:13px 18px; border:0;
+        border-radius:10px; background:var(--blue); color:#fff; font-size:16px;
+        font-weight:600; text-align:center; text-decoration:none; cursor:pointer; }
+  .btn:disabled{ opacity:.6; cursor:default; }
+  .btn.ghost{ background:#fff; color:var(--blue); border:1px solid var(--blue); }
+  .msg{ margin:14px 0 0; padding:11px 13px; border-radius:10px; font-size:14px; }
+  .msg.err{ background:#fef2f2; color:var(--err); border:1px solid #fecaca; }
+  .msg.ok{ background:#f0fdf4; color:var(--ok); border:1px solid #bbf7d0; }
+  .msg.info{ background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+  .foot{ margin-top:20px; color:var(--muted); font-size:12px; text-align:center; }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <img src="./dependencies/logo.png" alt="">
+    <strong>Evidence OOPP</strong>
+  </div>
+
+  <h1 id="title">Dokončení účtu</h1>
+  <p class="desc" id="lead">Ověřuji odkaz z e-mailu…</p>
+
+  <div id="msg" class="msg hidden"></div>
+
+  <!-- Formulář: co správce nevyplnil, si uživatel nastaví sám. -->
+  <form id="form" class="hidden" novalidate>
+    <label for="fEmail">E-mail</label>
+    <input id="fEmail" type="email" readonly>
+
+    <label for="fName">Jméno a příjmení</label>
+    <input id="fName" type="text" placeholder="Jan Novák" autocomplete="name" spellcheck="false">
+    <div class="hint">Z jména se udělají iniciály do kolonky „Vydal“ (Jan Novák → J.N.). Nechte prázdné, pokud vám jméno už nastavil správce.</div>
+
+    <label for="fPhone">Telefon (nepovinné)</label>
+    <input id="fPhone" type="tel" placeholder="+420 777 123 456" autocomplete="tel">
+
+    <label for="fPass">Nové heslo</label>
+    <input id="fPass" type="password" placeholder="aspoň 6 znaků" autocomplete="new-password">
+
+    <label for="fPass2">Nové heslo znovu</label>
+    <input id="fPass2" type="password" placeholder="pro kontrolu" autocomplete="new-password">
+
+    <button class="btn" id="btnSave" type="submit">Uložit a dokončit</button>
+    <div class="hint" style="margin-top:10px">Heslo znáte jen vy — aplikace ho nikde neukládá ani nezobrazuje.</div>
+  </form>
+
+  <!-- Hotovo -->
+  <div id="done" class="hidden">
+    <p><strong>Hotovo.</strong> Heslo je nastavené a údaje uložené. Teď se můžete přihlásit v aplikaci.</p>
+    <a class="btn" id="btnApp" href="./">Otevřít aplikaci</a>
+  </div>
+
+  <!-- Odkaz chybí / vypršel / je nepoužitelný -->
+  <div id="nothing" class="hidden">
+    <p>Tady není co nastavit. Otevřete prosím odkaz z e-mailu (tlačítko v pozvánce) — nebo se rovnou přihlaste v aplikaci.</p>
+    <p class="desc">Odkaz platí 1 hodinu a dá se použít jen jednou. Když vypršel, požádejte správce o nový e-mail tlačítkem „✉ Nové heslo“.</p>
+    <a class="btn ghost" href="./">Přejít do aplikace</a>
+  </div>
+
+  <p class="foot">Evidence OOPP · nastavení účtu</p>
+</main>
+
+<script>
+/* Stránka pro dokončení účtu pozvaného uživatele.
+   Firebase sem pošle odkaz z e-mailu (mode=resetPassword, oobCode, apiKey),
+   uživatel si zvolí heslo a doplní, co správce nevyplnil (jméno, telefon).
+   Vše jde přes Firebase REST API, takže stránka nepotřebuje žádnou knihovnu
+   a funguje i na novém zařízení bez nastavení aplikace. */
+(function(){
+  'use strict';
+
+  // Stejné přednastavení jako v index.html — díky němu stránka funguje i na
+  // telefonu, kde aplikace ještě nikdy nebyla otevřená.
+  const PRESET = { project: 'swissformoopp', key: 'AIzaSyDghSHIEfhHGuW_o14m7JAOjnBqIeBNgz0' };
+  const FS = 'https://firestore.googleapis.com/v1/projects/' + PRESET.project + '/databases/(default)/documents/';
+
+  const params = new URLSearchParams(location.search);
+  const apiKey = params.get('apiKey') || PRESET.key;
+  const oobCode = params.get('oobCode') || '';
+  const mode = params.get('mode') || '';
+  const continueUrl = params.get('continueUrl') || '';
+
+  const titleEl = document.getElementById('title');
+  const leadEl = document.getElementById('lead');
+  const msgEl = document.getElementById('msg');
+  const formEl = document.getElementById('form');
+  const doneEl = document.getElementById('done');
+  const nothingEl = document.getElementById('nothing');
+  const emailEl = document.getElementById('fEmail');
+  const nameEl = document.getElementById('fName');
+  const phoneEl = document.getElementById('fPhone');
+  const passEl = document.getElementById('fPass');
+  const pass2El = document.getElementById('fPass2');
+  const btnSave = document.getElementById('btnSave');
+  const btnApp = document.getElementById('btnApp');
+
+  let verifiedEmail = '';
+
+  function show(el){ if(el) el.classList.remove('hidden'); }
+  function hide(el){ if(el) el.classList.add('hidden'); }
+
+  function say(text, kind){
+    msgEl.textContent = text;
+    msgEl.className = 'msg ' + (kind || 'info');
+    show(msgEl);
+  }
+  function clearMsg(){ msgEl.textContent = ''; hide(msgEl); }
+
+  // Srozumitelné hlášky (REST vrací kódy velkými písmeny).
+  function friendly(code){
+    const c = String(code || '');
+    if(c.indexOf('EXPIRED_OOB_CODE') >= 0) return 'Odkaz už vypršel — platí jen 1 hodinu. Požádejte správce o nový e-mail („✉ Nové heslo“).';
+    if(c.indexOf('INVALID_OOB_CODE') >= 0) return 'Odkaz je neplatný nebo už byl použitý. Požádejte správce o nový e-mail („✉ Nové heslo“).';
+    if(c.indexOf('WEAK_PASSWORD') >= 0) return 'Heslo je slabé — musí mít aspoň 6 znaků.';
+    if(c.indexOf('MISSING_PASSWORD') >= 0) return 'Zadejte nové heslo.';
+    if(c.indexOf('INVALID_EMAIL') >= 0) return 'Účet nemá platný e-mail.';
+    if(c.indexOf('OPERATION_NOT_ALLOWED') >= 0) return 'Přihlašování e-mailem není v projektu zapnuté.';
+    if(c.indexOf('EMAIL_NOT_FOUND') >= 0) return 'Účet s tímto e-mailem už neexistuje — požádejte správce o novou pozvánku.';
+    if(c.indexOf('INVALID_API_KEY') >= 0 || c.indexOf('API key not valid') >= 0) return 'Chybí platný klíč projektu (apiKey).';
+    if(c.indexOf('Failed to fetch') >= 0) return 'Chybí připojení k internetu.';
+    return c || 'neznámá chyba';
+  }
+
+  async function authPost(path, body){
+    const res = await fetch('https://identitytoolkit.googleapis.com/v1/' + path +
+      '?key=' + encodeURIComponent(apiKey), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+    let data = null;
+    try{ data = await res.json(); }catch(e){ data = null; }
+    if(!res.ok){
+      const code = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + res.status);
+      const err = new Error(code);
+      err.code = code;
+      throw err;
+    }
+    return data || {};
+  }
+
+  // Hodnoty do Firestore REST (řetězec / číslo / pravda-nepravda).
+  function fsValue(v){
+    if(typeof v === 'number') return { integerValue: String(Math.round(v)) };
+    if(typeof v === 'boolean') return { booleanValue: v };
+    return { stringValue: String(v == null ? '' : v) };
+  }
+
+  // Profil v oopp_users: ID dokumentu = e-mail malými písmeny (jako v aplikaci).
+  async function readProfile(token, email){
+    const res = await fetch(FS + 'oopp_users/' + encodeURIComponent(email), {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if(res.status === 404) return null;
+    if(!res.ok) throw new Error('Profil se nepodařilo načíst (HTTP ' + res.status + ').');
+    return res.json();
+  }
+
+  async function writeProfile(token, email, fields, existing){
+    const body = JSON.stringify({ fields: fields });
+    if(existing){
+      // Update jen vyplněných polí; práva (role) ani aktivace se nemění.
+      const mask = Object.keys(fields).map(function(k){
+        return 'updateMask.fieldPaths=' + encodeURIComponent(k);
+      }).join('&');
+      const res = await fetch(FS + 'oopp_users/' + encodeURIComponent(email) + '?' + mask, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: body
+      });
+      if(!res.ok) throw new Error('Uložení údajů se nezdařilo (HTTP ' + res.status + ').');
+      return;
+    }
+    // Profil ještě neexistuje (např. pozvánka bez předvyplnění) — založí se
+    // jako běžný uživatel; správce práva kdykoli upraví.
+    const res = await fetch(FS + 'oopp_users?documentId=' + encodeURIComponent(email), {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: body
+    });
+    if(!res.ok) throw new Error('Založení profilu se nezdařilo (HTTP ' + res.status + ').');
+  }
+
+  // Iniciály stejně jako v aplikaci: „Ing. Jan Novák“ → „J.N.“
+  function initialsOf(name){
+    const titles = ['ing.', 'bc.', 'mgr.', 'mudr.', 'judr.', 'phdr.', 'rndr.', 'ph.d.', 'mba', 'dipl.', 'dis.'];
+    const words = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+    const letters = [];
+    words.forEach(function(w){
+      const low = w.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž.]/g, '');
+      if(!low || titles.indexOf(low) >= 0) return;
+      const first = w.charAt(0).toUpperCase();
+      if(/[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/.test(first)) letters.push(first);
+    });
+    return letters.length ? letters.join('.') + '.' : '';
+  }
+
+
+  // 1) Ověření odkazu z e-mailu — Firebase vrátí e-mail, ke kterému odkaz patří.
+  async function verifyLink(){
+    if(mode && mode !== 'resetPassword'){
+      hide(formEl);
+      titleEl.textContent = 'Odkaz aplikace';
+      leadEl.textContent = 'Tento odkaz není pro nastavení hesla.';
+      show(nothingEl);
+      return;
+    }
+    if(!oobCode){
+      hide(formEl);
+      leadEl.textContent = 'Otevřete prosím odkaz z e-mailu s pozvánkou.';
+      show(nothingEl);
+      return;
+    }
+    try{
+      const data = await authPost('accounts:resetPassword', { oobCode: oobCode });
+      verifiedEmail = String(data.email || '').toLowerCase();
+      emailEl.value = verifiedEmail;
+      titleEl.textContent = 'Nastavte si heslo';
+      leadEl.textContent = 'Dobrý den, dokončete prosím svůj účet v evidenci OOPP: zvolte heslo a doplňte údaje, které správce nevyplnil.';
+      clearMsg();
+      show(formEl);
+      nameEl.focus();
+    }catch(e){
+      hide(formEl);
+      titleEl.textContent = 'Odkaz nelze použít';
+      leadEl.textContent = friendly(e && e.code);
+      show(nothingEl);
+    }
+  }
+
+  // 2) Uložení: heslo přes Firebase, zbytek do profilu.
+  async function submitForm(ev){
+    if(ev) ev.preventDefault();
+    clearMsg();
+    const pass = passEl.value;
+    const pass2 = pass2El.value;
+    const name = String(nameEl.value || '').trim().replace(/\s+/g, ' ');
+    const phone = String(phoneEl.value || '').trim();
+
+    if(!pass){ say('Zadejte nové heslo.', 'err'); passEl.focus(); return; }
+    if(pass.length < 6){ say('Heslo musí mít aspoň 6 znaků.', 'err'); passEl.focus(); return; }
+    if(pass !== pass2){ say('Hesla se neshodují — zkuste to znovu.', 'err'); pass2El.focus(); return; }
+    if(name && name.indexOf(' ') < 0){ say('Zadejte jméno i příjmení (nebo pole nechte prázdné).', 'err'); nameEl.focus(); return; }
+
+    const label = btnSave.textContent;
+    btnSave.disabled = true;
+    btnSave.textContent = 'Ukládám…';
+    try{
+      // Nové heslo — tímhle okamžikem je odkaz spotřebovaný.
+      await authPost('accounts:resetPassword', { oobCode: oobCode, newPassword: pass });
+      // Přihlášení, aby šlo zapsat profil (pravidla pustí jen přihlášeného).
+      const signIn = await authPost('accounts:signInWithPassword', {
+        email: verifiedEmail, password: pass, returnSecureToken: true
+      });
+      const token = signIn.idToken;
+      const existing = await readProfile(token, verifiedEmail);
+
+      const fields = { profileCompletedAt: fsValue(Date.now()) };
+      if(name){ fields.name = fsValue(name); fields.initials = fsValue(initialsOf(name)); }
+      if(phone){ fields.phone = fsValue(phone); }
+      if(!existing){
+        if(!name){
+          say('Zadejte prosím jméno a příjmení — profil ještě neexistuje.', 'err');
+          btnSave.disabled = false;
+          btnSave.textContent = label;
+          return;
+        }
+        fields.email = fsValue(verifiedEmail);
+        fields.uid = fsValue(signIn.localId || '');
+        fields.active = fsValue(true);
+        fields.role = fsValue('user');
+        fields.createdAt = fsValue(Date.now());
+      }
+      await writeProfile(token, verifiedEmail, fields, existing);
+
+      hide(formEl);
+      titleEl.textContent = 'Účet je hotový';
+      leadEl.textContent = 'Heslo je nastavené a údaje uložené.';
+      clearMsg();
+      btnApp.href = (continueUrl && /^https?:/i.test(continueUrl)) ? continueUrl : './';
+      show(doneEl);
+    }catch(e){
+      say('Nepodařilo se dokončit: ' + friendly(e && e.code), 'err');
+      btnSave.disabled = false;
+      btnSave.textContent = label;
+    }
+  }
+
+  formEl.addEventListener('submit', submitForm);
+  verifyLink();
+})();
+
+</script>
+</body>
+</html>

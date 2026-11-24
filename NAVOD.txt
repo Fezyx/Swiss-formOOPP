@@ -41,16 +41,23 @@ Uživatelé a hesla (vlastní účet pro každého)
 - Každý pracovník má vlastní e-mail a heslo. Účty zakládá správce v záložce
   Data → karta „👤 Uživatelé a přístup“: napíše jméno a příjmení, e-mail
   a práva (uživatel / správce) a klikne „＋ Přidat uživatele“.
-- Uživateli přijde e-mail s odkazem, kde si SÁM zvolí heslo. Správce hesla
-  nikdy nevidí ani je nemůže zjistit — zapomenuté heslo řeší tlačítkem
+- Uživateli přijde e-mail s odkazem na formulář (stránka pozvanka.html), kde
+  si SÁM zvolí heslo a doplní, co jste nevyplnili (jméno, telefon). Správce
+  hesla nikdy nevidí ani je nemůže zjistit — zapomenuté heslo řeší tlačítkem
   „✉ Nové heslo“, které pošle odkaz znovu.
+- Aby odkaz v e-mailu otevíral formulář (a ne stránku Firebase), nastavte to
+  jednou ve Firebase: Authentication → Templates → ✏ u „Password reset“ →
+  customize action URL → https://fezyx.github.io/Swiss-formOOPP/pozvanka.html
+  (návod FIREBASE.md, kapitola 2.1). Bez toho pozvánka funguje taky.
+- Jméno a iniciály u hotového účtu opravíte v seznamu uživatelů tlačítkem
+  „✏ Jméno“; změna se propíše do dalších výdejů, staré si nechávají původní.
 - „🚫 Odebrat“ přístup odebere (účet ve Firebase zůstane; úplně se maže
   v konzoli Firebase). Podrobný návod: soubor UZIVATELE.md.
 - Kolonka „Vydal“ v tabulce výdejů: po přihlášení se bere z účtu (jméno
-  a příjmení → iniciály, např. Lukáš Dvořák → L.D.). Bez přihlášení se dá
-  nastavit tlačítkem „✍ Změnit“ u řádku „✍ Vydává:“ v záložce Zaměstnanci
-  a platí jen pro toto zařízení. Když není nic, aplikace se na jméno zeptá
-  při ukládání výdeje.
+  a příjmení → iniciály, např. Lukáš Dvořák → L.D.). Tlačítko „✍ Změnit“
+  u přihlášeného uživatele uloží nové jméno k účtu (platí na všech
+  zařízeních). Bez přihlášení se jméno nastaví jen pro toto zařízení. Když
+  není nic, aplikace se na jméno zeptá při ukládání výdeje.
 - Staré přihlášení admin/admin funguje dál, ale práva správce v cloudu
   určuje profil účtu (Data → „👤 Uživatelé a přístup“).
 - Kdo je právě přihlášený, ukazuje odznak vpravo nahoře v hlavičce

@@ -69,7 +69,13 @@ service cloud.firestore {
     match /oopp_users/{email} {
       allow read: if signedIn();                              // jména a iniciály vidí přihlášení
       allow create: if signedIn() && (isAdmin() || email == myEmail()); // správce přidá kohokoli, nováček sám sebe
-      allow update, delete: if isAdmin();                     // práva a odebírání jen správce
+      // Správce smí vše. Uživatel si smí upravit jen SVOJE jméno, iniciály
+      // a telefon (formulář z pozvánky) — práva ani aktivaci změnit nemůže.
+      allow update: if isAdmin()
+        || (signedIn() && email == myEmail()
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.active == resource.data.active);
+      allow delete: if isAdmin();
     }
 
     // společná data evidence a obrázky podpisů — jen pozvaný uživatel s profilem
@@ -86,7 +92,7 @@ Co pravidla znamenají:
 
 | kolekce | kdo smí číst | kdo smí zapisovat |
 |---|---|---|
-| `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce (nováček si při prvním přihlášení smí založit vlastní profil) |
+| `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce; nováček si při prvním přihlášení smí založit vlastní profil a každý si smí upravit jen svoje jméno, iniciály a telefon |
 | `oopp` (data evidence) | jen uživatel, který má profil v `oopp_users` | totéž |
 | `oopp_sig` (podpisy) | jen uživatel s profilem | totéž |
 
@@ -101,6 +107,34 @@ hesle.** Přístup se odebírá smazáním profilu (Data → 👤 Uživatelé a 
 > První profil správce: přihlaste se e-mailem a heslem, v záložce Data otevřete
 > kartu „☁ Cloud“ nebo „👤 Uživatelé“ a klikněte na **✚ Založit profil správce**.
 > Tlačítko se ukáže jen tehdy, když v cloudu ještě žádný profil není.
+
+## 2.1 Pozvánka e-mailem — formulář `pozvanka.html`
+
+Když správce přidá uživatele (Data → 👤 Uživatelé a přístup), odejde mu e-mail
+s odkazem, kde si **sám zvolí heslo** a doplní, co správce nevyplnil (jméno,
+telefon). Heslo nikdy nevidí správce ani aplikace.
+
+Ve výchozím stavu vede odkaz na stránku Firebase (jen pole pro heslo).
+Aby se otevřel **náš formulář** (`pozvanka.html` — jméno, telefon, heslo,
+česky, s logem), nastavte to jednou v konzoli:
+
+1. <https://console.firebase.google.com> → projekt → **Security → Authentication**
+   → karta **Templates**.
+2. U typu **Password reset** (česky „Obnovení hesla“) klikněte na **✏ tužku**.
+3. Klikněte na **customize action URL** a vložte adresu:
+   `https://fezyx.github.io/Swiss-formOOPP/pozvanka.html`
+4. Uložit. Od té chvíle používají **všechny** e-maily Firebase (pozvánka
+   i „Nové heslo“) tento odkaz.
+
+Co formulář dělá: ověří `oobCode` z odkazu, nechá uživatele zadat heslo,
+přihlásí ho a do jeho profilu v `oopp_users` zapíše jméno, iniciály, telefon
+a `profileCompletedAt` (práva `role`/`active` zůstávají, jak je nastavil
+správce). Odkaz platí **1 hodinu** a jen jednou; po vypršení stačí v aplikaci
+kliknout „✉ Nové heslo“.
+
+> Když adresu v konzoli nenastavíte, nic se nerozbije — uživatel jen uvidí
+> stránku Firebase (bez loga a bez polí pro jméno/telefon). Profil má
+> v takovém případě už vyplněný správce.
 
 ## 3. Údaje do aplikace
 

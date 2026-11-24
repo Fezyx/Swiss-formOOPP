@@ -28,13 +28,23 @@ Data → karta „👤 Uživatelé a přístup“:
 1. Vyplňte Jméno a příjmení (z něj se udělají iniciály: Lukáš Dvořák → L.D.),
    e-mail a práva (uživatel / správce).
 2. Klikněte „＋ Přidat uživatele“.
-3. Na e-mail odejde pozvánka s odkazem „Zvolte si heslo“.
-4. Uživatel klikne v e-mailu, zvolí si heslo a přihlásí se v aplikaci.
+3. Na e-mail odejde pozvánka s odkazem. Uživatel klikne, ve formuláři si zvolí
+   heslo a doplní, co jste nevyplnili (jméno, telefon) — pak se přihlásí.
+4. Hotovo: v tabulce výdejů se podepisuje svými iniciály.
+
+Formulář v e-mailu = stránka pozvanka.html. Aby odkaz mířil na ni (a ne na
+stránku Firebase), nastavte ji jednou v konzoli — postup je ve FIREBASE.md,
+kapitola „2.1 Pozvánka e-mailem“. Bez toho pozvánka funguje taky, jen se
+uživatel nastaví heslo na stránce Firebase a jméno mu zůstane od správce.
 
 Co se stane na pozadí: aplikace založí účet s náhodným heslem, které se nikam
 neukládá ani nezobrazuje, a hned pošle odkaz pro zvolení skutečného hesla.
 Kdyby e-mail nedošel, účet už existuje — pošlete odkaz znovu tlačítkem
 „✉ Nové heslo“.
+
+Oprava jména: u hotového profilu klikněte v seznamu na „✏ Jméno“ a napište
+správné jméno — iniciály se přepočítají. Už vydané výdeje si nechávají
+iniciály, které byly platné v době výdeje (nic se nepřepisuje zpětně).
 
 3) Zapomenuté heslo
 -------------------
@@ -52,6 +62,9 @@ odebrat nelze (tlačítko se u sebe neukazuje) — jinak byste si zamkli dveře.
 5) Kolonka „Vydal“ (iniciály)
 -----------------------------
 - Přihlášený uživatel: do výdeje se uloží jeho iniciály z profilu.
+  Tlačítko „✍ Změnit“ u přihlášeného uživatele uloží nové jméno k účtu
+  (projeví se i na ostatních zařízeních); správce může totéž udělat v seznamu
+  uživatelů tlačítkem „✏ Jméno“.
 - Nepřihlášené zařízení: iniciály se nastaví tlačítkem „✍ Změnit“ u řádku
   „✍ Vydává:“ v záložce Zaměstnanci a uloží se jen do tohoto zařízení.
 - Když není ani jedno, aplikace se na jméno zeptá při ukládání výdeje.

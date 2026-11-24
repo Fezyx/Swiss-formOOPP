@@ -474,7 +474,7 @@ tr.clickable:hover{background:#eef3fa}
           <span id="issuerName" class="issuer-line-name"></span>
           <button type="button" class="btn outline small" id="btnSetIssuer" title="Jméno a příjmení — do tabulky se uloží iniciály">✍ Změnit</button>
         </div>
-        <div class="sig-hint">Kdo výdej vydal, se do tabulky ukládá jako iniciály (Lukáš Dvořák → <strong>L.D.</strong>). Po přihlášení se jméno i iniciály berou z účtu; bez přihlášení se nastaví jen v tomto zařízení.</div>
+        <div class="sig-hint">Kdo výdej vydal, se do tabulky ukládá jako iniciály (Lukáš Dvořák → <strong>L.D.</strong>). Po přihlášení se jméno i iniciály berou z účtu a tlačítkem „✍ Změnit“ se uloží k účtu (projeví se i na jiných zařízeních); bez přihlášení se nastaví jen v tomto zařízení.</div>
         <input type="text" id="empFilter" placeholder="Hledat jméno, osobní číslo nebo funkci..." inputmode="search" enterkeyhint="search">
         <div class="sig-hint" id="empListHint" style="margin-top:6px">Začněte psát — seznam se zobrazí podle hledání. Mazání zaměstnance je chráněné heslem správce.</div>
         <div id="employeeList" class="hidden" style="margin-top:14px"></div>
@@ -739,7 +739,7 @@ tr.clickable:hover{background:#eef3fa}
                   <button class="btn" id="btnAddUser">＋ Přidat uživatele</button>
                   <button class="btn outline" id="btnReloadUsers" title="Načte profily z Firestore">⟳ Načíst ze cloudu</button>
                 </div>
-                <div class="sig-hint" style="margin-top:8px">Na zadaný e-mail odejde pozvánka s odkazem, kde si uživatel zvolí heslo. Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — i když heslo zapomene.</div>
+                <div class="sig-hint" style="margin-top:8px">Na zadaný e-mail odejde pozvánka s odkazem na formulář, kde si uživatel sám zvolí heslo a doplní, co jste nevyplnili (jméno, telefon). Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — i když heslo zapomene.<br>Odkaz otevírá stránku <strong>pozvanka.html</strong> (jednorázově se nastaví ve Firebase: Authentication → Templates → ✏ → „customize action URL“).</div>
                 <div id="userList" style="margin-top:16px"></div>
               </div>
               <div id="usersGuestHint" class="hidden sig-hint" style="margin-top:12px">Seznam uživatelů a přidávání nových vidí jen správce.</div>
@@ -2247,10 +2247,44 @@ function currentIssuer(){
 }
 
 function promptIssuer(){
+  const s = userSession();
+  // Přihlášený uživatel: jméno patří k účtu (projeví se na všech zařízeních),
+  // takže se změna uloží do profilu v cloudu — ne jen do tohoto zařízení.
+  if(s && s.email){
+    const answer = prompt('Kdo výdej vydává?\n\nNapište jméno a příjmení — do evidence se uloží iniciály (Lukáš Dvořák → L.D.).\nUloží se k účtu ' + s.email + ', takže se projeví i na ostatních zařízeních.', s.name || '');
+    if(answer === null) return false;
+    const name = String(answer || '').trim().replace(/\s+/g, ' ');
+    if(!name){ toast('Zadejte jméno a příjmení.'); return false; }
+    if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení — z něj se dělají iniciály.'); return false; }
+    setUserSession(Object.assign({}, s, {name: name, initials: initialsOf(name), at: Date.now()}));
+    refreshIssuerUI();
+    saveOwnProfileName(name);
+    return true;
+  }
   const cur = localIssuer();
   const answer = prompt('Kdo výdej vydává?\n\nNapište jméno a příjmení — do evidence se uloží iniciály (Lukáš Dvořák → L.D.). Uloží se jen v tomto zařízení.', cur ? cur.name : '');
   if(answer === null) return false;
   return setLocalIssuer(answer);
+}
+
+// Změna jména přihlášeného uživatele: zapíše se do jeho profilu (jméno +
+// iniciály), takže stejné iniciály má i na jiném zařízení a v cizích výdejích.
+async function saveOwnProfileName(name){
+  const s = userSession();
+  if(!s || !s.email) return false;
+  try{
+    await fbEnsureAuth();
+    await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(s.email)).set({
+      name: name, initials: initialsOf(name), nameUpdatedAt: Date.now()
+    }, {merge: true});
+    profileSyncAt = 0;
+    await afterAuthUser({uid: s.uid, email: s.email});
+    toast('Jméno uloženo — výdeje se podepíší ' + initialsOf(name) + '.');
+    return true;
+  }catch(e){
+    toast('Jméno je změněné jen v tomto zařízení: ' + friendlyAuthError(e), 9000);
+    return false;
+  }
 }
 
 // Pro uložení výdeje: když není kdo podepsat, jednou se zeptáme.
@@ -7074,6 +7108,37 @@ async function resetAppUserPassword(email){
   }
 }
 
+// Oprava jména a iniciál u existujícího profilu (správce) — hodí se, když se
+// uživatel dřív založil pod jiným jménem a výdeje se podepisovaly špatně.
+async function editAppUserName(email){
+  if(!isAdmin()){ toast('Jméno může měnit jen správce.'); return; }
+  const mail = userKeyFor(email);
+  if(!mail) return;
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const cur = (u && u.name) || '';
+  const answer = prompt('Jméno a příjmení pro ' + mail + ':\n\nZ něj se udělají iniciály do kolonky „Vydal“ (Lukáš Dvořák → L.D.).', cur);
+  if(answer === null) return;
+  const name = String(answer || '').trim().replace(/\s+/g, ' ');
+  if(name.length < 3 || name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
+  try{
+    await fbEnsureAuth();
+    await fbFs().collection(USERS_COLLECTION).doc(mail).set({
+      name: name, initials: initialsOf(name), nameUpdatedAt: Date.now()
+    }, {merge: true});
+    await loadUsersFromCloud(false);
+    const s = userSession();
+    if(s && userKeyFor(s.email) === mail){
+      // Když si správce upraví vlastní profil, hned se to projeví i u něj.
+      profileSyncAt = 0;
+      await afterAuthUser({uid: s.uid, email: s.email});
+      refreshIssuerUI();
+    }
+    toast('Jméno upraveno — iniciály ' + initialsOf(name) + '.');
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 9000);
+  }
+}
+
 // Odebrání přístupu = smazání profilu. Účet ve Firebase Authentication zůstává
 // (bez profilu se ale k datům nedostane); úplné smazání jde jen v konzoli.
 async function removeAppUser(email){
@@ -7202,11 +7267,13 @@ function renderUsersUI(){
       const role = u.role === 'admin' ? 'admin' : 'user';
       rows += '<tr>' +
         '<td><span class="user-name">' + escapeHtml(u.name || '—') + '</span>' +
-          (u.initials ? '<div class="sig-hint">' + escapeHtml(u.initials) + '</div>' : '') + '</td>' +
+          (u.initials ? '<div class="sig-hint">' + escapeHtml(u.initials) + '</div>' : '') +
+          (u.phone ? '<div class="sig-hint">☎ ' + escapeHtml(u.phone) + '</div>' : '') + '</td>' +
         '<td>' + escapeHtml(email) + (mine ? ' <span class="role-chip">já</span>' : '') + '</td>' +
         '<td><span class="role-chip ' + role + '">' + (role === 'admin' ? 'správce' : 'uživatel') + '</span>' +
           (u.active === false ? ' <span class="role-chip off">blokováno</span>' : '') + '</td>' +
         '<td><div class="row" style="gap:6px">' +
+          '<button class="btn outline small" data-user-name="' + escapeHtml(email) + '" title="Změnit jméno a iniciály do kolonky Vydal">✏ Jméno</button>' +
           '<button class="btn outline small" data-user-reset="' + escapeHtml(email) + '" title="Pošle e-mail s odkazem na nové heslo">✉ Nové heslo</button>' +
           (mine ? '' : '<button class="btn danger small" data-user-del="' + escapeHtml(email) + '" title="Odebere přístup k datům">🚫 Odebrat</button>') +
         '</div></td></tr>';
@@ -8062,7 +8129,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v62';
+const APP_VERSION = 'v63';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -8897,6 +8964,8 @@ document.addEventListener('DOMContentLoaded', function(){
     // Uživatelé (Data → 👤 Uživatelé a přístup): tlačítka jsou v překreslovaném seznamu
     const userResetBtn = e.target.closest('button[data-user-reset]');
     if(userResetBtn){ resetAppUserPassword(userResetBtn.dataset.userReset); return; }
+    const userNameBtn = e.target.closest('button[data-user-name]');
+    if(userNameBtn){ editAppUserName(userNameBtn.dataset.userName); return; }
     const userDelBtn = e.target.closest('button[data-user-del]');
     if(userDelBtn){ removeAppUser(userDelBtn.dataset.userDel); return; }
     const bootAdminBtn = e.target.closest('button[data-bootstrap-admin]');
