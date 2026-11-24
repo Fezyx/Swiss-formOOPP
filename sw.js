@@ -1,11 +1,10 @@
 /* Service worker — offline režim aplikace Evidence OOPP.
    Data se ukládají do zařízení (localStorage / soubor) a volitelně do cloudu
    (Firebase), tady se cachuje jen aplikace. */
-const CACHE = 'oopp-app-v64';
+const CACHE = 'oopp-app-v67';
 const ASSETS = [
   './',
   './index.html',
-  './pozvanka.html',
   './manifest.webmanifest',
   './dependencies/logo.png',
   './dependencies/logo-splash.png',
@@ -55,7 +54,7 @@ self.addEventListener('fetch', function (event) {
   if (url.origin !== self.location.origin) return;
 
   // U otevření aplikace zkusit síť (aby se projevily nové verze), jinak paměť.
-  // Jiné stránky (pozvanka.html z e-mailu) se nikdy necachují jako aplikace.
+  // Jiné stránky se nikdy necachují jako aplikace.
   if (request.mode === 'navigate') {
     const isApp = url.pathname.endsWith('/') || /\/index\.html?$/i.test(url.pathname);
     if (!isApp) return;

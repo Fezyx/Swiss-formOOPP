@@ -97,7 +97,7 @@ Pro interní použití (bez veřejného App Store):
 ----------------------------------------------
 1. Přidat na plochu v Safari → otevřít z ikony (bez adresního řádku).
 2. Vypnout internet → aplikace se načte z offline paměti.
-3. Přihlásit cloud (e-mail + heslo) → data se sloučí s ostatními zařízeními.
+3. Přihlásit cloud (přihlašovací jméno + heslo) → data se sloučí s ostatními zařízeními.
 4. Podepsat výdej prstem → podpis se uloží, po nahrání do cloudu zmizí z device.
 5. Tisk knížky → v dialogu „Uložit jako PDF“ → zkontrolovat, že jsou podpisy.
 6. Export PDF / CSV / záloha → „Sdílet“ → „Uložit do Souborů“.

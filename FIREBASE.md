@@ -4,7 +4,8 @@ Aplikace OOPP umí mít společnou databázi v cloudu **Firebase** a běžet
 z **GitHub Pages**. Tablet v dílně i počítač v kanceláři pak vidí **stejné
 zaměstnance, předměty, funkce/pozice, výdeje i obrázky podpisů** a knížku
 s podpisy vytisknete z obou zařízení. Data jsou **soukromá** — přístup jen
-po přihlášení emailem + heslem.
+po přihlášení přihlašovacím jménem (nickem) a heslem, který zakládá správce
+přímo v aplikaci (bez e-mailů).
 
 Každé zařízení má navíc lokální kopii, takže se pracuje i bez internetu
 (změny se doplní po připojení).
@@ -26,9 +27,10 @@ Každé zařízení má navíc lokální kopii, takže se pracuje i bez internet
    nebo napište do vyhledávání `Authentication`:
    - **Get started** → karta **Sign-in method** → **Email/Password** → **Enable** → **Save**.
    - karta **Users** → **Add user** → e-mail a heslo **prvního správce**
-     (další účty už přidává správce přímo v aplikaci — Data → 👤 Uživatelé
-     a přístup → ＋ Přidat uživatele; uživatel si heslo zvolí sám z e-mailu,
-     viz **UZIVATELE.md**).
+     (tomuto účtu se v aplikaci přihlásíte e-mailem; další lidi už přidává
+     správce přímo v aplikaci — Data → 👤 Uživatelé a přístup → ＋ Přidat
+     uživatele; dotyčný si heslo zvolí sám při prvním přihlášení, viz
+     **UZIVATELE.md**).
 
 3. **Databáze (Firestore)** — vlevo **Databases & Storage → Firestore**
    (nebo vyhledat `Firestore`):
@@ -65,12 +67,20 @@ service cloud.firestore {
     function isAdmin()   { return signedIn() && exists(myPath()) && get(myPath()).data.role == 'admin'; }
     function hasProfile(){ return signedIn() && exists(myPath()); }
 
-    // profily uživatelů: ID dokumentu = e-mail malými písmeny
+    // přihlašovací jména (nicky): veřejně čitelná (aplikace z nich PŘED
+    // přihlášením zjistí číslo verze a práva), zapisuje jen správce
+    match /oopp_logins/{nick} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // profily uživatelů: ID dokumentu = vnitřní adresa nicku (novak@oopp.local)
     match /oopp_users/{email} {
       allow read: if signedIn();                              // jména a iniciály vidí přihlášení
       allow create: if signedIn() && (isAdmin() || email == myEmail()); // správce přidá kohokoli, nováček sám sebe
       // Správce smí vše. Uživatel si smí upravit jen SVOJE jméno, iniciály
-      // a telefon (formulář z pozvánky) — práva ani aktivaci změnit nemůže.
+      // a telefon (tlačítko „✍ Změnit“ / první přihlášení) — práva ani
+      // aktivaci změnit nemůže.
       allow update: if isAdmin()
         || (signedIn() && email == myEmail()
             && request.resource.data.role == resource.data.role
@@ -78,7 +88,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // společná data evidence a obrázky podpisů — jen pozvaný uživatel s profilem
+    // společná data evidence a obrázky podpisů — jen uživatel s profilem
     match /oopp/{docId}     { allow read, write: if hasProfile(); }
     match /oopp_sig/{sigId} { allow read, write: if hasProfile(); }
 
@@ -92,13 +102,15 @@ Co pravidla znamenají:
 
 | kolekce | kdo smí číst | kdo smí zapisovat |
 |---|---|---|
+| `oopp_logins` (přihlašovací jména) | **kdokoli** (i nepřihlášený — podle nicku se pozná účet a jeho verze; nejsou tam žádná data) | jen správce |
 | `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce; nováček si při prvním přihlášení smí založit vlastní profil a každý si smí upravit jen svoje jméno, iniciály a telefon |
 | `oopp` (data evidence) | jen uživatel, který má profil v `oopp_users` | totéž |
 | `oopp_sig` (podpisy) | jen uživatel s profilem | totéž |
 
 Z toho plyne: **kdo není v aplikaci přidaný, data nepřečte ani při platném
-hesle.** Přístup se odebírá smazáním profilu (Data → 👤 Uživatelé a přístup →
-🚫 Odebrat). Podrobný návod k účtům je v souboru **UZIVATELE.md**.
+hesle.** Přístup se odebírá tlačítkem 🚫 Odebrat (Data → 👤 Uživatelé
+a přístup); tím se profil smaže a nick v `oopp_logins` dostane `active: false`.
+Podrobný návod k účtům je v souboru **UZIVATELE.md**.
 
 > **Starší jednoduché pravidlo.** Kdybyste si práva rozbili, vraťte se k
 > `allow read, write: if request.auth != null;` — aplikace pak funguje jako
@@ -108,70 +120,66 @@ hesle.** Přístup se odebírá smazáním profilu (Data → 👤 Uživatelé a 
 > kartu „☁ Cloud“ nebo „👤 Uživatelé“ a klikněte na **✚ Založit profil správce**.
 > Tlačítko se ukáže jen tehdy, když v cloudu ještě žádný profil není.
 
-## 2.1 Pozvánka e-mailem — formulář `pozvanka.html`
+## 2.1 Přihlašovací jména (nicky) — bez e-mailů
 
-Když správce přidá uživatele (Data → 👤 Uživatelé a přístup), odejde mu e-mail
-s odkazem, kde si **sám zvolí heslo** a doplní, co správce nevyplnil (jméno,
-telefon). Heslo nikdy nevidí správce ani aplikace.
+Lidé se v aplikaci nehlásí e-mailem, ale **přihlašovacím jménem (nickem)**,
+které jim správce založí přímo v aplikaci (Data → 👤 Uživatelé a přístup →
+＋ Přidat uživatele, třeba `novak`). Žádná pošta se neodesílá, takže nemůže
+selhat doručení ani denní limit e-mailů.
 
-Ve výchozím stavu vede odkaz na stránku Firebase (jen pole pro heslo).
-Aby se otevřel **náš formulář** (`pozvanka.html` — jméno, telefon, heslo,
-česky, s logem), nastavte to jednou v konzoli:
+Jak to funguje:
 
-1. <https://console.firebase.google.com> → projekt → **Security → Authentication**
-   → karta **Templates**.
-2. U typu **Password reset** (česky „Obnovení hesla“) klikněte na **✏ tužku**.
-3. Klikněte na **customize action URL** a vložte adresu:
-   `https://fezyx.github.io/Swiss-formOOPP/pozvanka.html`
-4. Uložit. Od té chvíle používají **všechny** e-maily Firebase (pozvánka
-   i „Nové heslo“) tento odkaz.
+1. Správce založí nick → ve Firestore vznikne dokument `oopp_logins/novak`
+   (nick, práva, číslo verze) a prázdný profil v `oopp_users`.
+2. Dotyčný klikne v kartě „🔒 Přihlášení k datům“ na **🆕 První přihlášení —
+   vytvořit heslo**, napíše nick, vybere se v seznamu zaměstnanců a zvolí si
+   heslo (aspoň 6 znaků). Tím vznikne jeho účet ve Firebase a rovnou se
+   přihlásí — iniciály do kolonky „Vydal“ se berou z vybraného zaměstnance.
+3. Heslo zná jen on; správce ho nikdy nevidí ani nemůže zjistit. V seznamu
+   uživatelů je proto jen stav **heslo nastaveno / nenastaveno**.
 
-Co formulář dělá: ověří `oobCode` z odkazu, nechá uživatele zadat heslo,
-přihlásí ho a do jeho profilu v `oopp_users` zapíše jméno, iniciály, telefon
-a `profileCompletedAt` (práva `role`/`active` zůstávají, jak je nastavil
-správce). Odkaz platí **1 hodinu** a jen jednou; po vypršení stačí v aplikaci
-kliknout „✉ Nové heslo“.
+**Firebase umí přihlášení jen e-mailem**, proto má každý nick svůj vnitřní
+e-mail, který uživatel nikdy nevidí: `novak@oopp.local`. Po smazání hesla se
+k nicku přidá číslo verze (`novak.v2@oopp.local`), takže starý účet přestane
+platit. Do polí v aplikaci se pořád píše jen nick (správce s vlastním účtem
+z konzole může napsat i e-mail — pozná se podle `@`).
 
-> Když adresu v konzoli nenastavíte, nic se nerozbije — uživatel jen uvidí
-> stránku Firebase (bez loga a bez polí pro jméno/telefon). Profil má
-> v takovém případě už vyplněný správce.
+> **Kolekce `oopp_logins` musí být veřejně čitelná** — aplikace z ní ještě
+> PŘED přihlášením zjistí číslo verze a práva nicku. Zapisovat do ní smí jen
+> správce. Pravidla jsou v kapitole 2; bez nich se nick nepřihlásí
+> (`permission-denied`).
 
-### Když e-mail s pozvánkou nedorazí
+### Smazání hesla (zapomenuté heslo)
 
-Nejčastější příčina není chyba v aplikaci, ale doručení. Postupujte takto:
+1. Data → 👤 Uživatelé a přístup → u jména **🔑 Smazat heslo**.
+2. Aplikace zvedne číslo verze v `oopp_logins` a založí nový profil — staré
+   heslo přestane platit všude (i na tabletu, kde zůstalo uložené).
+3. Dotyčný se přihlásí stejným nickem tlačítkem **🆕 První přihlášení** a
+   zvolí si nové heslo. Jméno i práva zůstávají.
 
-1. **Zkontrolujte spam / hromadnou poštu.** Odesílatelem není firemní adresa,
-   ale `noreply@<project-id>.firebaseapp.com` (u tohoto projektu tedy
-   `noreply@swissformoopp.firebaseapp.com`). Gmail i Seznam takové zprávy
-   často zařadí mimo doručenou poštu.
-2. **Ověřte adresu.** Data → 👤 Uživatelé a přístup — v seznamu je e-mail,
-   na který se posílalo; překlep v adrese znamená, že e-mail odešel jinam.
-   Nová pozvánka jde poslat tlačítkem **✉ Nové heslo**; v seznamu je u jména
-   i **✉ datum a čas posledního odeslání** (a poznámka „e-mail neodešel“,
-   když to Firebase odmítl).
-3. **Ověřte, že účet existuje.** Odkaz z bodu 2 v nápovědě otevírá
-   **Firebase → Authentication → Users**. Když tam uživatel není, účet se
-   nezaložil — podívejte se, zda je v konzoli zapnuté **Email/Password**.
-4. **Zkuste jinou adresu.** Firemní pošta (hlavně Seznam/Centrum) umí zprávy
-   z `firebaseapp.com` zahazovat. Přihlašovací e-mail **nemusí být firemní** —
-   do profilu můžete zadat osobní adresu (Gmail), na kterou pozvánka dojde;
-   změnit ji jde smazáním profilu (🚫 Odebrat) a přidáním znovu.
-5. **Denní limit.** Plán Spark pošle 150 e-mailů denně (limit Firebase).
-   Po vyčerpání aplikace napíše chybu a e-maily začnou znovu odcházet
-   druhý den, nebo je potřeba zapnout Blaze.
-6. **Trvale spolehlivé doručení** vyžaduje vlastní odesílací server (SMTP)
-   nebo vlastní doménu v Firebase — obojí je jen na plánu **Blaze**
-   (Authentication → Templates → SMTP / custom domain). Pro pár pozvánek
-   ročně to není potřeba.
+### Když se nick nepřihlásí
 
-> Odkaz v e-mailu platí **1 hodinu** a jen jednou. Po vypršení pošlete
-> nový tlačítkem **✉ Nové heslo** — starý odkaz už nefunguje.
+| co aplikace napíše | co udělat |
+|---|---|
+| „Přihlašovací jméno … není zaregistrované“ | nick v `oopp_logins` není — správce ho musí přidat, nebo je překlep (nick se píše malými písmeny bez diakritiky) |
+| „Heslo už je nastavené“ | dotyčný už heslo má — ať se jím přihlásí; když ho nezná, správce ho smaže (🔑) |
+| „Tomuto přihlašovacímu jménu správce odebral přístup“ | nick má `active: false` (🚫 Odebrat) — správce ho znovu přidá stejným nickem |
+| `permission-denied` (už při přihlášení) | chybí veřejné čtení kolekce `oopp_logins` v pravidlech — kapitola 2 |
+| `auth/email-already-in-use` | stejný nick i číslo verze už ve Firebase existuje — správce smaže heslo (tím se verze zvedne) |
+| `auth/invalid-credential` | špatné heslo, nebo účet vznikl dřív pod jinou verzí — správce smaže heslo |
+| `auth/network-request-failed` | zařízení nemá internet, nebo síť blokuje `*.googleapis.com` |
+
+> Účty jsou vidět v konzoli: **Security → Authentication → Users**. Mají
+> adresy typu `novak@oopp.local` — to je jen vnitřní podoba nicku, žádná
+> pošta na ni nechodí. Nemažte je ručně; heslo se „maže“ tlačítkem
+> v aplikaci (🔑 Smazat heslo), aby se správně zvedla verze.
 
 ## 3. Údaje do aplikace
 
 > **Projekt `swissformoopp` je v aplikaci už přednastavený.** `Project ID`
 > i `Web API klíč` jsou přímo v `index.html` (konstanta `CLOUD_PRESET`), takže
-> na novém zařízení je **nemusíte vypisovat** — zadáte jen **email a heslo**.
+> na novém zařízení je **nemusíte vypisovat** — zadáte jen **přihlašovací
+> jméno a heslo**.
 > Webový `apiKey` u Firebase není tajemství (je vidět v každé webové aplikaci
 > na Firebase) — data chrání přihlášení a pravidla ve Firestore.
 > **Heslo se do stránky nikdy nedává** (repo je veřejné) — zadává se ručně
@@ -186,8 +194,8 @@ V aplikaci (Data → ☁ Cloud) stačí:
 | Poskytovatel | Firebase (přednastaveno) |
 | ID projektu | `swissformoopp` (přednastaveno) |
 | Web API klíč | `AIza…` (přednastaveno) |
-| Přihlašovací email | email uživatele z bodu 1 |
-| Heslo | heslo uživatele z bodu 1 |
+| Přihlašovací jméno (nick) | nick od správce (nebo e-mail účtu z bodu 1 — první správce) |
+| Heslo | heslo, které si dotyčný zvolil při prvním přihlášení |
 | ID dokumentu | `main` (přednastaveno) |
 
 Klikněte **🔑 Přihlásit** → **🧪 Otestovat připojení** → **⟳ Synchronizovat**.
@@ -222,7 +230,7 @@ Aplikace může běžet z veřejné adresy — aktualizace = `git push`.
 
 | hláška | co udělat |
 |---|---|
-| `Přihlášení se nezdařilo (auth/invalid-credential)` | špatný email/heslo, nebo Email/Password metoda není zapnutá |
+| `Přihlášení se nezdařilo (auth/invalid-credential)` | špatné heslo, neexistující nick, nebo Email/Password metoda není zapnutá |
 | `auth/configuration-not-found` | špatné Project ID / Web API klíč |
 | `auth/network-request-failed` | zařízení nemá internet, nebo síť blokuje `*.googleapis.com` (firemní Wi-Fi, VPN) |
 | `Firebase SDK se nenačetlo` | soubor `dependencies/firebase/*.js` chybí vedle `index.html` (nebo se nepodařilo načíst stránku) |
@@ -242,8 +250,8 @@ sekund i na PC (a naopak).
 1. Na obou zařízeních otevřete stejnou adresu (např.
    `https://<uživatel>.github.io/<repo>/`).
 2. Na obou zařízeních vyplňte v *Data → ☁ Cloud* **stejné údaje**
-   (Firebase, Project ID, Web API klíč, email, heslo) a zaškrtněte
-   **Synchronizovat automaticky**.
+   (Firebase, Project ID, Web API klíč, přihlašovací jméno, heslo) a nechte
+   **automatickou synchronizaci** (je zapnutá vždy).
 3. Na prvním zařízení klikněte **⬆ Nahrát do cloudu**, na druhém
    **⟳ Synchronizovat** — data se **sloučí** (u stejného záznamu vyhraje
    novější, nic se nepřepíše ani nesmaže).

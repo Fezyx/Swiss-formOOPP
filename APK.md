@@ -78,12 +78,12 @@ se přes starou verzi a data zůstanou. Neodinstalovávejte starou verzi předem
    zobrazí hláška „Aplikace teď nemá připojení“ s tlačítkem „Zkusit znovu“.
 2. Připojení ke cloudu: hned po spuštění je nahoře oranžová lišta
    „☁ Cloud zatím není připojený“ s tlačítkem „🔑 Připojit ke cloudu“.
-   Zadejte e-mail a heslo a klepněte na „Přihlásit a sladit data“ — data se
+   Zadejte přihlašovací jméno (nick) a heslo a klepněte na „Přihlásit a sladit data“ — data se
    pak stáhnou ze společného cloudu a dál se slučují sama. Stejné pole je
    i v Záložce Data → karta „☁ Cloud“ (ID projektu a API klíč jsou už
-   přednastavené). Přihlášení se dělá jednou na každém zařízení; heslo se do
-   aplikace nevkládá, protože web i repozitář jsou veřejné — kdokoli by se
-   pak dostal ke jménům, výdejům i podpisům.
+   přednastavené). Přihlášení se dělá jednou na každém zařízení; heslo se
+   nikdy nevkládá do souboru index.html (web i repozitář jsou veřejné), zadává
+   se ručně a zůstane uložené jen v daném zařízení.
 3. Ověření: Data → „Instalace do telefonu / tabletu“ → dole je
    „Verze aplikace: vXX · offline paměť: oopp-app-vXX“ — podle toho poznáte,
    jakou verzi zařízení používá.

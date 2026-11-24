@@ -1,23 +1,32 @@
 EVIDENCE OOPP — uživatelé, hesla a práva
 ========================================
 
-Každý člověk má v aplikaci vlastní účet (e-mail + heslo). Díky tomu je
-v tabulce výdejů vidět, kdo výdej vydal (kolonka „Vydal“), a v cloudu je
-poznat, kdo co zapsal. Správce hesla nikdy nevidí — jen je posílá a obnovuje.
+Každý člověk, který vydává OOPP, má vlastní účet: přihlašovací jméno (nick)
+a heslo. Díky tomu je v tabulce výdejů vidět, kdo výdej vydal (kolonka
+„Vydal“), a v cloudu je poznat, kdo co zapsal. E-maily se nepoužívají —
+žádná pozvánka nikam nechodí. Heslo správce nikdy nevidí; umí ho jen smazat.
 
 1) Jak to funguje
 -----------------
-- Účet = e-mail + heslo. Účet a heslo spravuje Firebase Authentication.
-- Profil = dokument v kolekci oopp_users (ID = e-mail malými písmeny) a drží
-  jméno, iniciály do kolonky „Vydal“, roli (správce / uživatel) a příznak
-  aktivní. Bez profilu se uživatel k datům v cloudu nedostane.
+- Přihlašovací jméno (nick) = malá písmena bez diakritiky, aspoň 3 znaky
+  (např. novak, dvorak2). Zakládá ho správce přímo v aplikaci.
+- Profil = dokument v kolekci oopp_users a drží jméno, iniciály do kolonky
+  „Vydal“, roli (správce / uživatel) a příznak aktivní. Bez profilu se
+  uživatel k datům v cloudu nedostane.
+- Nick se eviduje v kolekci oopp_logins (nick, práva, číslo verze). Z ní
+  aplikace pozná ještě PŘED přihlášením, jestli nick existuje a jestli mu
+  správce neodebral přístup. Nejsou v ní žádná data — jen nicky.
+- Firebase umí přihlášení jen e-mailem, proto má každý nick vnitřní adresu
+  novak@oopp.local. Tu uživatel nikdy nevidí a žádná pošta na ni nechodí.
+  Po smazání hesla se adresa změní na novak.v2@oopp.local, takže staré heslo
+  přestane platit.
 - Přihlášení je v záložce Data → karta „🔒 Přihlášení k datům“ (stejné údaje
   jako u „☁ Cloud“) a v úvodní kartě „☁ Připojení ke cloudu“.
 - Vpravo nahoře v hlavičce je odznak „👤 jméno (iniciály)“ s tlačítkem
   „Odhlásit“ — ukazuje, kdo je právě přihlášený (správce i běžný uživatel).
   Odhlášení vymaže z tohoto zařízení jméno, iniciály i práva správce; spojení
   ke cloudu (Firebase) zůstává, aby aplikace mohla dál synchronizovat.
-  Na sdíleném tabletu se proto před výdejem přihlaste svým účtem a po skončení
+  Na sdíleném tabletu se proto před výdejem přihlaste svým nickem a po skončení
   klikněte „Odhlásit“ — další výdej se pak podepíše tím, kdo se přihlásí.
 - Staré místní přihlášení admin/admin funguje dál (pro starší zařízení),
   ale NEDÁVÁ práva správce v cloudu — cloudová práva určuje profil.
@@ -25,64 +34,69 @@ poznat, kdo co zapsal. Správce hesla nikdy nevidí — jen je posílá a obnovu
 2) Přidání uživatele (jen správce)
 ----------------------------------
 Data → karta „👤 Uživatelé a přístup“:
-1. Vyplňte Jméno a příjmení (z něj se udělají iniciály: Lukáš Dvořák → L.D.),
-   e-mail a práva (uživatel / správce).
-2. Klikněte „＋ Přidat uživatele“.
-3. Na e-mail odejde pozvánka s odkazem. Uživatel klikne, ve formuláři si zvolí
-   heslo a doplní, co jste nevyplnili (jméno, telefon) — pak se přihlásí.
-4. Hotovo: v tabulce výdejů se podepisuje svými iniciály.
+1. Vyplňte Přihlašovací jméno (např. novak) a práva (uživatel / správce).
+2. Jméno a příjmení je nepovinné — když ho vyplníte, udělají se z něj iniciály
+   (Lukáš Dvořák → L.D.). Když ho necháte prázdné, vybere si dotyčný sám
+   zaměstnance ze seznamu při prvním přihlášení.
+3. Klikněte „＋ Přidat uživatele“.
+4. Sdělte dotyčnému nick (klidně na papírek). On v aplikaci klikne
+   „🆕 První přihlášení — vytvořit heslo“, napíše nick, vybere se v seznamu
+   zaměstnanců a zvolí si heslo (aspoň 6 znaků). Tím vznikne jeho účet
+   a hned je přihlášený.
+5. Hotovo: v tabulce výdejů se podepisuje svými iniciálami.
 
-Formulář v e-mailu = stránka pozvanka.html. Aby odkaz mířil na ni (a ne na
-stránku Firebase), nastavte ji jednou v konzoli — postup je ve FIREBASE.md,
-kapitola „2.1 Pozvánka e-mailem“. Bez toho pozvánka funguje taky, jen se
-uživatel nastaví heslo na stránce Firebase a jméno mu zůstane od správce.
+Co se stane na pozadí: aplikace založí dokument oopp_logins/novak (nick,
+práva, číslo verze 1) a prázdný profil v oopp_users. Účet ve Firebase
+(novak@oopp.local) vznikne až při prvním přihlášení, s heslem, které si
+dotyčný zvolil. Do té doby je u nicku v seznamu „heslo nenastaveno“.
 
-Co se stane na pozadí: aplikace založí účet s náhodným heslem, které se nikam
-neukládá ani nezobrazuje, a hned pošle odkaz pro zvolení skutečného hesla.
-Kdyby e-mail nedošel, účet už existuje — pošlete odkaz znovu tlačítkem
-„✉ Nové heslo“.
-
-E-mail nedorazil? V seznamu uživatelů je u jména čas posledního odeslání
-(„✉ 24. 11. 14:05“) — když tam je, Firebase e-mail přijal a problém je
-v doručení:
-- podívejte se do SPAMU / hromadné pošty; odesílatel je
-  noreply@swissformoopp.firebaseapp.com (ne firemní adresa),
-- zkontrolujte překlep v e-mailu (v seznamu je vidět, kam se posílalo),
-- firemní pošta (Seznam, Centrum) občas zprávy z firebaseapp.com zahazuje —
-  zadejte osobní adresu (Gmail), přihlašovací e-mail nemusí být firemní,
-- odkaz platí 1 hodinu; po vypršení pošlete nový tlačítkem „✉ Nové heslo“,
-- účet musí existovat ve Firebase → Authentication → Users (odkaz je
-  v nápovědě pod formulářem „Přidat uživatele“).
-
-Když je u jména „e-mail neodešel“, aplikace se pokusila odeslat, ale Firebase
-to odmítl (nejčastěji denní limit 150 e-mailů na plánu Spark). Zkuste to
-později nebo pošlete odkaz znovu.
+Nick nejde změnit — když má být jiný, uživatele odeberte (🚫 Odebrat)
+a přidejte ho znovu pod novým nickem (se stejným jménem).
 
 Oprava jména: u hotového profilu klikněte v seznamu na „✏ Jméno“ a napište
 správné jméno — iniciály se přepočítají. Už vydané výdeje si nechávají
 iniciály, které byly platné v době výdeje (nic se nepřepisuje zpětně).
 
-3) Zapomenuté heslo
--------------------
-Data → „👤 Uživatelé a přístup“ → u jména klikněte „✉ Nové heslo“. Uživateli
-přijde e-mail s odkazem, kde si zvolí nové heslo. Správce heslo nevidí ani
-nemůže zjistit — může ho jen poslat znovu.
+3) Zapomenuté heslo — tlačítko „🔑 Smazat heslo“
+------------------------------------------------
+1. Data → „👤 Uživatelé a přístup“ → u nicku klikněte „🔑 Smazat heslo“.
+2. Aplikace zvedne číslo verze nicku a založí nový profil — dosavadní heslo
+   přestane platit všude, i na tabletu, kde zůstalo uložené.
+3. Dotyčný klikne „🆕 První přihlášení — vytvořit heslo“, napíše stejný nick
+   a zvolí si nové heslo. Jméno, iniciály ani práva se nemění.
+
+Správce heslo nikdy nevidí ani nemůže zjistit — může ho jen smazat a nechat
+dotyčného zvolit nové. Proto se v seznamu ukazuje jen stav
+„heslo nastaveno / nenastaveno“.
 
 4) Odebrání přístupu
 --------------------
-„🚫 Odebrat“ smaže profil: uživatel se přestane dostat k datům v cloudu
-(i s platným heslem), ale účet ve Firebase zůstane. Úplné smazání účtu jde
-v konzoli Firebase (Authentication → Users → ⋮ → Delete). Vlastní profil
-odebrat nelze (tlačítko se u sebe neukazuje) — jinak byste si zamkli dveře.
+„🚫 Odebrat“ smaže profil a nick dostane active=false s novým číslem verze:
+dotyčný se přestane dostat k datům i s platným heslem a jeho dosavadní účet
+ve Firebase přestane platit. Když mu chcete přístup vrátit, přidejte stejný
+nick znovu — dotyčný si nastaví nové heslo.
+
+Úplné smazání účtu ve Firebase není potřeba (účet bez profilu nic nevidí);
+kdybyste ho chtěli, jde to v konzoli Firebase (Authentication → Users →
+⋮ → Delete). Vlastní profil odebrat nelze (tlačítko se u sebe neukazuje) —
+jinak byste si zamkli dveře.
 
 5) Kolonka „Vydal“ (iniciály)
 -----------------------------
-- Přihlášený uživatel: do výdeje se uloží jeho iniciály z profilu.
+- Přihlášený uživatel: do výdeje se uloží jeho iniciály z profilu a hned po
+  přihlášení je vidět i v řádku „✍ Vydává:“ v záložce Zaměstnanci (např.
+  „L.D. Lukáš Dvořák“). Když v profilu jméno chybí, aplikace se na něj po
+  přihlášení jednou zeptá a uloží ho k účtu.
   Tlačítko „✍ Změnit“ u přihlášeného uživatele uloží nové jméno k účtu
   (projeví se i na ostatních zařízeních); správce může totéž udělat v seznamu
   uživatelů tlačítkem „✏ Jméno“.
+- Starší místní přihlášení admin/admin: profil v cloudu nemá, takže se aplikace
+  na jméno zeptá při přihlášení a uloží ho jen do tohoto zařízení (řádek
+  „✍ Vydává“). Pro podepisování výdejů v cloudu se doporučuje nick.
 - Nepřihlášené zařízení: iniciály se nastaví tlačítkem „✍ Změnit“ u řádku
   „✍ Vydává:“ v záložce Zaměstnanci a uloží se jen do tohoto zařízení.
+- Bez přihlášení (nebo bez profilu) se výdej neuloží — aby v evidenci nebyl
+  záznam bez podpisu.
 - Když není ani jedno, aplikace se na jméno zeptá při ukládání výdeje.
 - Iniciály se ukládají k výdeji (issuedByName, issuedByInitials, issuedByUid,
   issuedAt), takže se později nezmění, ani když se uživatel přejmenuje.
@@ -90,7 +104,10 @@ odebrat nelze (tlačítko se u sebe neukazuje) — jinak byste si zamkli dveře.
 6) První správce (nový projekt)
 -------------------------------
 1. Ve Firebase Authentication → Users založte první účet (e-mail + heslo).
-2. V aplikaci se přihlaste (Data → „🔒 Přihlášení k datům“).
+   To je jediné místo, kde e-mail zůstává — patří správci, který projekt
+   zakládá. Další lidi už přidáváte nickem přímo v aplikaci.
+2. V aplikaci se přihlaste (Data → „🔒 Přihlášení k datům“) tím e-mailem
+   a heslem.
 3. V kartě „👤 Uživatelé a přístup“ klikněte „✚ Založit profil správce“
    a napište jméno a příjmení. Tlačítko se ukazuje, jen když v cloudu ještě
    žádný profil není.
@@ -99,16 +116,26 @@ odebrat nelze (tlačítko se u sebe neukazuje) — jinak byste si zamkli dveře.
 7) Pravidla ve Firestore
 ------------------------
 Pravidla, která drží data v soukromí (oopp_users, oopp, oopp_sig), jsou
-v souboru FIREBASE.md → kapitola 2. Zkráceně: číst a zapisovat data smí jen
+v souboru FIREBASE.md → kapitola 2. Navíc je potřeba kolekce oopp_logins:
+číst ji smí kdokoli (aplikace z ní před přihlášením zjistí verzi a práva
+nicku), zapisovat smí jen správce. Zkráceně: číst a zapisovat data smí jen
 přihlášený uživatel, který má profil; profily zapisuje jen správce.
+Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
 
 8) Časté potíže
 ---------------
+- „Přihlašovací jméno … není zaregistrované“ — nick v oopp_logins není
+  (správce ho ještě nepřidal), nebo je překlep; nick se píše malými písmeny
+  bez diakritiky (Novák → novak).
+- „Heslo už je nastavené“ — dotyčný už heslo má, ať se jím přihlásí. Když ho
+  nezná, správce ho smaže tlačítkem „🔑 Smazat heslo“ a dotyčný si zvolí nové.
+- „Tomuto přihlašovacímu jménu správce odebral přístup“ — nick má odebraný
+  přístup (🚫 Odebrat). Správce ho znovu přidá stejným nickem.
 - „Přihlášený účet zatím nemá profil“ — e-mail existuje, ale chybí dokument
-  v oopp_users. Správce ho přidá formulářem (stejný e-mail) nebo uživatel
-  klikne na „✚ Založit profil správce“, pokud je v cloudu prázdno.
-- „Missing or insufficient permissions“ — chybí pravidla z FIREBASE.md,
-  nebo účet nemá profil.
-- Pozvánka nedošla — zkontrolujte spam a tlačítko „✉ Nové heslo“.
+  v oopp_users (typicky první správce). Klikněte „✚ Založit profil správce“,
+  pokud je cloud prázdný, nebo požádejte správce o přidání.
+- „Missing or insufficient permissions“ — chybí pravidla z FIREBASE.md
+  (hlavně veřejné čtení oopp_logins), nebo účet nemá profil.
 - Data se nesynchronizují — v kartě „☁ Cloud“ klikněte „🔑 Přihlásit“
   a pak „⟳ Synchronizovat“.
+

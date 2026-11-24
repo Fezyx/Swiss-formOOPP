@@ -17,7 +17,7 @@ První spuštění (Windows — OOPP.exe, ale i telefon a tablet)
   funkce/pozice, výdeje i podpisy) se ukládají automaticky do zařízení,
   takže aplikace funguje i bez internetu.
 - O společná data na více zařízeních se stará cloud (Záložka Data →
-  „☁ Cloud“): stačí se jednou přihlásit emailem a heslem.
+  „☁ Cloud“): stačí se jednou přihlásit přihlašovacím jménem (nickem) a heslem.
 - Obrázky podpisů se do zařízení neukládají natrvalo — po nahrání do
   cloudu se z něj automaticky smažou, aby nezabíraly místo. V zařízení
   zůstane jen zelená fajfka „✔ podepsáno“ (podrobně níže u cloudu).
@@ -38,31 +38,28 @@ Záloha / přenos dat
   na false (stejně jako ORDERS_ADMIN_ONLY u objednávek).
 
 Uživatelé a hesla (vlastní účet pro každého)
-- Každý pracovník má vlastní e-mail a heslo. Účty zakládá správce v záložce
-  Data → karta „👤 Uživatelé a přístup“: napíše jméno a příjmení, e-mail
-  a práva (uživatel / správce) a klikne „＋ Přidat uživatele“.
-- Uživateli přijde e-mail s odkazem na formulář (stránka pozvanka.html), kde
-  si SÁM zvolí heslo a doplní, co jste nevyplnili (jméno, telefon). Správce
-  hesla nikdy nevidí ani je nemůže zjistit — zapomenuté heslo řeší tlačítkem
-  „✉ Nové heslo“, které pošle odkaz znovu.
-- Aby odkaz v e-mailu otevíral formulář (a ne stránku Firebase), nastavte to
-  jednou ve Firebase: Authentication → Templates → ✏ u „Password reset“ →
-  customize action URL → https://fezyx.github.io/Swiss-formOOPP/pozvanka.html
-  (návod FIREBASE.md, kapitola 2.1). Bez toho pozvánka funguje taky.
+- Každý pracovník má vlastní PŘIHLAŠOVACÍ JMÉNO (nick, např. novak) a heslo.
+  Nick zakládá správce v záložce Data → karta „👤 Uživatelé a přístup“:
+  napíše nick, případně jméno a příjmení, práva (uživatel / správce) a klikne
+  „＋ Přidat uživatele“. E-maily se nepoužívají, nic se nikam neposílá.
+- Dotyčnému řekněte nick. On v kartě „🔒 Přihlášení k datům“ klikne
+  „🆕 První přihlášení — vytvořit heslo“, napíše nick, vybere se v seznamu
+  zaměstnanců a SÁM si zvolí heslo (aspoň 6 znaků). Tím vznikne jeho účet
+  a hned je přihlášený. Správce heslo nikdy nevidí ani nemůže zjistit.
+- Zapomenuté heslo: správce u nicku klikne „🔑 Smazat heslo“. Staré heslo
+  přestane platit a dotyčný si stejným nickem zvolí nové (znovu tlačítkem
+  „🆕 První přihlášení“). Jméno ani práva se přitom nemění.
 - Jméno a iniciály u hotového účtu opravíte v seznamu uživatelů tlačítkem
   „✏ Jméno“; změna se propíše do dalších výdejů, staré si nechávají původní.
-- E-mail s pozvánkou nedorazil? U jména je čas posledního odeslání (✉ 24. 11.
-  14:05). Když tam je, Firebase e-mail přijal — koukněte do spamu (odesílatel
-  je noreply@swissformoopp.firebaseapp.com), zkontrolujte překlep v adrese
-  a zkuste osobní adresu (Gmail); firemní pošta zprávy z firebaseapp.com
-  občas zahazuje. Odkaz platí 1 hodinu, nový pošlete tlačítkem „✉ Nové heslo“.
-  Když je u jména „e-mail neodešel“, odeslání selhalo (často denní limit
-  150 e-mailů zdarma) — zkuste to později. Podrobný postup: FIREBASE.md,
-  kapitola 2.1.
-- „🚫 Odebrat“ přístup odebere (účet ve Firebase zůstane; úplně se maže
-  v konzoli Firebase). Podrobný návod: soubor UZIVATELE.md.
+- V seznamu je u nicku stav hesla (nastaveno / nenastaveno). „Nenastaveno“
+  znamená, že dotyčný první přihlášení ještě nedokončil.
+- „🚫 Odebrat“ přístup odebere (profil se smaže a nick přestane platit; když
+  ho znovu přidáte, dotyčný si nastaví nové heslo). Podrobný návod: soubor
+  UZIVATELE.md, technické detaily: FIREBASE.md (kapitola 2.1).
 - Kolonka „Vydal“ v tabulce výdejů: po přihlášení se bere z účtu (jméno
-  a příjmení → iniciály, např. Lukáš Dvořák → L.D.). Tlačítko „✍ Změnit“
+  a příjmení → iniciály, např. Lukáš Dvořák → L.D.) a v záložce Zaměstnanci
+  je hned vidět v řádku „✍ Vydává:“. Když profil jméno nemá, aplikace se na
+  něj při přihlášení zeptá. Tlačítko „✍ Změnit“
   u přihlášeného uživatele uloží nové jméno k účtu (platí na všech
   zařízeních). Bez přihlášení se jméno nastaví jen pro toto zařízení. Když
   není nic, aplikace se na jméno zeptá při ukládání výdeje.
@@ -145,7 +142,8 @@ Import seznamu zaměstnanců
 Cloud — společná databáze (Firebase) a hosting na GitHubu
 - Projekt „swissformoopp" je v aplikaci UŽ PŘEDNASTAVENÝ: ID projektu i Web API
   klíč jsou v souboru index.html (CLOUD_PRESET), takže se na novém zařízení
-  nevypisují. Stačí v Záložce Data → „☁ Cloud" zadat email a heslo uživatele
+  nevypisují. Stačí v Záložce Data → „☁ Cloud" zadat přihlašovací jméno
+  (nick) a heslo uživatele
   a kliknout „🔑 Přihlásit" — data se pak načtou sama (automatická
   synchronizace je na novém zařízení zapnutá).
 - Připojení je hned po spuštění: nahoře je lišta „☁ Cloud zatím není
@@ -158,7 +156,7 @@ Cloud — společná databáze (Firebase) a hosting na GitHubu
 - V cloudu jsou zaměstnanci, předměty, funkce/pozice, výdeje i obrázky
   podpisů — tablet v dílně a počítač v kanceláři tak vidí totéž a knížku
   s podpisy vytisknete z obou zařízení. Data jsou soukromá (přístup jen
-  po přihlášení emailem a heslem).
+  po přihlášení přihlašovacím jménem a heslem).
 - Podpisy jsou uložené v cloudu, v zařízení po nich zůstává jen zelená
   fajfka „✔ podepsáno“ — každý tablet/PC tak v sobě nedrží podpisy ze všech
   ostatních zařízení. Podpis se stáhne až ve chvíli, kdy je potřeba
@@ -211,7 +209,7 @@ Aplikace na mobil a tablet (stejná data jako na PC)
 - iPhone/iPad: Safari → Sdílet → „Přidat na plochu".
 - Windows/Mac: ikona „Instalovat" v adresním řádku (nebo ⋮ → Aplikace).
 - V cloudu (Data → „☁ Cloud") stačí na každém zařízení přihlásit se stejným
-  emailem a heslem (ostatní údaje jsou přednastavené) — data se pak ukládají
+  přihlašovacím jménem a heslem (ostatní údaje jsou přednastavené) — data se pak ukládají
   na všech zařízeních a knížka s podpisy jde vytisknout z kteréhokoli z nich.
 - Aktualizace aplikace: aplikace se aktualizuje sama. Při každém spuštění
   porovná svou verzi s verzí na serveru a když je na serveru novější, sama

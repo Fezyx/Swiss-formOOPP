@@ -6,7 +6,7 @@ i obrázky podpisů**. Každé zařízení má navíc svou lokální kopii, tak�
 dá pracovat i bez internetu (změny se doplní po připojení).
 
 **Doporučený poskytovatel je Firebase** — aplikace je na něj přednastavená
-a přihlašuje se jen emailem a heslem (návod `FIREBASE.md`). Tento soubor
+a přihlašuje se přihlašovacím jménem (nickem) a heslem (návod `FIREBASE.md`). Tento soubor
 popisuje **náhradní variantu Supabase**, kdybyste Firebase nechtěli.
 
 Srovnání volných tarifů: **Firebase** (plán Spark) = 1 GiB dat, 10 GiB přenosu

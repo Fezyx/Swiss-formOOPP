@@ -703,13 +703,34 @@ tr.clickable:hover{background:#eef3fa}
         <details class="acc" data-acc="login" open>
           <summary><h2>🔒 Přihlášení k datům</h2></summary>
           <div class="acc-body">
-            <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
-            <label>Uživatel</label>
-            <input type="text" id="dataUser" placeholder="firemní e-mail" autocomplete="username" spellcheck="false">
+            <p class="desc">Vydávat OOPP může jen <strong>přihlášený</strong> uživatel. Přihlaste se <strong>přihlašovacím jménem</strong>, které vám založil správce, a svým heslem. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
+            <label>Přihlašovací jméno</label>
+            <input type="text" id="dataUser" placeholder="např. novak" autocomplete="username" spellcheck="false">
             <label>Heslo</label>
             <input type="password" id="dataPass" placeholder="heslo" autocomplete="current-password">
-            <div style="margin-top:12px"><button class="btn" id="btnDataLogin">Přihlásit</button></div>
+            <div class="row" style="margin-top:12px">
+              <button class="btn" id="btnDataLogin">Přihlásit</button>
+              <button class="btn secondary" id="btnDataNewPass" title="Pro první přihlášení: zvolíte si heslo a vyberete se v seznamu zaměstnanců">🆕 První přihlášení — vytvořit heslo</button>
+            </div>
             <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
+            <div id="dataNewPassBox" class="hidden" style="margin-top:12px;padding:12px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff">
+              <strong>První přihlášení</strong>
+              <div class="sig-hint" style="margin-top:4px">Zadejte přihlašovací jméno od správce, vyberte se v seznamu zaměstnanců a zvolte si heslo. Heslo nikdo jiný neuvidí — ani správce; ten ho umí jen smazat.</div>
+              <label>Přihlašovací jméno</label>
+              <input type="text" id="npNick" placeholder="např. novak" autocomplete="off" spellcheck="false">
+              <label>Vyberte se v seznamu zaměstnanců</label>
+              <select id="npEmployee"></select>
+              <input type="text" id="npName" class="hidden" placeholder="jméno a příjmení" autocomplete="off" style="margin-top:8px">
+              <label>Nové heslo (aspoň 6 znaků)</label>
+              <input type="password" id="npPass" autocomplete="new-password">
+              <label>Heslo znovu</label>
+              <input type="password" id="npPass2" autocomplete="new-password">
+              <div class="row" style="margin-top:12px">
+                <button class="btn" id="btnCreatePass">Vytvořit heslo a přihlásit</button>
+                <button class="btn outline" id="btnCancelNewPass">Zrušit</button>
+              </div>
+              <div class="sig-hint" id="npError" style="color:#dc2626;margin-top:8px"></div>
+            </div>
             <div id="loginProfileBox" class="hidden" style="margin-top:10px"></div>
           </div>
         </details>
@@ -722,14 +743,15 @@ tr.clickable:hover{background:#eef3fa}
           <details class="acc" data-acc="users" open>
             <summary><h2>👤 Uživatelé a přístup</h2><span class="acc-note" id="usersSummaryNote"></span></summary>
             <div class="acc-body">
-              <p class="desc">Každý, kdo vydává OOPP, má vlastní přihlášení firemním e-mailem. <strong>Heslo si nastaví sám</strong> odkazem z e-mailu — aplikace ho nikdy nezná, nikde ho neukládá a správce ho nevidí. Správce může heslo jen znovu poslat nebo uživateli odebrat přístup.</p>
+              <p class="desc">Každý, kdo vydává OOPP, má vlastní <strong>přihlašovací jméno</strong> (nick) a heslo. Heslo si dotyčný <strong>zvolí sám</strong> při prvním přihlášení — aplikace ho nikde neukládá a správce ho nevidí. Správce ho umí jen <strong>smazat</strong>; dotyčný si pak stejným jménem nastaví nové. Nic se neposílá e-mailem.</p>
               <div id="usersCurrent"></div>
               <div class="sig-hint" id="usersHint" style="margin-top:10px"></div>
               <div id="usersAdminBox" class="hidden" style="margin-top:16px">
-                <label>Jméno a příjmení</label>
+                <label>Přihlašovací jméno (nick)</label>
+                <input type="text" id="newUserNick" placeholder="např. novak" autocomplete="off" spellcheck="false">
+                <label>Jméno a příjmení (nepovinné)</label>
                 <input type="text" id="newUserName" placeholder="např. Lukáš Dvořák" autocomplete="off">
-                <label>E-mail</label>
-                <input type="email" id="newUserEmail" placeholder="jmeno@firma.cz" autocomplete="off" spellcheck="false">
+                <div class="sig-hint" style="margin-top:4px">Když jméno nevyplníte, vybere si ho dotyčný sám ze seznamu zaměstnanců při prvním přihlášení (a tím se i podepíše iniciálami).</div>
                 <label>Práva</label>
                 <select id="newUserRole">
                   <option value="user">Uživatel — výdeje, zaměstnanci, tisk</option>
@@ -750,7 +772,7 @@ tr.clickable:hover{background:#eef3fa}
           <details class="acc" data-acc="cloud">
             <summary><h2>☁ Cloud — společná databáze (Firebase)</h2><span class="acc-note" id="cloudSummaryNote"></span></summary>
             <div class="acc-body">
-              <p class="desc">Doporučeno: <strong>Firebase</strong> (Firestore + přihlášení emailem/heslem). V cloudu jsou <strong>zaměstnanci, předměty, funkce/pozice, výdeje i obrázky podpisů</strong> — knížku s podpisy vytisknete z tabletu i z počítače. Data zůstanou soukromá (přístup jen po přihlášení). Zařízení drží i lokální kopii pro offline režim.</p>
+              <p class="desc">Doporučeno: <strong>Firebase</strong> (Firestore + přihlášení přihlašovacím jménem a heslem). V cloudu jsou <strong>zaměstnanci, předměty, funkce/pozice, výdeje i obrázky podpisů</strong> — knížku s podpisy vytisknete z tabletu i z počítače. Data zůstanou soukromá (přístup jen po přihlášení). Zařízení drží i lokální kopii pro offline režim.</p>
               <label>Poskytovatel</label>
               <select id="cloudProvider">
                 <option value="firebase">Firebase — databáze + podpisy, heslo (doporučeno)</option>
@@ -769,10 +791,10 @@ tr.clickable:hover{background:#eef3fa}
                 <input type="text" id="cloudDoc" placeholder="bin ID / doc_id" autocomplete="off" spellcheck="false">
               </div>
               <div id="cloudFirebaseWrap" class="hidden">
-                <label>Přihlašovací email</label>
-                <input type="email" id="cloudEmail" placeholder="firemní email" autocomplete="off" spellcheck="false">
+                <label>Přihlašovací jméno (nick) nebo e-mail</label>
+                <input type="text" id="cloudEmail" placeholder="např. novak" autocomplete="off" spellcheck="false" autocapitalize="none">
                 <label>Heslo</label>
-                <input type="password" id="cloudPass" placeholder="heslo k Firebase účtu" autocomplete="off">
+                <input type="password" id="cloudPass" placeholder="heslo k účtu" autocomplete="off">
               </div>
               <div class="sig-hint" id="cloudHint" style="margin-top:10px"></div>
               <div class="row" style="margin-top:12px">
@@ -930,18 +952,18 @@ tr.clickable:hover{background:#eef3fa}
       </div>
     </section>
   </main>
-  <!-- Rychlé přihlášení ke cloudu: e-mail a heslo se zadají jednou na tomto zařízení
-       a zůstanou uložené jen v něm. Do souboru index.html se nikdy nedávají —
-       web i repozitář jsou veřejné a kdokoli by se pak dostal k datům OOPP. -->
+  <!-- Rychlé přihlášení ke cloudu: přihlašovací jméno a heslo se zadají jednou na
+       tomto zařízení a zůstanou uložené jen v něm. Do souboru index.html se nikdy
+       nedávají — web i repozitář jsou veřejné a kdokoli by se pak dostal k datům OOPP. -->
   <div class="file-setup hidden" id="cloudQuick">
     <div class="file-setup-card">
       <h2>☁ Připojení ke cloudu</h2>
-      <p>Zadejte <strong>e-mail a heslo k aplikaci</strong> (dostal(a) jste je od správce). Údaje projektu Firebase jsou v aplikaci už přednastavené, takže se nic jiného vyplňovat nemusí. Zařízení si přihlášení zapamatuje a data se od té chvíle sladí sama se všemi ostatními telefony a počítači.</p>
-      <label for="qcEmail">Přihlašovací e-mail</label>
-      <input type="email" id="qcEmail" placeholder="jmeno@firma.cz" autocomplete="username" spellcheck="false">
+      <p>Zadejte <strong>přihlašovací jméno a heslo</strong>. Přihlašovací jméno (nick) dostanete od správce; heslo si sami zvolíte při prvním přihlášení. Údaje projektu Firebase jsou v aplikaci už přednastavené, takže se nic jiného vyplňovat nemusí. Zařízení si přihlášení zapamatuje a data se od té chvíle sladí sama se všemi ostatními telefony a počítači.</p>
+      <label for="qcEmail">Přihlašovací jméno</label>
+      <input type="text" id="qcEmail" placeholder="např. novak" autocomplete="username" spellcheck="false" autocapitalize="none">
       <label for="qcPass">Heslo</label>
       <input type="password" id="qcPass" placeholder="heslo k aplikaci" autocomplete="current-password">
-      <div class="sig-hint" style="margin-top:8px">Heslo se ukládá jen do tohoto zařízení (stejně jako v <strong>Data → ☁ Cloud</strong>). Do aplikace se nevkládá, protože web je veřejně dostupný.</div>
+      <div class="sig-hint" style="margin-top:8px">Heslo se ukládá jen do tohoto zařízení (stejně jako v <strong>Data → ☁ Cloud</strong>). Do souboru <em>index.html</em> se nikdy nedává — web je veřejně dostupný.</div>
       <div class="sig-hint" id="qcError" style="color:#dc2626;margin-top:8px"></div>
       <button class="btn" id="btnQcLogin">🔑 Přihlásit a sladit data</button>
       <button class="btn outline" id="btnQcLater">Teď ne — jen v tomto zařízení</button>
@@ -2174,7 +2196,41 @@ const USER_KEY = 'oopp_user_v1';               // přihlášený uživatel v tom
 const USERS_CACHE_KEY = 'oopp_users_cache_v1'; // seznam uživatelů pro offline režim
 const ISSUER_KEY = 'oopp_issuer_v1';           // iniciály bez přihlášení (starší zařízení)
 const USERS_COLLECTION = 'oopp_users';         // kolekce profilů ve Firestore
+const LOGINS_COLLECTION = 'oopp_logins';       // přihlašovací jména (nick) — čitelná i před přihlášením
+const NICK_DOMAIN = 'oopp.local';              // nick@oopp.local = vnitřní e-mail účtu (Firebase jiný neumí)
 const ALLOW_LOCAL_ADMIN = true;                // starší místní přihlášení admin/admin
+
+// Přihlašovací jméno (nick) se v aplikaci píše malými písmeny a bez diakritiky,
+// aby se dalo napsat na tabletu i na papírek: „Novák“ → „novak“.
+function normNick(v){
+  let s = String(v == null ? '' : v).trim().toLowerCase();
+  try{ s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }catch(e){}
+  s = s.replace(/[^a-z0-9._-]+/g, '').replace(/^[._-]+|[._-]+$/g, '');
+  return s.slice(0, 20);
+}
+
+// Firebase umí přihlášení jen e-mailem. Proto má každý nick svůj vnitřní e-mail
+// (novak@oopp.local). Číslo verze se zvedne, když správce smaže heslo — starý
+// účet tím přestane platit a dotyčný si stejným nickem udělá nový.
+function loginEmailOf(nick, v){
+  const n = normNick(nick);
+  if(!n) return '';
+  const ver = Math.max(1, parseInt(v, 10) || 1);
+  return n + (ver > 1 ? '.v' + ver : '') + '@' + NICK_DOMAIN;
+}
+
+function nickFromEmail(email){
+  const s = String(email == null ? '' : email).trim().toLowerCase();
+  const at = s.indexOf('@');
+  if(at < 0) return normNick(s);
+  if(s.slice(at + 1) !== NICK_DOMAIN) return s;
+  return normNick(s.slice(0, at).replace(/\.v\d+$/, ''));
+}
+
+function looksLikeEmail(v){
+  const s = String(v == null ? '' : v).trim();
+  return s.indexOf('@') >= 0;
+}
 
 // Iniciály z celého jména: „Lukáš Dvořák“ → „L.D.“; tituly (Ing., Bc., …) se
 // přeskakují, takže „Ing. Lukáš Dvořák“ → „L.D.“.
@@ -2251,7 +2307,7 @@ function promptIssuer(){
   // Přihlášený uživatel: jméno patří k účtu (projeví se na všech zařízeních),
   // takže se změna uloží do profilu v cloudu — ne jen do tohoto zařízení.
   if(s && s.email){
-    const answer = prompt('Kdo výdej vydává?\n\nNapište jméno a příjmení — do evidence se uloží iniciály (Lukáš Dvořák → L.D.).\nUloží se k účtu ' + s.email + ', takže se projeví i na ostatních zařízeních.', s.name || '');
+    const answer = prompt('Kdo výdej vydává?\n\nNapište jméno a příjmení — do evidence se uloží iniciály (Lukáš Dvořák → L.D.).\nUloží se k účtu ' + nickFromEmail(s.email) + ', takže se projeví i na ostatních zařízeních.', s.name || '');
     if(answer === null) return false;
     const name = String(answer || '').trim().replace(/\s+/g, ' ');
     if(!name){ toast('Zadejte jméno a příjmení.'); return false; }
@@ -2296,17 +2352,43 @@ function resolveIssuer(){
   return cur || {uid: '', name: '', initials: ''};
 }
 
+// Po přihlášení: když účet zatím nemá jméno (nebo jde o starší místní
+// admin/admin), zeptat se jednou na jméno — do evidence se ukládají iniciály,
+// takže bez nich by řádek „✍ Vydává“ zůstal prázdný a výdej by se nepodepsal.
+function askIssuerIfMissing(){
+  setTimeout(function(){
+    try{
+      const s = userSession();
+      if(s && !(s.name || s.initials)){ promptIssuer(); return; }
+      if(!currentIssuer()) promptIssuer();
+    }catch(e){}
+  }, 700);
+}
+
 function refreshIssuerUI(){
   const el = document.getElementById('issuerName');
   if(!el) return;
+  const s = userSession();
   const iss = currentIssuer();
-  if(iss && (iss.name || iss.initials)){
+  // Přihlášený účet bez vyplněného jména: jméno v zařízení (od někoho jiného)
+  // by mátlo, proto se ukáže nick přihlášeného a výzva k doplnění jména.
+  const loggedNoName = !!(s && (s.email || s.uid) && !(s.name || s.initials));
+  if(iss && (iss.name || iss.initials) && !loggedNoName){
     el.innerHTML = '<span class="issuer-badge">' + escapeHtml(iss.initials || initialsOf(iss.name)) + '</span> ' +
       escapeHtml(iss.name || '') +
       (iss.local ? ' <span class="sig-hint">uloženo v tomto zařízení</span>' : '');
-  } else {
-    el.innerHTML = '<span class="sig-hint">— zatím nenastaveno —</span>';
+    return;
   }
+  if(loggedNoName){
+    el.innerHTML = '<span class="sig-hint">👤 <strong>' + escapeHtml(nickFromEmail(s.email) || 'přihlášený uživatel') +
+      '</strong> — doplňte jméno a příjmení tlačítkem „✍ Změnit“ (jinak se výdej nepodepíše).</span>';
+    return;
+  }
+  if(isAdmin()){
+    el.innerHTML = '<span class="sig-hint">👤 přihlášený správce — doplňte jméno a příjmení tlačítkem „✍ Změnit“.</span>';
+    return;
+  }
+  el.innerHTML = '<span class="sig-hint">— zatím nenastaveno —</span>';
 }
 
 // Buňka do tabulky výdejů: jen iniciály (celé jméno v bublině).
@@ -2355,9 +2437,11 @@ function updateAdminUI(){
   const who = document.getElementById('adminWho');
   if(who){
     if(isAdmin()){
-      who.textContent = '👤 ' + (s && s.name ? s.name + (s.initials ? ' (' + s.initials + ')' : '') + ' · správce' : 'přihlášen jako admin');
+      const whoTxt = (s && s.name) ? (s.name + (s.initials ? ' (' + s.initials + ')' : ''))
+        : ((s && s.email) ? nickFromEmail(s.email) : 'admin');
+      who.textContent = '👤 ' + whoTxt + ' · správce';
     }else if(s && (s.name || s.email)){
-      who.textContent = '👤 ' + (s.name || s.email) + (s.initials ? ' (' + s.initials + ')' : '') + ' · uživatel';
+      who.textContent = '👤 ' + (s.name || nickFromEmail(s.email)) + (s.initials ? ' (' + s.initials + ')' : '') + ' · uživatel';
     }else{
       who.textContent = '👤 přihlášen';
     }
@@ -2437,20 +2521,22 @@ function showDataLogin(){
   document.getElementById('dataUser').value = '';
   document.getElementById('dataPass').value = '';
   document.getElementById('dataLoginError').textContent = '';
+  try{ fillNewPassEmployees(); hideNewPassBox(); }catch(e){}
 }
 
 function tryDataLogin(){
   const u = document.getElementById('dataUser').value.trim();
   const p = document.getElementById('dataPass').value;
   // Starší místní přihlášení (admin/admin) — funguje dál, aby se stará zařízení
-  // nezamkla. Nově se ale přihlašuje firemním e-mailem a heslem (Firebase), aby
-  // se do knížky podepsal konkrétní člověk iniciálami.
+  // nezamkla. Nově se ale přihlašuje přihlašovacím jménem (nick) a heslem
+  // (Firebase), aby se do knížky podepsal konkrétní člověk iniciálami.
   if(ALLOW_LOCAL_ADMIN && u === ADMIN_USER && p === ADMIN_PASS){
     setAdminSession(true);
     document.getElementById('dataUser').value = '';
     document.getElementById('dataPass').value = '';
     unlockData();
     toast('Přihlášeno.');
+    askIssuerIfMissing();
     return;
   }
   tryDataLoginCloud(u, p);
@@ -3639,6 +3725,20 @@ function saveIssue(){
     items.push({itemId: itemId, name: it ? it.name : itemId, qty: qty, unit: it ? (it.unit || 'ks') : 'ks', size: size});
   }
   if(items.length === 0){ toast('Přidejte alespoň jednu položku.'); return; }
+  // Vydávat smí jen přihlášený uživatel s profilem — v knížce musí být
+  // podepsaný konkrétní člověk. Kdo přihlášený není, tomu se nabídne
+  // přihlášení a nic se neuloží.
+  const sess = userSession();
+  if(!sess || sess.missing){
+    toast('Nejdřív se přihlaste — bez přihlášení se výdej neuloží. Otevírám přihlášení.', 9000);
+    showTab('data');
+    showDataLogin();
+    return;
+  }
+  if(!sess.initials && !sess.name){
+    toast('Váš profil zatím nemá jméno a iniciály — dokončete první přihlášení nebo požádejte správce o doplnění jména.', 10000);
+    return;
+  }
   const signature = getSignatureData();
   const cfg = cloudConfig();
   // Kdo výdej vydal — do knížky se tiskne jen iniciály (L.D.), celé jméno
@@ -6640,7 +6740,7 @@ async function fbEnsureAuth(){
   const auth = firebase.auth(app);
   if(auth.currentUser) return auth.currentUser;
   if(!cfg.firebaseEmail || !cfg.firebasePass){
-    throw new Error('Nejste přihlášení do Firebase — vyplňte email a heslo a klikněte „Přihlásit“.');
+    throw new Error('Nejste přihlášení do Firebase — vyplňte přihlašovací jméno a heslo a klikněte „Přihlásit“.');
   }
   try{
     const cred = await auth.signInWithEmailAndPassword(cfg.firebaseEmail, cfg.firebasePass);
@@ -6655,13 +6755,20 @@ async function fbLogin(){
   const cfg = cloudConfig();
   if(cfg.provider !== 'firebase'){ toast('Přihlášení je jen pro Firebase.'); return; }
   if(!cfg.url || !cfg.key){ toast('Nejprve vyplňte Project ID a Web API klíč a klikněte „Uložit nastavení“.'); return; }
-  const email = (document.getElementById('cloudEmail') || {}).value || '';
+  const typed = ((document.getElementById('cloudEmail') || {}).value || '').trim();
   const pass = (document.getElementById('cloudPass') || {}).value || '';
-  if(email && pass){ cfg.firebaseEmail = email.trim(); cfg.firebasePass = pass; saveCloudConfig(cfg); }
+  if(typed && pass){
+    let email = '';
+    try{ email = await resolveAccountEmail(typed); }
+    catch(e){ cloudSetStatus(e.message, 'err'); toast(e.message, 9000); return; }
+    cfg.firebaseEmail = email;
+    cfg.firebasePass = pass;
+    saveCloudConfig(cfg);
+  }
   cloudSetStatus('Přihlašuji…', 'warn');
   try{
     const user = await fbEnsureAuth();
-    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : '?') + '.', 'ok');
+    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? nickFromEmail(user.email) : '?') + '.', 'ok');
     toast('Přihlášeno.');
     // Po přihlášení hned sladit data s cloudem (u nového zařízení tím appka „naskočí“ sama).
     const after = cloudConfig();
@@ -6674,8 +6781,8 @@ async function fbLogin(){
 
 /* ---------- Připojení ke cloudu hned po spuštění (lišta + formulář) ----------
    Cíl: na novém zařízení se nemusí nic hledat v menu — nahoře je lišta
-   „Cloud zatím není připojený“ a tlačítko Připojit. E-mail a heslo se zadají
-   jednou a uloží se jen do tohoto zařízení (localStorage), nikdy do kódu:
+   „Cloud zatím není připojený“ a tlačítko Připojit. Přihlašovací jméno a heslo
+   se zadají jednou a uloží se jen do tohoto zařízení (localStorage), nikdy do kódu:
    web i repozitář jsou veřejné, takže heslo v index.html by zpřístupnilo
    celou databázi OOPP (jména, výdeje i podpisy) komukoli na internetu. */
 const CLOUD_PROMPT_KEY = 'oopp_cloud_prompt_off';
@@ -6712,7 +6819,7 @@ function openCloudQuick(){
   const emailEl = document.getElementById('qcEmail');
   const passEl = document.getElementById('qcPass');
   const errEl = document.getElementById('qcError');
-  if(emailEl) emailEl.value = cfg.firebaseEmail || '';
+  if(emailEl) emailEl.value = cfg.firebaseEmail ? nickFromEmail(cfg.firebaseEmail) : '';
   if(passEl) passEl.value = '';
   if(errEl) errEl.textContent = '';
   box.classList.remove('hidden');
@@ -6735,10 +6842,10 @@ async function cloudQuickLogin(){
   const errEl = document.getElementById('qcError');
   const emailEl = document.getElementById('qcEmail');
   const passEl = document.getElementById('qcPass');
-  const email = ((emailEl && emailEl.value) || '').trim();
+  const typed = ((emailEl && emailEl.value) || '').trim();
   const pass = (passEl && passEl.value) || '';
-  if(!email || !pass){
-    if(errEl) errEl.textContent = 'Zadejte e-mail i heslo.';
+  if(!typed || !pass){
+    if(errEl) errEl.textContent = 'Zadejte přihlašovací jméno i heslo.';
     return;
   }
   const cfg = cloudConfig();
@@ -6746,6 +6853,9 @@ async function cloudQuickLogin(){
     if(errEl) errEl.textContent = 'V aplikaci chybí nastavení projektu (Project ID / Web API klíč) — doplňte ho v Data → ☁ Cloud.';
     return;
   }
+  let email = '';
+  try{ email = await resolveAccountEmail(typed); }
+  catch(e){ if(errEl) errEl.textContent = e.message; return; }
   cfg.firebaseEmail = email;
   cfg.firebasePass = pass;
   cfg.auto = true;
@@ -6753,7 +6863,7 @@ async function cloudQuickLogin(){
   // Propojit s poli v Data → ☁ Cloud, aby bylo vidět, co je uložené.
   const cardEmail = document.getElementById('cloudEmail');
   const cardPass = document.getElementById('cloudPass');
-  if(cardEmail) cardEmail.value = email;
+  if(cardEmail) cardEmail.value = nickFromEmail(email);
   if(cardPass) cardPass.value = pass;
 
   const btn = document.getElementById('btnQcLogin');
@@ -6775,9 +6885,9 @@ async function cloudQuickLogin(){
     let prof = null;
     try{ prof = await afterAuthUser(user); }catch(e){ prof = null; }
     if(prof && prof.role === 'admin') setAdminSession(true);
-    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : email) + '.', 'ok');
+    cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? nickFromEmail(user.email) : nickFromEmail(email)) + '.', 'ok');
     toast('Cloud připojen.');
-    if(prof && prof.missing) toast('Přihlášeno, ale účet zatím nemá profil — výdeje se podepíší e-mailem, práva nastaví správce.', 8000);
+    if(prof && prof.missing) toast('Přihlášeno, ale účet zatím nemá profil — požádejte správce, ať vám ho založí.', 8000);
     closeCloudQuick();
     updateCloudBanner();
     renderCloudUI();
@@ -6790,13 +6900,16 @@ async function cloudQuickLogin(){
   }
 }
 
-/* ---------- Uživatelé: profil ve Firestore + pozvánky e-mailem ----------
-   Účet (e-mail + heslo) vede Firebase Authentication, profil (jméno, iniciály,
-   práva) je dokument v kolekci oopp_users, jehož ID je e-mail malými písmeny —
-   stejné ID používá i pravidlo ve Firestore, takže přístup mají jen pozvaní.
-   Správce hesla nikdy nevidí: nový účet se založí s náhodným heslem, které se
-   nikam neukládá ani nezobrazuje, a uživatel si heslo zvolí přes odkaz, který
-   mu Firebase pošle e-mailem. Zapomenuté heslo se obnoví stejným odkazem. */
+/* ---------- Uživatelé: přihlašovací jméno (nick) + profil ve Firestore ----------
+   Každý, kdo vydává OOPP, se přihlašuje PŘIHLAŠOVACÍM JMÉNEM a svým heslem —
+   bez e-mailu. Firebase umí přihlášení jen e-mailem, takže každý nick dostane
+   vnitřní adresu <nick>@oopp.local; tu uživatel nikdy nevidí ani nepotřebuje.
+   Účet (adresa + heslo) vede Firebase Authentication, profil (jméno, iniciály,
+   práva) je dokument v oopp_users, jehož ID je ta vnitřní adresa — stejné ID
+   používá pravidlo ve Firestore, takže k datům se dostanou jen přidaní lidé.
+   Heslo si uživatel zvolí sám při prvním přihlášení; správce ho nikdy nevidí,
+   umí ho jen SMAZAT. Smazání zvedne v oopp_logins/{nick} číslo verze, starý
+   účet tím přestane platit a dotyčný si stejným nickem vytvoří nové heslo. */
 function fbApiKey(){
   const cfg = cloudConfig();
   return cfg.key || CLOUD_PRESET.key || '';
@@ -6823,59 +6936,32 @@ async function fbRest(path, body){
   return data || {};
 }
 
-function fbCreateAuthAccount(email, password){
+// Záznam o přihlašovacím jménu v oopp_logins/{nick} — čte se i PŘED přihlášením
+// (potřebujeme z něj číslo verze a práva), proto je kolekce veřejně čitelná
+// a zapisovat do ní smí jen správce. Nejsou v ní žádná data, jen nick.
+async function loginEntryGet(nick){
+  const n = normNick(nick);
+  if(!n) return null;
+  const snap = await fbFs().collection(LOGINS_COLLECTION).doc(n).get();
+  return (snap && snap.exists) ? Object.assign({id: snap.id}, snap.data()) : null;
+}
+
+// Ze „novak“ nebo „jmeno@firma.cz“ udělá adresu, kterou se Firebase přihlašuje.
+// Nick se najde v oopp_logins (číslo verze + práva), e-mail projde beze změny.
+async function resolveAccountEmail(who){
+  const v = String(who == null ? '' : who).trim();
+  if(looksLikeEmail(v)) return userKeyFor(v);
+  const nick = normNick(v);
+  if(nick.length < 3) throw new Error('Přihlašovací jméno má aspoň 3 znaky (malá písmena, číslice, tečka, pomlčka).');
+  const entry = await loginEntryGet(nick);
+  if(!entry) throw new Error('Přihlašovací jméno „' + nick + '“ není zaregistrované — požádejte správce, ať vám ho založí.');
+  if(entry.active === false) throw new Error('Tomuto přihlašovacímu jménu správce odebral přístup.');
+  return loginEmailOf(nick, entry.v);
+}
+
+// Založí účet Firebase s heslem, které si člověk zvolil sám (první přihlášení).
+function fbSignUpAccount(email, password){
   return fbRest('accounts:signUp', {email: userKeyFor(email), password: password, returnSecureToken: true});
-}
-
-function fbSendPasswordReset(email){
-  return fbRest('accounts:sendOobCode', {requestType: 'PASSWORD_RESET', email: userKeyFor(email)});
-}
-
-// Do profilu poznamená, kdy naposledy odešel e-mail (pozvánka nebo odkaz na
-// nové heslo) a jestli ho Firebase přijal. Správce tak v seznamu vidí, že se
-// odeslání opravdu stalo — a nemusí hádat, jestli udělal chybu v aplikaci.
-// Když zápis neprojde (třeba stará pravidla), nic se neděje.
-async function markInviteMail(email, ok, err){
-  const mail = userKeyFor(email);
-  if(!mail) return;
-  try{
-    // update() (ne set) — když profil mezitím neexistuje (přístup odebraný),
-    // nic se nevytvoří a uživatel tím nezíská data zpět.
-    await fbFs().collection(USERS_COLLECTION).doc(mail).update({
-      lastMailAt: Date.now(), lastMailOk: !!ok, lastMailError: ok ? '' : String(err || '')
-    });
-  }catch(e){}
-}
-
-// „24. 11. 14:05“ — čas odeslání e-mailu do seznamu uživatelů.
-function mailSentLabel(ts){
-  const n = Number(ts) || 0;
-  if(!n) return '';
-  const d = new Date(n);
-  const p = function(x){ return (x < 10 ? '0' : '') + x; };
-  return d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + p(d.getHours()) + ':' + p(d.getMinutes());
-}
-
-// Co napsat, když e-mail nedorazí — odesílatelem není firemní adresa, ale
-// Firebase, a firemní pošta ho občas zahodí.
-function mailSenderNote(){
-  const proj = (cloudConfig().url || CLOUD_PRESET.url || 'projekt');
-  return 'odesílatel je noreply@' + proj + '.firebaseapp.com (ne firemní adresa) — mrkněte do spamu';
-}
-
-// Náhodné heslo k založení účtu. Nikde se neukládá ani nezobrazuje — slouží
-// jen k tomu, aby účet vzniknul; skutečné heslo si uživatel zvolí sám.
-function randomPassword(){
-  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  let out = '';
-  try{
-    const buf = new Uint32Array(28);
-    (window.crypto || window.msCrypto).getRandomValues(buf);
-    for(let i = 0; i < buf.length; i++) out += abc.charAt(buf[i] % abc.length);
-  }catch(e){
-    for(let i = 0; i < 28; i++) out += abc.charAt(Math.floor(Math.random() * abc.length));
-  }
-  return out + 'Aa7!';
 }
 
 function userKeyFor(email){
@@ -6927,7 +7013,18 @@ async function afterAuthUser(user){
       missing: true, at: Date.now()});
     return userSession();
   }
-  const name = String(prof.name || '').trim();
+  let name = String(prof.name || '').trim();
+  // Starší profil (nebo profil založený bez jména): jméno bývá i u nicku
+  // v oopp_logins — ať se řádek „✍ Vydává“ vyplní sám a nemusí se dopisovat.
+  if(!name){
+    try{
+      const nick = nickFromEmail(email);
+      if(nick && nick !== email){
+        const entry = await loginEntryGet(nick);
+        if(entry && entry.name) name = String(entry.name).trim();
+      }
+    }catch(e){}
+  }
   setUserSession({
     uid: prof.uid || user.uid || '',
     email: email,
@@ -7003,13 +7100,14 @@ async function loadUsersFromCloud(announce){
 // Srozumitelné hlášky k chybám Firebase (SDK má kódy auth/…, REST velkými písmeny).
 function friendlyAuthError(e){
   const c = String((e && (e.code || e.message)) || '');
-  if(c.indexOf('EMAIL_NOT_FOUND') >= 0) return 'Tento e-mail v aplikaci není — nejdřív ho přidejte.';
-  if(c.indexOf('INVALID_PASSWORD') >= 0 || c.indexOf('INVALID_LOGIN_CREDENTIALS') >= 0) return 'Nesprávné heslo.';
-  if(c.indexOf('EMAIL_EXISTS') >= 0) return 'Účet s tímto e-mailem už existuje — pošlete mu „Nové heslo“.';
-  if(c.indexOf('INVALID_EMAIL') >= 0 || c.indexOf('invalid-email') >= 0) return 'Neplatný e-mail.';
+  if(c.indexOf('EMAIL_NOT_FOUND') >= 0) return 'Tohle přihlašovací jméno není zaregistrované — požádejte správce, ať vám ho založí.';
+  if(c.indexOf('INVALID_PASSWORD') >= 0 || c.indexOf('INVALID_LOGIN_CREDENTIALS') >= 0) return 'Nesprávné heslo (nebo přihlašovací jméno).';
+  if(c.indexOf('EMAIL_EXISTS') >= 0) return 'Heslo už je nastavené — přihlaste se jím. Když ho neznáte, ať ho správce v seznamu uživatelů smaže („🔑 Smazat heslo“).';
+  if(c.indexOf('INVALID_EMAIL') >= 0 || c.indexOf('invalid-email') >= 0) return 'Neplatné přihlašovací jméno (jen malá písmena bez diakritiky, číslice, tečka, pomlčka).';
+  if(c.indexOf('MISSING_PASSWORD') >= 0) return 'Zadejte heslo.';
   if(c.indexOf('TOO_MANY_ATTEMPTS') >= 0) return 'Příliš mnoho pokusů — zkuste to za chvíli.';
   if(c.indexOf('WEAK_PASSWORD') >= 0) return 'Slabé heslo (aspoň 6 znaků).';
-  if(c.indexOf('OPERATION_NOT_ALLOWED') >= 0) return 'Přihlašování e-mailem není ve Firebase zapnuté (Authentication → Email/Password → Enable).';
+  if(c.indexOf('OPERATION_NOT_ALLOWED') >= 0) return 'Přihlašování heslem není ve Firebase zapnuté (Authentication → Email/Password → Enable).';
   if(c.indexOf('PERMISSION_DENIED') >= 0 || c.indexOf('insufficient permissions') >= 0) return 'Do Firestore nemá účet přístup — upravte pravidla podle UZIVATELE.md.';
   if(c.indexOf('network-request-failed') >= 0) return 'Chybí připojení k internetu.';
   return c || 'neznámá chyba';
@@ -7021,8 +7119,8 @@ async function fbSignOutQuiet(){
   }catch(e){}
 }
 
-// Přihlášení účtem aplikace (e-mail + heslo). Údaje zůstanou v zařízení, aby
-// se tablet přihlásil sám i po restartu; tlačítko „Odhlásit“ je vymaže.
+// Přihlášení účtem aplikace (nick → vnitřní adresa + heslo). Údaje zůstanou
+// v zařízení, aby se tablet přihlásil sám i po restartu; „Odhlásit“ je vymaže.
 async function signInAppAccount(email, pass){
   const cfg = cloudConfig();
   if(cfg.provider !== 'firebase' || !cfg.url || !cfg.key){
@@ -7035,7 +7133,7 @@ async function signInAppAccount(email, pass){
   saveCloudConfig(cfg);
   const cardEmail = document.getElementById('cloudEmail');
   const cardPass = document.getElementById('cloudPass');
-  if(cardEmail) cardEmail.value = mail;
+  if(cardEmail) cardEmail.value = nickFromEmail(mail);
   if(cardPass) cardPass.value = pass;
   try{
     if(typeof firebase !== 'undefined'){
@@ -7047,14 +7145,17 @@ async function signInAppAccount(email, pass){
   return fbEnsureAuth();
 }
 
-// Přihlášení v kartě „🔒 Přihlášení k datům“: firemní e-mail a heslo.
-// Správci se hned odemknou Data, ostatním se jen nastaví iniciály do „Vydal“.
+// Přihlášení v kartě „🔒 Přihlášení k datům“: přihlašovacím jménem (nick) a heslem.
+// Kdo má vlastní e-mail (třeba správce), může napsat i e-mail — pozná se podle @.
+// Správci se hned odemknou Data, ostatním se nastaví iniciály do „Vydal“.
 async function tryDataLoginCloud(u, p){
   const errEl = document.getElementById('dataLoginError');
-  if(!u || !p){ if(errEl) errEl.textContent = 'Zadejte e-mail i heslo.'; return; }
+  const who = String(u == null ? '' : u).trim();
+  if(!who || !p){ if(errEl) errEl.textContent = 'Zadejte přihlašovací jméno i heslo.'; return; }
   if(errEl) errEl.textContent = 'Přihlašuji…';
   try{
-    const user = await signInAppAccount(u, p);
+    const email = await resolveAccountEmail(who);
+    const user = await signInAppAccount(email, p);
     await afterAuthUser(user);
     const s = userSession();
     const passEl = document.getElementById('dataPass');
@@ -7063,92 +7164,222 @@ async function tryDataLoginCloud(u, p){
       setAdminSession(true);
       unlockData();
       toast('Přihlášeno jako správce.');
+      askIssuerIfMissing();
       if(!cloudBusy) cloudSync('auto');
     } else {
       updateAdminUI();
-      if(errEl) errEl.textContent = 'Přihlášeno jako ' + ((s && (s.name || s.email)) ? (s.name || s.email) : u) +
+      if(errEl) errEl.textContent = 'Přihlášeno jako ' + ((s && (s.name || s.email)) ? (s.name || nickFromEmail(s.email)) : who) +
         ' — účet nemá práva správce, takže Data zůstávají zamčená. Výdeje se podepisují iniciálami ' +
         ((s && s.initials) ? s.initials : '—') + '.';
       toast('Přihlášeno.');
     }
-    try{ renderCloudUI(); updateCloudBanner(); }catch(e){}
+    try{ renderCloudUI(); updateCloudBanner(); renderUsersUI(); }catch(e){}
   }catch(e){
     if(errEl) errEl.textContent = 'Přihlášení se nezdařilo: ' + friendlyAuthError(e);
   }
 }
 
-// Přidání uživatele: založí účet s náhodným heslem (nikdo ho neuvidí), uloží
-// profil a pošle e-mail s odkazem, kde si dotyčný zvolí vlastní heslo.
+// Přidání uživatele: správce založí PŘIHLAŠOVACÍ JMÉNO (nick) a profil.
+// Účet ve Firebase se tu nezakládá a heslo se neposílá — heslo si dotyčný
+// zvolí sám při prvním přihlášení (tlačítko „🆕 První přihlášení“).
 async function addAppUser(){
   if(!isAdmin()){ toast('Přidávat uživatele může jen správce.'); return; }
+  const nickEl = document.getElementById('newUserNick');
   const nameEl = document.getElementById('newUserName');
-  const emailEl = document.getElementById('newUserEmail');
   const roleEl = document.getElementById('newUserRole');
   const btn = document.getElementById('btnAddUser');
-  const name = ((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
-  const email = userKeyFor(emailEl && emailEl.value);
+  const nick = normNick(nickEl && nickEl.value);
+  const name = String((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
   const role = (roleEl && roleEl.value === 'admin') ? 'admin' : 'user';
-  if(name.length < 3 || name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení — z něj se dělají iniciály do kolonky Vydal.'); return; }
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Zadejte platný e-mail.'); return; }
-  const exists = usersCacheGet().some(function(u){ return userKeyFor(u.email || u.id) === email; });
-  if(exists){ toast('Uživatel s tímto e-mailem už je v seznamu — pošlete mu tlačítkem „✉ Nové heslo“.'); return; }
+  if(nick.length < 3){ toast('Zadejte přihlašovací jméno — aspoň 3 znaky, bez diakritiky (např. novak).'); return; }
+  if(name && (name.length < 3 || name.indexOf(' ') < 0)){
+    toast('Jméno napište celé (jméno i příjmení) — nebo ho nechte prázdné; dotyčný si ho vybere sám ze seznamu zaměstnanců.'); return;
+  }
   const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Zakládám…'; }
   try{
-    let created = null;
-    try{
-      created = await fbCreateAuthAccount(email, randomPassword());
-    }catch(e){
-      // Účet už ve Firebase existuje (třeba po dřívějším odebrání přístupu) —
-      // profil se jen obnoví a heslo se vyřeší odkazem v e-mailu.
-      if(String((e && (e.code || e.message)) || '').indexOf('EMAIL_EXISTS') < 0) throw e;
+    const entry = await loginEntryGet(nick);
+    if(entry && entry.active !== false){
+      toast('Přihlašovací jméno „' + nick + '“ už je obsazené — vyberte jiné (třeba ' + nick + '2).', 9000);
+      return;
     }
-    const doc = {
-      name: name, email: email, initials: initialsOf(name),
-      role: role, active: true, createdAt: Date.now(),
-      invitedBy: (userSession() || {}).email || '',
-      invitedAt: new Date().toISOString()
-    };
-    if(created && created.localId) doc.uid = created.localId;
-    await fbFs().collection(USERS_COLLECTION).doc(email).set(doc, {merge: true});
-    // E-mail se posílá zvlášť: když ho pošta nepustí, účet i profil už
-    // založené jsou. Správce to musí vidět, jinak hledá chybu marně.
-    let mailErr = '';
-    try{ await fbSendPasswordReset(email); }
-    catch(e){ mailErr = friendlyAuthError(e); }
-    await markInviteMail(email, !mailErr, mailErr);
+    // Když nick existoval (dřív odebraný přístup), jen se znovu zapne; číslo
+    // verze zůstane zvednuté, takže starý účet ve Firebase dál neplatí.
+    const v = entry ? Math.max(1, parseInt(entry.v, 10) || 1) : 1;
+    const email = loginEmailOf(nick, v);
+    const now = Date.now();
+    const me = userSession() || {};
+    await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
+      nick: nick, v: v, role: role, active: true, name: name || '',
+      createdBy: (entry && entry.createdBy) || me.email || '',
+      createdAt: (entry && entry.createdAt) || now,
+      updatedAt: now
+    }, {merge: true});
+    await fbFs().collection(USERS_COLLECTION).doc(email).set({
+      email: email, login: nick, v: v, name: name,
+      initials: name ? initialsOf(name) : '',
+      role: role, active: true, passSetAt: 0,
+      createdAt: now, createdBy: me.email || ''
+    }, {merge: true});
+    if(nickEl) nickEl.value = '';
     if(nameEl) nameEl.value = '';
-    if(emailEl) emailEl.value = '';
     await loadUsersFromCloud(false);
-    if(mailErr){
-      toast('Účet i profil jsou založené, ale e-mail se nepodařilo odeslat (' + mailErr + '). Klikněte u uživatele na „✉ Nové heslo“ — ' + mailSenderNote() + '.', 16000);
-    } else {
-      toast('Pozvánka odeslána na ' + email + '. Když do pár minut nedorazí, ' + mailSenderNote() + ' a zkontrolujte, že adresa nemá překlep.', 16000);
-    }
+    toast('Přihlašovací jméno „' + nick + '“ je založené. Dotyčný se přihlásí v Data → 🔒 Přihlášení k datům tlačítkem „🆕 První přihlášení — vytvořit heslo“ a zvolí si heslo.', 16000);
   }catch(e){
-    toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 9000);
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = label; }
   }
 }
 
-// Obnovení hesla: jediná cesta, jak heslo změnit. Přijde e-mail s odkazem,
-// kde si uživatel zvolí nové — správce ho nikdy nevidí.
-async function resetAppUserPassword(email){
+// Smazání hesla (správce): zvedne číslo verze nicku a založí nový profil
+// s prázdným heslem. Starý účet tím přestane platit a dotyčný si stejným
+// jménem vytvoří nové heslo. Správce heslo nikdy nevidí — jen ho vyhodí.
+async function clearAppUserPassword(email){
+  if(!isAdmin()){ toast('Heslo může smazat jen správce.'); return; }
   const mail = userKeyFor(email);
-  if(!mail){ toast('Chybí e-mail.'); return; }
+  if(!mail) return;
   const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
-  const who = (u && u.name) ? (u.name + ' (' + mail + ')') : mail;
-  if(!confirm('Poslat na ' + who + ' e-mail s odkazem na nové heslo?\n\nHeslo si dotyčný zvolí sám, vy ho neuvidíte.')) return;
+  const nick = normNick((u && u.login) || nickFromEmail(mail));
+  if(!nick){ toast('U profilu chybí přihlašovací jméno — přidejte uživatele znovu.'); return; }
+  const who = (u && u.name) ? (u.name + ' (' + nick + ')') : nick;
+  if(!confirm('Smazat heslo uživateli ' + who + '?\n\nDosavadní heslo přestane platit. Dotyčný se stejným přihlašovacím jménem přihlásí tlačítkem „🆕 První přihlášení — vytvořit heslo“ a zvolí si nové. Vy ho neuvidíte.')) return;
   try{
-    await fbSendPasswordReset(mail);
-    await markInviteMail(mail, true, '');
-    toast('E-mail s odkazem na nové heslo odeslán na ' + mail + '. Když nedorazí, ' + mailSenderNote() + '.', 14000);
+    const v = Math.max(1, parseInt(u && u.v, 10) || 1) + 1;
+    const newEmail = loginEmailOf(nick, v);
+    const role = (u && u.role === 'admin') ? 'admin' : 'user';
+    const now = Date.now();
+    await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
+      nick: nick, v: v, role: role, active: true, name: (u && u.name) || '',
+      passClearedAt: now, updatedAt: now
+    }, {merge: true});
+    await fbFs().collection(USERS_COLLECTION).doc(newEmail).set({
+      email: newEmail, login: nick, v: v,
+      name: (u && u.name) || '', initials: (u && u.initials) || '',
+      phone: (u && u.phone) || '', role: role, active: true,
+      passSetAt: 0, passwordClearedAt: now, createdAt: now
+    }, {merge: true});
+    await fbFs().collection(USERS_COLLECTION).doc(mail).delete();
+    const s = userSession();
+    if(s && userKeyFor(s.email) === mail){
+      clearUserSession();
+      try{ await fbSignOutQuiet(); }catch(e){}
+      showDataLogin();
+      toast('Heslo smazáno — přihlaste se znovu tlačítkem „🆕 První přihlášení — vytvořit heslo“.', 16000);
+    } else {
+      toast('Heslo uživatele ' + who + ' smazáno. Stejným jménem si teď vytvoří nové.', 14000);
+    }
     await loadUsersFromCloud(false);
   }catch(e){
-    await markInviteMail(mail, false, friendlyAuthError(e));
-    toast('E-mail se nepodařilo odeslat: ' + friendlyAuthError(e), 14000);
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 9000);
   }
+}
+
+// První přihlášení (a taky nové heslo po tom, co ho správce smazal): člověk
+// napíše přihlašovací jméno, vybere se v seznamu zaměstnanců a zvolí si heslo.
+// Tím vznikne jeho účet ve Firebase (novak@oopp.local) i profil; heslo zná jen on.
+async function createOwnPassword(){
+  const nickEl = document.getElementById('npNick');
+  const empEl = document.getElementById('npEmployee');
+  const nameEl = document.getElementById('npName');
+  const passEl = document.getElementById('npPass');
+  const pass2El = document.getElementById('npPass2');
+  const errEl = document.getElementById('npError');
+  const btn = document.getElementById('btnCreatePass');
+  const say = function(msg){ if(errEl) errEl.textContent = msg; };
+  const nick = normNick(nickEl && nickEl.value);
+  const pass = (passEl && passEl.value) || '';
+  const pass2 = (pass2El && pass2El.value) || '';
+  say('');
+  if(nick.length < 3){ say('Zadejte přihlašovací jméno od správce (aspoň 3 znaky).'); return; }
+  if(pass.length < 6){ say('Heslo musí mít aspoň 6 znaků.'); return; }
+  if(pass !== pass2){ say('Hesla se neshodují — napište je znovu.'); return; }
+  const empId = (empEl && empEl.value) || '';
+  const emp = (empId && empId !== '__other') ? db.employees.find(function(e){ return e.id === empId; }) : null;
+  const name = emp ? String(emp.name || '').trim().replace(/\s+/g, ' ')
+    : String((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
+  if(!name || name.indexOf(' ') < 0){ say('Vyberte se v seznamu zaměstnanců, nebo napište jméno i příjmení.'); return; }
+  const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Vytvářím…'; }
+  try{
+    const entry = await loginEntryGet(nick);
+    if(!entry){
+      say('Přihlašovací jméno „' + nick + '“ není zaregistrované — požádejte správce, ať vám ho založí.');
+      return;
+    }
+    if(entry.active === false){ say('Tomuto přihlašovacímu jménu správce odebral přístup.'); return; }
+    const email = loginEmailOf(nick, entry.v);
+    const role = (entry.role === 'admin') ? 'admin' : 'user';
+    try{
+      await fbSignUpAccount(email, pass);
+    }catch(e){
+      const code = String((e && (e.code || e.message)) || '');
+      if(code.indexOf('EMAIL_EXISTS') >= 0){
+        say('Heslo už je nastavené — přihlaste se jím. Když ho neznáte, ať ho správce v seznamu uživatelů smaže („🔑 Smazat heslo“).');
+        return;
+      }
+      throw e;
+    }
+    // Přihlášení novým účtem — údaje zůstanou v zařízení (tablet se pak
+    // přihlásí sám, stejně jako dřív u e-mailu).
+    const user = await signInAppAccount(email, pass);
+    const now = Date.now();
+    await fbFs().collection(USERS_COLLECTION).doc(email).set({
+      email: email, login: nick, v: Math.max(1, parseInt(entry.v, 10) || 1),
+      name: name, initials: initialsOf(name),
+      role: role, active: true, passSetAt: now, profileCompletedAt: now
+    }, {merge: true});
+    profileSyncAt = 0;
+    await afterAuthUser(user);
+    const s = userSession();
+    if(passEl) passEl.value = '';
+    if(pass2El) pass2El.value = '';
+    if(nickEl) nickEl.value = '';
+    if(nameEl) nameEl.value = '';
+    hideNewPassBox();
+    if(role === 'admin'){ setAdminSession(true); unlockData(); }
+    else { updateAdminUI(); }
+    try{ renderUsersUI(); }catch(e){}
+    toast('Heslo vytvořeno — jste přihlášen(a) jako ' + ((s && s.name) || name) +
+      (s && s.initials ? ' (' + s.initials + ')' : '') + '. Výdeje se od teď podepisují těmito iniciálami.', 14000);
+  }catch(e){
+    say('Nepodařilo se: ' + friendlyAuthError(e));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = label; }
+  }
+}
+
+// Nabídka zaměstnanců do „První přihlášení“ — ze seznamu v tomto zařízení.
+function fillNewPassEmployees(){
+  const sel = document.getElementById('npEmployee');
+  if(!sel) return;
+  const list = (db.employees || []).slice().sort(function(a, b){
+    return String(a.name || '').localeCompare(String(b.name || ''), 'cs', {sensitivity: 'base'});
+  });
+  let html = '<option value="">— vyberte se v seznamu —</option>';
+  list.forEach(function(e){
+    html += '<option value="' + escapeHtml(e.id) + '">' + escapeHtml(e.name || '') +
+      (e.personalNumber ? ' (' + escapeHtml(e.personalNumber) + ')' : '') + '</option>';
+  });
+  html += '<option value="__other">— nejsem v seznamu (napíšu jméno) —</option>';
+  sel.innerHTML = html;
+}
+
+function showNewPassBox(){
+  fillNewPassEmployees();
+  const box = document.getElementById('dataNewPassBox');
+  if(box) box.classList.remove('hidden');
+  const nickEl = document.getElementById('npNick');
+  const typed = ((document.getElementById('dataUser') || {}).value || '').trim();
+  if(nickEl && !nickEl.value && typed && !looksLikeEmail(typed)) nickEl.value = normNick(typed);
+  setTimeout(function(){ if(nickEl) nickEl.focus(); }, 60);
+}
+
+function hideNewPassBox(){
+  const box = document.getElementById('dataNewPassBox');
+  if(box) box.classList.add('hidden');
+  const errEl = document.getElementById('npError');
+  if(errEl) errEl.textContent = '';
 }
 
 // Oprava jména a iniciál u existujícího profilu (správce) — hodí se, když se
@@ -7159,7 +7390,8 @@ async function editAppUserName(email){
   if(!mail) return;
   const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
   const cur = (u && u.name) || '';
-  const answer = prompt('Jméno a příjmení pro ' + mail + ':\n\nZ něj se udělají iniciály do kolonky „Vydal“ (Lukáš Dvořák → L.D.).', cur);
+  const label = (u && u.login) ? u.login : (nickFromEmail(mail) || mail);
+  const answer = prompt('Jméno a příjmení pro ' + label + ':\n\nZ něj se udělají iniciály do kolonky „Vydal“ (Lukáš Dvořák → L.D.).', cur);
   if(answer === null) return;
   const name = String(answer || '').trim().replace(/\s+/g, ' ');
   if(name.length < 3 || name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
@@ -7168,6 +7400,14 @@ async function editAppUserName(email){
     await fbFs().collection(USERS_COLLECTION).doc(mail).set({
       name: name, initials: initialsOf(name), nameUpdatedAt: Date.now()
     }, {merge: true});
+    // Jméno drží i záznam o přihlašovacím jménu (ukazuje se v seznamu).
+    if(u && u.login){
+      try{
+        await fbFs().collection(LOGINS_COLLECTION).doc(normNick(u.login)).set({
+          name: name, updatedAt: Date.now()
+        }, {merge: true});
+      }catch(e){}
+    }
     await loadUsersFromCloud(false);
     const s = userSession();
     if(s && userKeyFor(s.email) === mail){
@@ -7182,19 +7422,30 @@ async function editAppUserName(email){
   }
 }
 
-// Odebrání přístupu = smazání profilu. Účet ve Firebase Authentication zůstává
-// (bez profilu se ale k datům nedostane); úplné smazání jde jen v konzoli.
+// Odebrání přístupu: profil se smaže (dotyčný se k datům nedostane) a v
+// oopp_logins se zvedne číslo verze + active=false, takže přestane platit
+// i jeho dosavadní účet. Když ho správce znovu přidá stejným nickem, zapne se.
 async function removeAppUser(email){
   if(!isAdmin()){ toast('Odebírat přístup může jen správce.'); return; }
   const mail = userKeyFor(email);
   if(!mail) return;
   const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
-  const who = (u && u.name) ? (u.name + ' (' + mail + ')') : mail;
-  if(!confirm('Odebrat přístup uživateli ' + who + '?\n\nPřestane se dostat k datům v cloudu. Účet ve Firebase zůstane — úplně ho smažete v konzoli (Authentication → Users).\nPokud si přístup bude chtít vrátit, stačí ho znovu přidat.')) return;
+  const nick = normNick((u && u.login) || nickFromEmail(mail));
+  const who = (u && u.name) ? (u.name + ' (' + (nick || mail) + ')') : (nick || mail);
+  if(!confirm('Odebrat přístup uživateli ' + who + '?\n\nPřestane se dostat k datům v cloudu a jeho heslo přestane platit. Když mu ho budete chtít vrátit, přidejte ho znovu stejným přihlašovacím jménem — nastaví si nové heslo.')) return;
   try{
+    // Číslo verze se zvedne vždy, když nick má vnitřní adresu — i staršímu
+    // profilu bez pole „login“ tím přestane platit dosavadní heslo.
+    const internalNick = mail.slice(-(NICK_DOMAIN.length + 1)) === '@' + NICK_DOMAIN;
+    if(nick && ((u && u.login) || internalNick)){
+      const v = Math.max(1, parseInt(u && u.v, 10) || 1) + 1;
+      await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
+        nick: nick, v: v, active: false, removedAt: Date.now(), updatedAt: Date.now()
+      }, {merge: true});
+    }
     await fbFs().collection(USERS_COLLECTION).doc(mail).delete();
     const s = userSession();
-    if(s && userKeyFor(s.email) === mail){ clearUserSession(); await fbSignOutQuiet(); }
+    if(s && userKeyFor(s.email) === mail){ clearUserSession(); await fbSignOutQuiet(); showDataLogin(); }
     await loadUsersFromCloud(false);
     toast('Přístup odebrán.');
   }catch(e){
@@ -7206,13 +7457,13 @@ async function removeAppUser(email){
 // tehdy, když v cloudu ještě žádný profil není (jinak práva přiděluje správce).
 async function createSelfAdminProfile(){
   const s = userSession();
-  if(!s || !s.email){ toast('Nejdřív se přihlaste e-mailem a heslem.'); return; }
+  if(!s || !s.email){ toast('Nejdřív se přihlaste přihlašovacím jménem a heslem.'); return; }
   const known = usersCacheGet();
   if(known.length && !isAdmin()){ toast('Profily uživatelů už existují — práva správce přidělí stávající správce.'); return; }
   const name = String(prompt('Vaše jméno a příjmení (z něj budou iniciály v kolonce Vydal):', s.name || '') || '').trim().replace(/\s+/g, ' ');
   if(!name) return;
   if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
-  if(!confirm('Založit profil správce pro ' + s.email + '?')) return;
+  if(!confirm('Založit profil správce pro účet „' + nickFromEmail(s.email) + '“?')) return;
   try{
     await fbEnsureAuth();
     await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(s.email)).set({
@@ -7234,7 +7485,7 @@ async function createSelfAdminProfile(){
 function copyCurrentUserId(){
   const s = userSession();
   if(!s || !s.email){ toast('Není přihlášený žádný účet.'); return; }
-  copyTextToClipboard(userKeyFor(s.email), 'E-mail účtu (ID profilu) zkopírován.');
+  copyTextToClipboard(userKeyFor(s.email), 'Interní ID profilu zkopírováno (jen pro Firestore).');
 }
 
 // Vykreslení karty „👤 Uživatelé a přístup“: kdo je přihlášený, seznam profilů
@@ -7258,24 +7509,17 @@ function renderUsersUI(){
   }
   if(hintEl){
     hintEl.innerHTML = 'Hesla jsou jen ve Firebase — aplikace je nikdy nezobrazí ani neuloží. ' +
-      'Když heslo zapomenete, pošlete odkaz tlačítkem „✉ Nové heslo“; uživatel si tam zvolí nové sám.';
+      'Když heslo zapomenete, správce ho tlačítkem „🔑 Smazat heslo“ vyhodí a vy si stejným přihlašovacím jménem zvolíte nové. ' +
+      'Nic se neposílá e-mailem.';
   }
-  // Nápověda pod formulářem „Přidat uživatele“ — včetně toho, co dělat, když
-  // e-mail nedorazí (nejčastější dotaz: „pozvánka nepřišla“).
+  // Nápověda pod formulářem „Přidat uživatele“ — jak to celé funguje.
   const inviteHintEl = document.getElementById('usersInviteHint');
   if(inviteHintEl){
-    const proj = (cloudConfig().url || CLOUD_PRESET.url || 'projekt');
-    const consoleUrl = 'https://console.firebase.google.com/project/' + encodeURIComponent(proj) + '/authentication/users';
     inviteHintEl.innerHTML =
-      'Na zadaný e-mail odejde pozvánka s odkazem na formulář, kde si uživatel sám zvolí heslo a doplní, ' +
-      'co jste nevyplnili (jméno, telefon). Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — ' +
-      'i když heslo zapomene.<br>Odkaz otevírá stránku <strong>pozvanka.html</strong> (jednorázově se nastaví ' +
-      've Firebase: Authentication → Templates → ✏ → „customize action URL“).' +
-      '<br><strong>E-mail nedorazil?</strong> Odesílatel není firemní adresa, ale <em>noreply@' + escapeHtml(proj) +
-      '.firebaseapp.com</em> — mrkněte proto do <strong>spamu / hromadné pošty</strong>. Pak zkontrolujte překlep ' +
-      'v e-mailu a jestli účet existuje v <a href="' + consoleUrl + '" target="_blank" rel="noopener">Firebase → ' +
-      'Authentication → Users</a>. Firemní pošta občas zprávy z <em>firebaseapp.com</em> zahazuje — tehdy pomůže ' +
-      'zadat <strong>osobní adresu (Gmail)</strong>: přihlašovací e-mail nemusí být firemní. Odkaz platí 1 hodinu.';
+      'Zadáte <strong>přihlašovací jméno</strong> (třeba <em>novak</em>) a dotyčný se jím přihlásí v kartě ' +
+      '„🔒 Přihlášení k datům“ tlačítkem <strong>🆕 První přihlášení — vytvořit heslo</strong>: vybere se ' +
+      'v seznamu zaměstnanců a zvolí si heslo. To heslo nikdo jiný nezná — ani vy; v seznamu je proto jen ' +
+      'stav <em>heslo nastaveno / nenastaveno</em>.';
   }
   const users = usersCacheGet();
   // Box v přihlašovací kartě: přihlášený účet bez profilu si může založit první
@@ -7283,8 +7527,8 @@ function renderUsersUI(){
   const loginBox = document.getElementById('loginProfileBox');
   if(loginBox){
     if(s && s.email && s.missing && !users.length){
-      loginBox.innerHTML = '<div class="sig-hint">Přihlášený účet <strong>' + escapeHtml(s.email) +
-        '</strong> zatím nemá profil, takže nemá práva správce a výdeje by se podepisovaly e-mailem.</div>' +
+      loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(nickFromEmail(s.email)) +
+        '</strong> je přihlášený, ale zatím nemá profil — nemá práva správce a výdej by se nepodepsal iniciály.</div>' +
         '<div class="row" style="margin-top:8px"><button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button></div>';
       loginBox.classList.remove('hidden');
     } else {
@@ -7297,13 +7541,13 @@ function renderUsersUI(){
     let html = '';
     if(s && (s.name || s.email)){
       html += '<div class="user-me">' +
-        '<div><strong>Přihlášen:</strong> ' + escapeHtml(s.name || s.email) +
+        '<div><strong>Přihlášen:</strong> ' + escapeHtml(s.name || nickFromEmail(s.email)) +
           (s.initials ? ' <span class="role-chip">' + escapeHtml(s.initials) + '</span>' : '') +
           (s.role === 'admin' ? ' <span class="role-chip admin">správce</span>' : ' <span class="role-chip">uživatel</span>') +
           (s.missing ? ' <span class="role-chip off">bez profilu</span>' : '') + '</div>' +
-        '<div class="sig-hint">' + escapeHtml(s.email) + '</div>' +
+        '<div class="sig-hint">' + escapeHtml(nickFromEmail(s.email)) + '</div>' +
         (s.missing ? '<div class="sig-hint">Účet je přihlášený, ale nemá profil v kolekci <strong>oopp_users</strong> — ' +
-          'výdeje se zatím podepisují e-mailem.</div>' : '') +
+          'k datům se nedostane a výdej neuloží. Požádejte správce o přidání.</div>' : '') +
         (showBootstrap ? '<div class="row" style="margin-top:8px">' +
           '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' +
           '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
@@ -7311,8 +7555,8 @@ function renderUsersUI(){
         '</div>';
     } else {
       html += '<div class="user-me"><strong>Nepřihlášeno.</strong> ' +
-        '<span class="sig-hint">Přihlaste se e-mailem a heslem v kartě „🔒 Přihlášení k datům“ — ' +
-        'jméno a iniciály se pak u výdejů vyplní samy.</span></div>';
+        '<span class="sig-hint">Přihlaste se přihlašovacím jménem a heslem v kartě „🔒 Přihlášení k datům“ — ' +
+        'jméno a iniciály se pak u výdejů vyplní samy. Bez přihlášení se výdej neuloží.</span></div>';
     }
     curEl.innerHTML = html;
   }
@@ -7325,24 +7569,27 @@ function renderUsersUI(){
       const email = userKeyFor(u.email || u.id);
       const mine = !!(s && userKeyFor(s.email) === email);
       const role = u.role === 'admin' ? 'admin' : 'user';
+      const nick = u.login ? String(u.login) : nickFromEmail(email);
+      const hasPass = !!u.passSetAt;
       rows += '<tr>' +
         '<td><span class="user-name">' + escapeHtml(u.name || '—') + '</span>' +
           (u.initials ? '<div class="sig-hint">' + escapeHtml(u.initials) + '</div>' : '') +
-          (u.phone ? '<div class="sig-hint">☎ ' + escapeHtml(u.phone) + '</div>' : '') +
-          (u.lastMailAt ? '<div class="sig-hint">✉ ' + escapeHtml(mailSentLabel(u.lastMailAt)) +
-            (u.lastMailOk === false ? ' — e-mail neodešel' : '') + '</div>' : '') + '</td>' +
-        '<td>' + escapeHtml(email) + (mine ? ' <span class="role-chip">já</span>' : '') + '</td>' +
+          (u.phone ? '<div class="sig-hint">☎ ' + escapeHtml(u.phone) + '</div>' : '') + '</td>' +
+        '<td><strong>' + escapeHtml(nick) + '</strong>' + (mine ? ' <span class="role-chip">já</span>' : '') + '</td>' +
+        '<td>' + (hasPass
+          ? '<span class="role-chip">nastaveno</span>'
+          : '<span class="role-chip off">nenastaveno</span>') + '</td>' +
         '<td><span class="role-chip ' + role + '">' + (role === 'admin' ? 'správce' : 'uživatel') + '</span>' +
           (u.active === false ? ' <span class="role-chip off">blokováno</span>' : '') + '</td>' +
         '<td><div class="row" style="gap:6px">' +
           '<button class="btn outline small" data-user-name="' + escapeHtml(email) + '" title="Změnit jméno a iniciály do kolonky Vydal">✏ Jméno</button>' +
-          '<button class="btn outline small" data-user-reset="' + escapeHtml(email) + '" title="Pošle e-mail s odkazem na nové heslo">✉ Nové heslo</button>' +
+          '<button class="btn outline small" data-user-clear="' + escapeHtml(email) + '" title="Smaže heslo — dotyčný si stejným jménem zvolí nové">🔑 Smazat heslo</button>' +
           (mine ? '' : '<button class="btn danger small" data-user-del="' + escapeHtml(email) + '" title="Odebere přístup k datům">🚫 Odebrat</button>') +
         '</div></td></tr>';
     });
-    listEl.innerHTML = '<table class="user-table"><thead><tr><th>Jméno</th><th>E-mail</th><th>Práva</th><th></th></tr></thead><tbody>' +
+    listEl.innerHTML = '<table class="user-table"><thead><tr><th>Jméno</th><th>Přihlašovací jméno</th><th>Heslo</th><th>Práva</th><th></th></tr></thead><tbody>' +
       rows + '</tbody></table>' +
-      '<div class="sig-hint">Odebraný uživatel se k datům nedostane. Účet ve Firebase Authentication smažete v konzoli (Users → ⋮ → Delete).</div>';
+      '<div class="sig-hint">Heslo aplikace nikde nezobrazí ani neuloží — správce ho umí jen smazat. Kdo není v seznamu (nebo má odebraný přístup), k datům se nedostane.</div>';
   }
   // Seznam se sám dotáhne z cloudu, ale nejvýš jednou za 5 minut — a jen když
   // je Firebase vůbec nastavené (jinak by se volání zacyklilo).
@@ -7976,7 +8223,7 @@ function cloudSchedulePush(){
 }
 
 const CLOUD_HINTS = {
-  firebase: '<strong>Tady je projekt už přednastavený</strong> (<em>swissformoopp</em> — ID projektu i Web API klíč jsou v aplikaci), takže stačí zadat <strong>email a heslo</strong> a kliknout <strong>🔑 Přihlásit</strong>. Nový Firebase projekt: <strong>Security → Authentication → Get started → Email/Password → Enable</strong> a uživatel (<em>Users → Add user</em>), <strong>Databases &amp; Storage → Firestore → Create database</strong> (Production mode, <em>europe-west3</em>) a pravidla z <strong>FIREBASE.md</strong>. <strong>Project ID</strong> a <strong>Web API klíč</strong> ukáže <strong>+ Add app → Web</strong> (nebo ⚙ Settings → Project settings → General). ID dokumentu nechte <em>main</em>. Heslo se do souboru index.html nedává — web je veřejný.',
+  firebase: '<strong>Tady je projekt už přednastavený</strong> (<em>swissformoopp</em> — ID projektu i Web API klíč jsou v aplikaci), takže stačí zadat <strong>přihlašovací jméno (nick) a heslo</strong> a kliknout <strong>🔑 Přihlásit</strong>. Nicky přidává správce v kartě „👤 Uživatelé a přístup“; účet v Firebase (Authentication → Users) vzniká sám při prvním přihlášení. Nový Firebase projekt: <strong>Security → Authentication → Get started → Email/Password → Enable</strong> a první uživatel (<em>Users → Add user</em>), <strong>Databases &amp; Storage → Firestore → Create database</strong> (Production mode, <em>europe-west3</em>) a pravidla z <strong>FIREBASE.md</strong> (včetně kolekce <em>oopp_logins</em>). <strong>Project ID</strong> a <strong>Web API klíč</strong> ukáže <strong>+ Add app → Web</strong> (nebo ⚙ Settings → Project settings → General). ID dokumentu nechte <em>main</em>. Heslo se do souboru index.html nedává — web je veřejný.',
   supabase: 'V <strong>Supabase</strong> (zdarma) spusťte SQL ze souboru <strong>CLOUD.md</strong> — vytvoří tabulku <em>oopp</em> (zaměstnanci, předměty, funkce, výdeje) a <em>oopp_sig</em> (obrázky podpisů). Do adresy dejte <em>https://vaše-id.supabase.co</em>, do klíče „anon public“ klíč z <em>Project Settings → API</em>. ID dokumentu nechte <em>main</em>.',
   jsonbin: 'Na <strong>jsonbin.io</strong> si založte účet (zdarma), v sekci <em>API Keys</em> zkopírujte <em>X-Master-Key</em> do pole „Klíč“ a z adresy nového záznamu (…/b/6f8a…) opište část za lomítkem do pole „ID dokumentu“. Adresa se doplní sama. U JSONBin se podpisy vezou uvnitř dokumentu (větší přenosy).',
   custom: 'Adresa musí umět <strong>GET</strong> (vrátí uložený JSON) a <strong>PUT</strong> (uloží JSON). Pokud vyžaduje token, vložte ho do klíče — posílá se jako <em>Authorization: Bearer</em>. Server musí povolit CORS (<em>Access-Control-Allow-Origin</em>). Podpisy jsou uvnitř dokumentu.'
@@ -8027,7 +8274,7 @@ async function cloudTestConnection(){
   if(cfg.provider === 'firebase'){
     if(!cfg.url) missing.push('Project ID');
     if(!cfg.key) missing.push('Web API klíč');
-    if(!cfg.firebaseEmail) missing.push('přihlašovací email');
+    if(!cfg.firebaseEmail) missing.push('přihlašovací jméno');
     if(!cfg.firebasePass) missing.push('heslo');
   }
   if(missing.length){
@@ -8041,7 +8288,7 @@ async function cloudTestConnection(){
     let who = '';
     if(cfg.provider === 'firebase'){
       const user = await fbEnsureAuth();
-      who = ' — přihlášen jako ' + (user && user.email ? user.email : 'uživatel');
+      who = ' — přihlášen jako ' + (user && user.email ? nickFromEmail(user.email) : 'uživatel');
     }
     const remote = cloudUnwrap(cfg, await cloudHttp(cfg, 'GET'));
     const head = '✔ ' + where + ' funguje' + who + '. ';
@@ -8092,7 +8339,7 @@ function renderCloudUI(){
   document.getElementById('cloudKey').value = cfg.key || '';
   document.getElementById('cloudDoc').value = cfg.docId || '';
   const emailEl = document.getElementById('cloudEmail');
-  if(emailEl) emailEl.value = cfg.firebaseEmail || '';
+  if(emailEl) emailEl.value = cfg.firebaseEmail ? nickFromEmail(cfg.firebaseEmail) : '';
   const passEl = document.getElementById('cloudPass');
   if(passEl) passEl.value = cfg.firebasePass || '';
   updateCloudProviderUI();
@@ -8100,7 +8347,7 @@ function renderCloudUI(){
   if(!cloudStatusMsg){
     if(!cloudReady(cfg)){
       if(cloudPresetActive(cfg) && cfg.provider === 'firebase'){
-        cloudSetStatus('Cloud je v aplikaci už přednastavený (projekt ' + cfg.url + ') — stačí zadat email a heslo a kliknout na „🔑 Přihlásit“. Data se pak načtou sama.', 'warn');
+        cloudSetStatus('Cloud je v aplikaci už přednastavený (projekt ' + cfg.url + ') — stačí zadat přihlašovací jméno a heslo a kliknout na „🔑 Přihlásit“. Data se pak načtou sama.', 'warn');
       } else {
         cloudSetStatus('Cloud není nastavený — data se ukládají jen do tohoto zařízení.', 'warn');
       }
@@ -8142,20 +8389,27 @@ function updateCloudProviderUI(){
   if(freeBtn) freeBtn.classList.toggle('hidden', !cloudSeparatesSignatures({provider: provider}));
 }
 
-function cloudSaveConfig(){
+async function cloudSaveConfig(){
   const cfg = cloudConfig();
   const provider = document.getElementById('cloudProvider').value;
   const url = document.getElementById('cloudUrl').value.trim();
   const key = document.getElementById('cloudKey').value.trim();
   const docId = document.getElementById('cloudDoc').value.trim();
-  const email = (document.getElementById('cloudEmail') || {}).value || '';
+  const typed = ((document.getElementById('cloudEmail') || {}).value || '').trim();
   const pass = (document.getElementById('cloudPass') || {}).value || '';
+  // Do zařízení se ukládá adresa, kterou Firebase opravdu zná — když člověk
+  // napíše přihlašovací jméno (nick), přeloží se přes oopp_logins.
+  let email = typed;
+  if(typed && !looksLikeEmail(typed)){
+    try{ email = await resolveAccountEmail(typed); }
+    catch(e){ toast(e.message, 9000); cloudSetStatus(e.message, 'err'); return; }
+  }
   const changed = (provider !== cfg.provider) || (url !== (cfg.url || '')) || (docId !== (cfg.docId || ''));
   cfg.provider = provider;
   cfg.url = url;
   cfg.key = key;
   cfg.docId = docId;
-  cfg.firebaseEmail = email.trim();
+  cfg.firebaseEmail = email;
   cfg.firebasePass = pass;
   cfg.auto = true; // synchronizace je vždy automatická (bez zaškrtávání)
   if(changed){ cfg.baseHash = ''; cfg.lastRev = 0; cfg.lastSyncAt = 0; cfg.lastSigAt = 0; fbReset(); }
@@ -8166,7 +8420,7 @@ function cloudSaveConfig(){
   cloudSetStatus(ready
     ? 'Nastavení uloženo. Klikněte na „Přihlásit“ a pak na „Synchronizovat“.'
     : (provider === 'firebase'
-        ? 'Nastavení uloženo, ale chybí Project ID / Web API klíč / email / heslo.'
+        ? 'Nastavení uloženo, ale chybí Project ID / Web API klíč / přihlašovací jméno / heslo.'
         : 'Nastavení uloženo, ale chybí některý údaj (klíč / adresa / ID dokumentu).'),
     ready ? 'ok' : 'warn');
 }
@@ -8191,7 +8445,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v64';
+const APP_VERSION = 'v67';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -8957,6 +9211,9 @@ document.addEventListener('DOMContentLoaded', function(){
   setInterval(function(){ cloudAutoTick(true); }, 2 * 60 * 1000);
 
   document.getElementById('btnDataLogin').addEventListener('click', tryDataLogin);
+  document.getElementById('dataUser').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('dataPass').focus(); }
+  });
   document.getElementById('btnLogout').addEventListener('click', logoutAdmin);
   document.getElementById('dataPass').addEventListener('keydown', function(e){
     if(e.key === 'Enter') tryDataLogin();
@@ -8973,9 +9230,42 @@ document.addEventListener('DOMContentLoaded', function(){
   if(btnReloadUsers) btnReloadUsers.addEventListener('click', function(){ loadUsersFromCloud(true); });
   const btnSetIssuer = document.getElementById('btnSetIssuer');
   if(btnSetIssuer) btnSetIssuer.addEventListener('click', function(){ if(promptIssuer()) refreshIssuerUI(); });
-  const newUserPass = document.getElementById('newUserEmail');
-  if(newUserPass) newUserPass.addEventListener('keydown', function(e){
+  const newUserNickEl = document.getElementById('newUserNick');
+  if(newUserNickEl) newUserNickEl.addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); addAppUser(); }
+  });
+  const newUserNameEl = document.getElementById('newUserName');
+  if(newUserNameEl) newUserNameEl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addAppUser(); }
+  });
+  // První přihlášení — člověk si sám zvolí heslo (e-mail se nikam neposílá).
+  const btnNewPass = document.getElementById('btnDataNewPass');
+  if(btnNewPass) btnNewPass.addEventListener('click', function(){
+    const box = document.getElementById('dataNewPassBox');
+    if(box && !box.classList.contains('hidden')){ hideNewPassBox(); return; }
+    showNewPassBox();
+  });
+  const btnCreatePass = document.getElementById('btnCreatePass');
+  if(btnCreatePass) btnCreatePass.addEventListener('click', createOwnPassword);
+  const btnCancelNewPass = document.getElementById('btnCancelNewPass');
+  if(btnCancelNewPass) btnCancelNewPass.addEventListener('click', hideNewPassBox);
+  const npNickEl = document.getElementById('npNick');
+  if(npNickEl) npNickEl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); createOwnPassword(); }
+  });
+  const npPass2El = document.getElementById('npPass2');
+  if(npPass2El) npPass2El.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); createOwnPassword(); }
+  });
+  // „Nejsem v seznamu“ → ruční zadání jména a příjmení.
+  const npEmpEl = document.getElementById('npEmployee');
+  if(npEmpEl) npEmpEl.addEventListener('change', function(){
+    const other = npEmpEl.value === '__other';
+    const npNameEl = document.getElementById('npName');
+    if(npNameEl){
+      npNameEl.classList.toggle('hidden', !other);
+      if(other) setTimeout(function(){ npNameEl.focus(); }, 30);
+    }
   });
   refreshIssuerUI();
   renderUsersUI();
@@ -9024,8 +9314,10 @@ document.addEventListener('DOMContentLoaded', function(){
     const delOrderBtn = e.target.closest('button[data-delorder]');
     if(delOrderBtn){ deleteOrder(delOrderBtn.dataset.delorder); return; }
     // Uživatelé (Data → 👤 Uživatelé a přístup): tlačítka jsou v překreslovaném seznamu
+    const userClearBtn = e.target.closest('button[data-user-clear]');
+    if(userClearBtn){ clearAppUserPassword(userClearBtn.dataset.userClear); return; }
     const userResetBtn = e.target.closest('button[data-user-reset]');
-    if(userResetBtn){ resetAppUserPassword(userResetBtn.dataset.userReset); return; }
+    if(userResetBtn){ clearAppUserPassword(userResetBtn.dataset.userReset); return; }
     const userNameBtn = e.target.closest('button[data-user-name]');
     if(userNameBtn){ editAppUserName(userNameBtn.dataset.userName); return; }
     const userDelBtn = e.target.closest('button[data-user-del]');
