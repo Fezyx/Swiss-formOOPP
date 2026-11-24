@@ -136,6 +136,37 @@ kliknout „✉ Nové heslo“.
 > stránku Firebase (bez loga a bez polí pro jméno/telefon). Profil má
 > v takovém případě už vyplněný správce.
 
+### Když e-mail s pozvánkou nedorazí
+
+Nejčastější příčina není chyba v aplikaci, ale doručení. Postupujte takto:
+
+1. **Zkontrolujte spam / hromadnou poštu.** Odesílatelem není firemní adresa,
+   ale `noreply@<project-id>.firebaseapp.com` (u tohoto projektu tedy
+   `noreply@swissformoopp.firebaseapp.com`). Gmail i Seznam takové zprávy
+   často zařadí mimo doručenou poštu.
+2. **Ověřte adresu.** Data → 👤 Uživatelé a přístup — v seznamu je e-mail,
+   na který se posílalo; překlep v adrese znamená, že e-mail odešel jinam.
+   Nová pozvánka jde poslat tlačítkem **✉ Nové heslo**; v seznamu je u jména
+   i **✉ datum a čas posledního odeslání** (a poznámka „e-mail neodešel“,
+   když to Firebase odmítl).
+3. **Ověřte, že účet existuje.** Odkaz z bodu 2 v nápovědě otevírá
+   **Firebase → Authentication → Users**. Když tam uživatel není, účet se
+   nezaložil — podívejte se, zda je v konzoli zapnuté **Email/Password**.
+4. **Zkuste jinou adresu.** Firemní pošta (hlavně Seznam/Centrum) umí zprávy
+   z `firebaseapp.com` zahazovat. Přihlašovací e-mail **nemusí být firemní** —
+   do profilu můžete zadat osobní adresu (Gmail), na kterou pozvánka dojde;
+   změnit ji jde smazáním profilu (🚫 Odebrat) a přidáním znovu.
+5. **Denní limit.** Plán Spark pošle 150 e-mailů denně (limit Firebase).
+   Po vyčerpání aplikace napíše chybu a e-maily začnou znovu odcházet
+   druhý den, nebo je potřeba zapnout Blaze.
+6. **Trvale spolehlivé doručení** vyžaduje vlastní odesílací server (SMTP)
+   nebo vlastní doménu v Firebase — obojí je jen na plánu **Blaze**
+   (Authentication → Templates → SMTP / custom domain). Pro pár pozvánek
+   ročně to není potřeba.
+
+> Odkaz v e-mailu platí **1 hodinu** a jen jednou. Po vypršení pošlete
+> nový tlačítkem **✉ Nové heslo** — starý odkaz už nefunguje.
+
 ## 3. Údaje do aplikace
 
 > **Projekt `swissformoopp` je v aplikaci už přednastavený.** `Project ID`

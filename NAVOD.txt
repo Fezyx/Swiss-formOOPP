@@ -51,6 +51,14 @@ Uživatelé a hesla (vlastní účet pro každého)
   (návod FIREBASE.md, kapitola 2.1). Bez toho pozvánka funguje taky.
 - Jméno a iniciály u hotového účtu opravíte v seznamu uživatelů tlačítkem
   „✏ Jméno“; změna se propíše do dalších výdejů, staré si nechávají původní.
+- E-mail s pozvánkou nedorazil? U jména je čas posledního odeslání (✉ 24. 11.
+  14:05). Když tam je, Firebase e-mail přijal — koukněte do spamu (odesílatel
+  je noreply@swissformoopp.firebaseapp.com), zkontrolujte překlep v adrese
+  a zkuste osobní adresu (Gmail); firemní pošta zprávy z firebaseapp.com
+  občas zahazuje. Odkaz platí 1 hodinu, nový pošlete tlačítkem „✉ Nové heslo“.
+  Když je u jména „e-mail neodešel“, odeslání selhalo (často denní limit
+  150 e-mailů zdarma) — zkuste to později. Podrobný postup: FIREBASE.md,
+  kapitola 2.1.
 - „🚫 Odebrat“ přístup odebere (účet ve Firebase zůstane; úplně se maže
   v konzoli Firebase). Podrobný návod: soubor UZIVATELE.md.
 - Kolonka „Vydal“ v tabulce výdejů: po přihlášení se bere z účtu (jméno

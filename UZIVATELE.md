@@ -42,6 +42,22 @@ neukládá ani nezobrazuje, a hned pošle odkaz pro zvolení skutečného hesla.
 Kdyby e-mail nedošel, účet už existuje — pošlete odkaz znovu tlačítkem
 „✉ Nové heslo“.
 
+E-mail nedorazil? V seznamu uživatelů je u jména čas posledního odeslání
+(„✉ 24. 11. 14:05“) — když tam je, Firebase e-mail přijal a problém je
+v doručení:
+- podívejte se do SPAMU / hromadné pošty; odesílatel je
+  noreply@swissformoopp.firebaseapp.com (ne firemní adresa),
+- zkontrolujte překlep v e-mailu (v seznamu je vidět, kam se posílalo),
+- firemní pošta (Seznam, Centrum) občas zprávy z firebaseapp.com zahazuje —
+  zadejte osobní adresu (Gmail), přihlašovací e-mail nemusí být firemní,
+- odkaz platí 1 hodinu; po vypršení pošlete nový tlačítkem „✉ Nové heslo“,
+- účet musí existovat ve Firebase → Authentication → Users (odkaz je
+  v nápovědě pod formulářem „Přidat uživatele“).
+
+Když je u jména „e-mail neodešel“, aplikace se pokusila odeslat, ale Firebase
+to odmítl (nejčastěji denní limit 150 e-mailů na plánu Spark). Zkuste to
+později nebo pošlete odkaz znovu.
+
 Oprava jména: u hotového profilu klikněte v seznamu na „✏ Jméno“ a napište
 správné jméno — iniciály se přepočítají. Už vydané výdeje si nechávají
 iniciály, které byly platné v době výdeje (nic se nepřepisuje zpětně).

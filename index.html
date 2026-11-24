@@ -739,7 +739,7 @@ tr.clickable:hover{background:#eef3fa}
                   <button class="btn" id="btnAddUser">＋ Přidat uživatele</button>
                   <button class="btn outline" id="btnReloadUsers" title="Načte profily z Firestore">⟳ Načíst ze cloudu</button>
                 </div>
-                <div class="sig-hint" style="margin-top:8px">Na zadaný e-mail odejde pozvánka s odkazem na formulář, kde si uživatel sám zvolí heslo a doplní, co jste nevyplnili (jméno, telefon). Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — i když heslo zapomene.<br>Odkaz otevírá stránku <strong>pozvanka.html</strong> (jednorázově se nastaví ve Firebase: Authentication → Templates → ✏ → „customize action URL“).</div>
+                <div class="sig-hint" id="usersInviteHint" style="margin-top:8px"></div>
                 <div id="userList" style="margin-top:16px"></div>
               </div>
               <div id="usersGuestHint" class="hidden sig-hint" style="margin-top:12px">Seznam uživatelů a přidávání nových vidí jen správce.</div>
@@ -6831,6 +6831,38 @@ function fbSendPasswordReset(email){
   return fbRest('accounts:sendOobCode', {requestType: 'PASSWORD_RESET', email: userKeyFor(email)});
 }
 
+// Do profilu poznamená, kdy naposledy odešel e-mail (pozvánka nebo odkaz na
+// nové heslo) a jestli ho Firebase přijal. Správce tak v seznamu vidí, že se
+// odeslání opravdu stalo — a nemusí hádat, jestli udělal chybu v aplikaci.
+// Když zápis neprojde (třeba stará pravidla), nic se neděje.
+async function markInviteMail(email, ok, err){
+  const mail = userKeyFor(email);
+  if(!mail) return;
+  try{
+    // update() (ne set) — když profil mezitím neexistuje (přístup odebraný),
+    // nic se nevytvoří a uživatel tím nezíská data zpět.
+    await fbFs().collection(USERS_COLLECTION).doc(mail).update({
+      lastMailAt: Date.now(), lastMailOk: !!ok, lastMailError: ok ? '' : String(err || '')
+    });
+  }catch(e){}
+}
+
+// „24. 11. 14:05“ — čas odeslání e-mailu do seznamu uživatelů.
+function mailSentLabel(ts){
+  const n = Number(ts) || 0;
+  if(!n) return '';
+  const d = new Date(n);
+  const p = function(x){ return (x < 10 ? '0' : '') + x; };
+  return d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+// Co napsat, když e-mail nedorazí — odesílatelem není firemní adresa, ale
+// Firebase, a firemní pošta ho občas zahodí.
+function mailSenderNote(){
+  const proj = (cloudConfig().url || CLOUD_PRESET.url || 'projekt');
+  return 'odesílatel je noreply@' + proj + '.firebaseapp.com (ne firemní adresa) — mrkněte do spamu';
+}
+
 // Náhodné heslo k založení účtu. Nikde se neukládá ani nezobrazuje — slouží
 // jen k tomu, aby účet vzniknul; skutečné heslo si uživatel zvolí sám.
 function randomPassword(){
@@ -7079,11 +7111,20 @@ async function addAppUser(){
     };
     if(created && created.localId) doc.uid = created.localId;
     await fbFs().collection(USERS_COLLECTION).doc(email).set(doc, {merge: true});
-    await fbSendPasswordReset(email);
+    // E-mail se posílá zvlášť: když ho pošta nepustí, účet i profil už
+    // založené jsou. Správce to musí vidět, jinak hledá chybu marně.
+    let mailErr = '';
+    try{ await fbSendPasswordReset(email); }
+    catch(e){ mailErr = friendlyAuthError(e); }
+    await markInviteMail(email, !mailErr, mailErr);
     if(nameEl) nameEl.value = '';
     if(emailEl) emailEl.value = '';
     await loadUsersFromCloud(false);
-    toast('Pozvánka odeslána na ' + email + '. Heslo si uživatel zvolí sám/a (e-mail může chvíli trvat).', 8000);
+    if(mailErr){
+      toast('Účet i profil jsou založené, ale e-mail se nepodařilo odeslat (' + mailErr + '). Klikněte u uživatele na „✉ Nové heslo“ — ' + mailSenderNote() + '.', 16000);
+    } else {
+      toast('Pozvánka odeslána na ' + email + '. Když do pár minut nedorazí, ' + mailSenderNote() + ' a zkontrolujte, že adresa nemá překlep.', 16000);
+    }
   }catch(e){
     toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
   }finally{
@@ -7101,10 +7142,12 @@ async function resetAppUserPassword(email){
   if(!confirm('Poslat na ' + who + ' e-mail s odkazem na nové heslo?\n\nHeslo si dotyčný zvolí sám, vy ho neuvidíte.')) return;
   try{
     await fbSendPasswordReset(mail);
-    toast('E-mail s odkazem na nové heslo odeslán na ' + mail + '.', 8000);
+    await markInviteMail(mail, true, '');
+    toast('E-mail s odkazem na nové heslo odeslán na ' + mail + '. Když nedorazí, ' + mailSenderNote() + '.', 14000);
     await loadUsersFromCloud(false);
   }catch(e){
-    toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
+    await markInviteMail(mail, false, friendlyAuthError(e));
+    toast('E-mail se nepodařilo odeslat: ' + friendlyAuthError(e), 14000);
   }
 }
 
@@ -7217,6 +7260,23 @@ function renderUsersUI(){
     hintEl.innerHTML = 'Hesla jsou jen ve Firebase — aplikace je nikdy nezobrazí ani neuloží. ' +
       'Když heslo zapomenete, pošlete odkaz tlačítkem „✉ Nové heslo“; uživatel si tam zvolí nové sám.';
   }
+  // Nápověda pod formulářem „Přidat uživatele“ — včetně toho, co dělat, když
+  // e-mail nedorazí (nejčastější dotaz: „pozvánka nepřišla“).
+  const inviteHintEl = document.getElementById('usersInviteHint');
+  if(inviteHintEl){
+    const proj = (cloudConfig().url || CLOUD_PRESET.url || 'projekt');
+    const consoleUrl = 'https://console.firebase.google.com/project/' + encodeURIComponent(proj) + '/authentication/users';
+    inviteHintEl.innerHTML =
+      'Na zadaný e-mail odejde pozvánka s odkazem na formulář, kde si uživatel sám zvolí heslo a doplní, ' +
+      'co jste nevyplnili (jméno, telefon). Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — ' +
+      'i když heslo zapomene.<br>Odkaz otevírá stránku <strong>pozvanka.html</strong> (jednorázově se nastaví ' +
+      've Firebase: Authentication → Templates → ✏ → „customize action URL“).' +
+      '<br><strong>E-mail nedorazil?</strong> Odesílatel není firemní adresa, ale <em>noreply@' + escapeHtml(proj) +
+      '.firebaseapp.com</em> — mrkněte proto do <strong>spamu / hromadné pošty</strong>. Pak zkontrolujte překlep ' +
+      'v e-mailu a jestli účet existuje v <a href="' + consoleUrl + '" target="_blank" rel="noopener">Firebase → ' +
+      'Authentication → Users</a>. Firemní pošta občas zprávy z <em>firebaseapp.com</em> zahazuje — tehdy pomůže ' +
+      'zadat <strong>osobní adresu (Gmail)</strong>: přihlašovací e-mail nemusí být firemní. Odkaz platí 1 hodinu.';
+  }
   const users = usersCacheGet();
   // Box v přihlašovací kartě: přihlášený účet bez profilu si může založit první
   // profil správce (jen když v cloudu ještě žádný profil není).
@@ -7268,7 +7328,9 @@ function renderUsersUI(){
       rows += '<tr>' +
         '<td><span class="user-name">' + escapeHtml(u.name || '—') + '</span>' +
           (u.initials ? '<div class="sig-hint">' + escapeHtml(u.initials) + '</div>' : '') +
-          (u.phone ? '<div class="sig-hint">☎ ' + escapeHtml(u.phone) + '</div>' : '') + '</td>' +
+          (u.phone ? '<div class="sig-hint">☎ ' + escapeHtml(u.phone) + '</div>' : '') +
+          (u.lastMailAt ? '<div class="sig-hint">✉ ' + escapeHtml(mailSentLabel(u.lastMailAt)) +
+            (u.lastMailOk === false ? ' — e-mail neodešel' : '') + '</div>' : '') + '</td>' +
         '<td>' + escapeHtml(email) + (mine ? ' <span class="role-chip">já</span>' : '') + '</td>' +
         '<td><span class="role-chip ' + role + '">' + (role === 'admin' ? 'správce' : 'uživatel') + '</span>' +
           (u.active === false ? ' <span class="role-chip off">blokováno</span>' : '') + '</td>' +
@@ -8129,7 +8191,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v63';
+const APP_VERSION = 'v64';
 let installPromptEvent = null;
 
 function isAppStandalone(){
