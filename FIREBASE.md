@@ -25,8 +25,10 @@ Každé zařízení má navíc lokální kopii, takže se pracuje i bez internet
 2. **Přihlašování (Authentication)** — vlevo **Security → Authentication**,
    nebo napište do vyhledávání `Authentication`:
    - **Get started** → karta **Sign-in method** → **Email/Password** → **Enable** → **Save**.
-   - karta **Users** → **Add user** → firemní email + heslo
-     (jeden sdílený účet pro tablet i PC).
+   - karta **Users** → **Add user** → e-mail a heslo **prvního správce**
+     (další účty už přidává správce přímo v aplikaci — Data → 👤 Uživatelé
+     a přístup → ＋ Přidat uživatele; uživatel si heslo zvolí sám z e-mailu,
+     viz **UZIVATELE.md**).
 
 3. **Databáze (Firestore)** — vlevo **Databases & Storage → Firestore**
    (nebo vyhledat `Firestore`):
@@ -56,14 +58,49 @@ vložte:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    function signedIn()  { return request.auth != null && request.auth.token.email != null; }
+    function myEmail()   { return signedIn() ? request.auth.token.email.lower() : ''; }
+    function myPath()    { return /databases/$(database)/documents/oopp_users/$(myEmail()); }
+    function isAdmin()   { return signedIn() && exists(myPath()) && get(myPath()).data.role == 'admin'; }
+    function hasProfile(){ return signedIn() && exists(myPath()); }
+
+    // profily uživatelů: ID dokumentu = e-mail malými písmeny
+    match /oopp_users/{email} {
+      allow read: if signedIn();                              // jména a iniciály vidí přihlášení
+      allow create: if signedIn() && (isAdmin() || email == myEmail()); // správce přidá kohokoli, nováček sám sebe
+      allow update, delete: if isAdmin();                     // práva a odebírání jen správce
     }
+
+    // společná data evidence a obrázky podpisů — jen pozvaný uživatel s profilem
+    match /oopp/{docId}     { allow read, write: if hasProfile(); }
+    match /oopp_sig/{sigId} { allow read, write: if hasProfile(); }
+
+    // nic jiného v databázi
+    match /{document=**} { allow read, write: if false; }
   }
 }
 ```
 
-Toto pravidlo = **jen přihlášený uživatel** (Firebase Auth) smí data číst a psát.
+Co pravidla znamenají:
+
+| kolekce | kdo smí číst | kdo smí zapisovat |
+|---|---|---|
+| `oopp_users` | každý přihlášený (potřebuje jména do kolonky „Vydal“) | správce (nováček si při prvním přihlášení smí založit vlastní profil) |
+| `oopp` (data evidence) | jen uživatel, který má profil v `oopp_users` | totéž |
+| `oopp_sig` (podpisy) | jen uživatel s profilem | totéž |
+
+Z toho plyne: **kdo není v aplikaci přidaný, data nepřečte ani při platném
+hesle.** Přístup se odebírá smazáním profilu (Data → 👤 Uživatelé a přístup →
+🚫 Odebrat). Podrobný návod k účtům je v souboru **UZIVATELE.md**.
+
+> **Starší jednoduché pravidlo.** Kdybyste si práva rozbili, vraťte se k
+> `allow read, write: if request.auth != null;` — aplikace pak funguje jako
+> dřív (každý přihlášený účet vidí všechno), jen bez rozlišení správce/uživatel.
+
+> První profil správce: přihlaste se e-mailem a heslem, v záložce Data otevřete
+> kartu „☁ Cloud“ nebo „👤 Uživatelé“ a klikněte na **✚ Založit profil správce**.
+> Tlačítko se ukáže jen tehdy, když v cloudu ještě žádný profil není.
 
 ## 3. Údaje do aplikace
 
@@ -109,7 +146,7 @@ Aplikace může běžet z veřejné adresy — aktualizace = `git push`.
 
 1. Vytvořte soukromý/veřejný repozitář na GitHubu (např. `oopp`).
 2. Nakopírujte do něj tyto soubory: `index.html`, `manifest.webmanifest`,
-   `sw.js`, `CLOUD.md`, `FIREBASE.md`, `NAVOD.txt`, `.nojekyll` a složku
+   `sw.js`, `CLOUD.md`, `FIREBASE.md`, `UZIVATELE.md`, `NAVOD.txt`, `.nojekyll` a složku
    `dependencies/`.
    **Ne** `OOPP_data.json`, `OOPP.exe`, `*.dll` (soubor `.gitignore` už je vylučuje).
 3. Repo → **Settings → Pages → Source: Deploy from a branch → Branch: main, / (root)** → Save.

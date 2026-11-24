@@ -180,3 +180,12 @@ Když APK nechcete, jde aplikace i nadále „nainstalovat“ z Chrome:
   ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.
 Výhoda APK: vlastní ikona, tisk přes Android, exporty do Stahování,
 funguje i tam, kde je prohlížeč omezený správcem zařízení.
+
+
+9) iPhone / iPad (iOS)
+----------------------
+Na iOS se aplikace instaluje v Safari: Sdílet ⬆ → „Přidat na plochu“.
+Stejné chování jako APK (nativní obal s tiskem, ukládáním souborů a sdílením)
+vyžaduje samostatný iOS obal — podrobnosti, most window.OOPPiOS, ceny
+a rizika schválení v App Store popisuje soubor IOS.md.
+

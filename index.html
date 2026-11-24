@@ -20,7 +20,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 /* Rozvržení je vždy na celé okno: hlavička i menu zůstávají nahoře, posouvá se jen obsah.
    Posuvník je skrytý, aby aplikace působila jako nativní (na tabletu i v OOPP.exe). */
-html{height:100%}
+html{height:100%;-webkit-text-size-adjust:100%}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f4f7fb;color:#231f20;-webkit-tap-highlight-color:transparent;height:100%;overflow:hidden;overscroll-behavior:none}
 #app{max-width:960px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 /* v desktopovém okně (OOPP.exe) využít šířku obrazovky */
@@ -144,6 +144,22 @@ tr.clickable:hover{background:#eef3fa}
 .only-mobile{display:none}
 .issue-table th,.issue-table td{padding:8px 6px;vertical-align:top}
 .issue-table .nowrap{white-space:nowrap}
+/* kolonka „Vydal“ — úzký sloupec s iniciálami mezi „Kolik“ a „Podpis“ */
+.issue-table th.vydal,.issue-table td.vydal{width:1%;white-space:nowrap;text-align:center}
+.issuer{display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;background:#eef3fb;border:1px solid #d6e1f0;font-size:.8rem;font-weight:600;color:#1e3760;letter-spacing:.02em}
+.issuer-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 6px;padding:10px 12px;border:1px solid #dce6f3;border-radius:10px;background:#f5f8fd}
+.issuer-line-label{font-size:.78rem;font-weight:700;color:#33465c;text-transform:uppercase;letter-spacing:.05em}
+.issuer-line-name{font-size:.9rem;color:#231f20}
+.issuer-badge{display:inline-block;min-width:34px;text-align:center;padding:2px 7px;border-radius:6px;background:#3663ae;color:#fff;font-weight:700;font-size:.82rem}
+/* ---- Uživatelé a přístup (záložka Data) ---- */
+.user-me{padding:10px 12px;border:1px solid #dce6f3;border-radius:10px;background:#f5f8fd;font-size:.9rem;color:#231f20;line-height:1.55}
+.role-chip{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:#e9f0fa;color:#1e3760;border:1px solid #c6d4e6}
+.role-chip.admin{background:#dcfce7;color:#166534;border-color:#86efac}
+.role-chip.off{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.user-table{font-size:.88rem;width:100%}
+.user-table th,.user-table td{padding:8px 6px;vertical-align:top;text-align:left}
+.user-table th{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:#48586e;white-space:nowrap}
+.user-name{font-weight:600;color:#231f20}
 .sig-thumb{height:34px;width:auto;max-width:88px;border:1px solid #c6d4e6;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
 /* podepsáno, ale podpis je jen v cloudu (v zařízení se nedrží) */
 .btn.outline.sig-ok{color:#166534;border-color:#86efac;background:#f0fdf4;font-weight:600}
@@ -376,8 +392,8 @@ tr.clickable:hover{background:#eef3fa}
       <div class="head-actions">
         <button type="button" class="sync-pill idle hidden" id="syncPill" aria-live="polite" title="Cloud připojen — synchronizace je automatická" aria-label="Cloud připojen, synchronizace je automatická"><span class="sync-ic" aria-hidden="true">☁</span></button>
         <div class="admin-badge hidden" id="adminBadge">
-          <span class="admin-badge-who">👤 přihlášen jako admin</span>
-          <button class="btn light small" id="btnLogout" title="Odhlásit správce">Odhlásit</button>
+          <span class="admin-badge-who" id="adminWho">👤 přihlášen jako admin</span>
+          <button class="btn light small" id="btnLogout" title="Odhlásit účet v tomto zařízení">Odhlásit</button>
         </div>
         <button class="btn light small hidden" id="btnInstall" title="Nainstalovat aplikaci do zařízení">⬇ Nainstalovat aplikaci</button>
       </div>
@@ -453,6 +469,12 @@ tr.clickable:hover{background:#eef3fa}
       <div class="card" id="empListCard">
         <h2>Seznam zaměstnanců</h2>
         <p class="desc">Klepněte na zaměstnance — otevře se jeho tabulka: datum, co a kolik převzal, včetně uloženého podpisu.</p>
+        <div class="issuer-line">
+          <span class="issuer-line-label">✍ Vydává:</span>
+          <span id="issuerName" class="issuer-line-name"></span>
+          <button type="button" class="btn outline small" id="btnSetIssuer" title="Jméno a příjmení — do tabulky se uloží iniciály">✍ Změnit</button>
+        </div>
+        <div class="sig-hint">Kdo výdej vydal, se do tabulky ukládá jako iniciály (Lukáš Dvořák → <strong>L.D.</strong>). Po přihlášení se jméno i iniciály berou z účtu; bez přihlášení se nastaví jen v tomto zařízení.</div>
         <input type="text" id="empFilter" placeholder="Hledat jméno, osobní číslo nebo funkci..." inputmode="search" enterkeyhint="search">
         <div class="sig-hint" id="empListHint" style="margin-top:6px">Začněte psát — seznam se zobrazí podle hledání. Mazání zaměstnance je chráněné heslem správce.</div>
         <div id="employeeList" class="hidden" style="margin-top:14px"></div>
@@ -683,11 +705,12 @@ tr.clickable:hover{background:#eef3fa}
           <div class="acc-body">
             <p class="desc">Tato část je chráněná heslem proti nechtěnému smazání dat. Přihlášení zůstává aktivní (i po zavření aplikace), dokud se nepoužije tlačítko <strong>Odhlásit</strong> vpravo nahoře.</p>
             <label>Uživatel</label>
-            <input type="text" id="dataUser" placeholder="uživatel" autocomplete="off">
+            <input type="text" id="dataUser" placeholder="firemní e-mail" autocomplete="username" spellcheck="false">
             <label>Heslo</label>
-            <input type="password" id="dataPass" placeholder="heslo">
+            <input type="password" id="dataPass" placeholder="heslo" autocomplete="current-password">
             <div style="margin-top:12px"><button class="btn" id="btnDataLogin">Přihlásit</button></div>
             <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
+            <div id="loginProfileBox" class="hidden" style="margin-top:10px"></div>
           </div>
         </details>
       </div>
@@ -695,6 +718,34 @@ tr.clickable:hover{background:#eef3fa}
         <!-- Karta „Úložiště (složka na SD kartě / USB)“ byla zrušena: data se
              ukládají automaticky do tohoto zařízení a podpisy se po nahrání
              do cloudu ze zařízení samy mažou, takže není co nastavovat. -->
+        <div class="card acc-card" id="usersCard">
+          <details class="acc" data-acc="users" open>
+            <summary><h2>👤 Uživatelé a přístup</h2><span class="acc-note" id="usersSummaryNote"></span></summary>
+            <div class="acc-body">
+              <p class="desc">Každý, kdo vydává OOPP, má vlastní přihlášení firemním e-mailem. <strong>Heslo si nastaví sám</strong> odkazem z e-mailu — aplikace ho nikdy nezná, nikde ho neukládá a správce ho nevidí. Správce může heslo jen znovu poslat nebo uživateli odebrat přístup.</p>
+              <div id="usersCurrent"></div>
+              <div class="sig-hint" id="usersHint" style="margin-top:10px"></div>
+              <div id="usersAdminBox" class="hidden" style="margin-top:16px">
+                <label>Jméno a příjmení</label>
+                <input type="text" id="newUserName" placeholder="např. Lukáš Dvořák" autocomplete="off">
+                <label>E-mail</label>
+                <input type="email" id="newUserEmail" placeholder="jmeno@firma.cz" autocomplete="off" spellcheck="false">
+                <label>Práva</label>
+                <select id="newUserRole">
+                  <option value="user">Uživatel — výdeje, zaměstnanci, tisk</option>
+                  <option value="admin">Správce — navíc mazání, Předměty, Data a uživatelé</option>
+                </select>
+                <div class="row" style="margin-top:12px">
+                  <button class="btn" id="btnAddUser">＋ Přidat uživatele</button>
+                  <button class="btn outline" id="btnReloadUsers" title="Načte profily z Firestore">⟳ Načíst ze cloudu</button>
+                </div>
+                <div class="sig-hint" style="margin-top:8px">Na zadaný e-mail odejde pozvánka s odkazem, kde si uživatel zvolí heslo. Tlačítkem „✉ Nové heslo“ mu odkaz pošlete kdykoli znovu — i když heslo zapomene.</div>
+                <div id="userList" style="margin-top:16px"></div>
+              </div>
+              <div id="usersGuestHint" class="hidden sig-hint" style="margin-top:12px">Seznam uživatelů a přidávání nových vidí jen správce.</div>
+            </div>
+          </details>
+        </div>
         <div class="card acc-card" id="cloudCard">
           <details class="acc" data-acc="cloud">
             <summary><h2>☁ Cloud — společná databáze (Firebase)</h2><span class="acc-note" id="cloudSummaryNote"></span></summary>
@@ -832,7 +883,8 @@ tr.clickable:hover{background:#eef3fa}
               <div class="sig-hint" id="appVersion" style="margin-top:8px"></div>
               <div class="sig-hint" style="margin-top:10px;line-height:1.6">
                 <strong>Android (Chrome):</strong> menu ⋮ → „Instalovat aplikaci“ / „Přidat na plochu“.<br>
-                <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“.<br>
+                <strong>iPhone / iPad (Safari):</strong> tlačítko Sdílet ⬆ → „Přidat na plochu“ (v Chrome ani Firefoxu na iOS to nejde — jen Safari).<br>
+                <strong>Exporty na iPhonu / iPadu:</strong> po klepnutí na export se otevře „Sdílet“ → „Uložit do Souborů“ (obdoba složky Stahování na Androidu). Tisk jde přes dialog iPhonu, který umí i „Uložit jako PDF“.<br>
                 <strong>Windows (Chrome / Edge):</strong> ikona instalace v adresním řádku.<br>
                 Instalace funguje jen při otevření přes webovou adresu (http/https), ne při poklepání na soubor na disku.<br>
                 <strong>Zobrazuje mobil starou verzi?</strong> Mráček <strong>☁</strong> vpravo nahoře svítí oranžově, když je na serveru novější verze — klepněte na něj (je vždy po ruce, bez přihlášení). Totéž udělá tlačítko „⟳ Aktualizovat aplikaci“ — smaže offline paměť a načte aktuální verzi.<br>
@@ -845,12 +897,22 @@ tr.clickable:hover{background:#eef3fa}
           <details class="acc" data-acc="share">
             <summary><h2>Sdílecí kód (QR)</h2></summary>
             <div class="acc-body">
-              <p class="desc">Naskenujte kód fotoaparátem nebo čtečkou QR — otevře se odkaz ke stažení aplikace (APK) pro Android. Kód můžete ukázat kolegovi, vytisknout nebo přiložit k předávacímu protokolu.</p>
+              <p class="desc">Naskenujte kód fotoaparátem nebo čtečkou QR — otevře se odkaz ke stažení aplikace (APK) pro <strong>Android</strong>. Kód můžete ukázat kolegovi, vytisknout nebo přiložit k předávacímu protokolu. Na <strong>iPhonu / iPadu</strong> se APK neinstaluje — tlačítkem „📱 iPhone / iPad“ níže zobrazíte návod (Safari → Sdílet ⬆ → „Přidat na plochu“).</p>
               <div class="share-qr" id="shareQr"></div>
               <div class="share-url" id="shareUrl"></div>
               <div class="row">
-                <button class="btn outline" id="btnCopyShare" title="Zkopíruje odkaz do schránky">📋 Kopírovat odkaz</button>
-                <button class="btn secondary" id="btnOpenShare" title="Otevře odkaz ke stažení">⬇ Otevřít odkaz</button>
+                <button class="btn outline" id="btnCopyShare" title="Zkopíruje odkaz na APK do schránky">📋 Kopírovat odkaz</button>
+                <button class="btn secondary" id="btnOpenShare" title="Stáhne instalační soubor OOPP.apk (Android)">⬇ Stáhnout APK (Android)</button>
+              </div>
+              <div class="row" style="margin-top:8px">
+                <button class="btn outline" id="btnIosHelp" title="Návod, jak aplikaci přidat na plochu iPhonu nebo iPadu">📱 iPhone / iPad</button>
+                <button class="btn outline" id="btnCopyAppUrl" title="Zkopíruje adresu aplikace — na iPhonu ji otevřete v Safari">🌐 Kopírovat adresu aplikace</button>
+              </div>
+              <div class="sig-hint hidden" id="iosHelp" style="margin-top:8px;border-left:3px solid #3663ae;padding-left:10px">
+                Na <strong>iPhonu / iPadu</strong> aplikaci nainstalujete takto: otevřete adresu
+                <code id="iosHelpUrl">této stránky</code> v <strong>Safari</strong> (v Chrome ani Firefoxu na iOS to nejde),
+                klepněte na <strong>Sdílet ⬆</strong> → <strong>„Přidat na plochu“</strong> → <strong>Přidat</strong>.
+                APK je jen pro Android — na iOS by se nenainstalovalo.
               </div>
               <div class="sig-hint" style="margin-top:8px">Odkaz míří vždy na nejnovější verzi v sekci Releases, proto se QR kód při novém buildu nemění. Funguje i bez internetu — je nakreslený přímo v aplikaci.</div>
             </div>
@@ -1980,6 +2042,15 @@ function downloadBlob(content, filename, type){
     });
     return;
   }
+  if(isIOSShell()){
+    // Totéž v nativním obalu pro iOS — WKWebView soubor sám neuloží.
+    const mime = type || 'application/octet-stream';
+    blobToBase64(blob, function(b64){
+      try{ window.OOPPiOS.saveFile(filename, b64, mime); }
+      catch(err){ toast('Soubor se nepodařilo uložit.'); }
+    });
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -2093,6 +2164,126 @@ function showTab(name){
   if(name === 'data') showDataLogin();
 }
 
+/* ---------- Přihlášený uživatel, iniciály a kolonka „Vydal“ ----------
+   Přihlášený uživatel se ukládá do tohoto zařízení (aby šel výdej uložit i bez
+   internetu a iniciály byly hned k dispozici). Jméno, iniciály a práva se po
+   přihlášení dotáhnou z profilu v cloudu (viz afterAuthUser).
+   Kdo není přihlášený, může mít v zařízení uložené jen své iniciály — výdej se
+   pak podepíše jimi; nic se tím ale neodemkne. */
+const USER_KEY = 'oopp_user_v1';               // přihlášený uživatel v tomto zařízení
+const USERS_CACHE_KEY = 'oopp_users_cache_v1'; // seznam uživatelů pro offline režim
+const ISSUER_KEY = 'oopp_issuer_v1';           // iniciály bez přihlášení (starší zařízení)
+const USERS_COLLECTION = 'oopp_users';         // kolekce profilů ve Firestore
+const ALLOW_LOCAL_ADMIN = true;                // starší místní přihlášení admin/admin
+
+// Iniciály z celého jména: „Lukáš Dvořák“ → „L.D.“; tituly (Ing., Bc., …) se
+// přeskakují, takže „Ing. Lukáš Dvořák“ → „L.D.“.
+function initialsOf(name){
+  const words = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+  const titles = ['ing', 'bc', 'mgr', 'mudr', 'judr', 'phdr', 'rndr', 'mvdr', 'paeddr',
+    'pharmdr', 'dipl', 'prof', 'doc', 'dis', 'ph', 'd', 'et'];
+  const isTitle = function(word){
+    return titles.indexOf(String(word).replace(/[.,]/g, '').toLowerCase()) >= 0;
+  };
+  const parts = words.filter(function(w){ return !isTitle(w); });
+  const use = parts.length ? parts : words;
+  return use.map(function(word){
+    const ch = String(word).replace(/^[^0-9A-Za-zÀ-ž]+/, '').charAt(0);
+    return ch ? ch.toUpperCase() + '.' : '';
+  }).join('');
+}
+
+function userSession(){
+  try{
+    const raw = localStorage.getItem(USER_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    return (d && typeof d === 'object' && (d.email || d.uid)) ? d : null;
+  }catch(e){ return null; }
+}
+
+function setUserSession(u){
+  try{
+    if(u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_KEY);
+  }catch(e){}
+  try{ if(typeof updateAdminUI === 'function') updateAdminUI(); }catch(e){}
+  try{ if(typeof refreshIssuerUI === 'function') refreshIssuerUI(); }catch(e){}
+  try{ if(typeof renderUsersUI === 'function') renderUsersUI(); }catch(e){}
+}
+
+function clearUserSession(){ setUserSession(null); }
+
+// Iniciály uložené v tomto zařízení (pro případ, že se zrovna nikdo nepřihlásil).
+function localIssuer(){
+  try{
+    const raw = localStorage.getItem(ISSUER_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== 'object') return null;
+    const name = String(d.name || '').trim();
+    if(!name) return null;
+    return {name: name, initials: String(d.initials || '').trim() || initialsOf(name), local: true};
+  }catch(e){ return null; }
+}
+
+function setLocalIssuer(name){
+  const n = String(name || '').trim().replace(/\s+/g, ' ');
+  try{
+    if(!n) localStorage.removeItem(ISSUER_KEY);
+    else localStorage.setItem(ISSUER_KEY, JSON.stringify({name: n, initials: initialsOf(n)}));
+  }catch(e){}
+  refreshIssuerUI();
+  return !!n;
+}
+
+// Kdo právě vydává: přihlášený uživatel, jinak iniciály uložené v zařízení.
+function currentIssuer(){
+  const s = userSession();
+  if(s && (s.name || s.initials)){
+    return {uid: s.uid || s.email || '', name: s.name || '', initials: s.initials || initialsOf(s.name), role: s.role || ''};
+  }
+  return localIssuer();
+}
+
+function promptIssuer(){
+  const cur = localIssuer();
+  const answer = prompt('Kdo výdej vydává?\n\nNapište jméno a příjmení — do evidence se uloží iniciály (Lukáš Dvořák → L.D.). Uloží se jen v tomto zařízení.', cur ? cur.name : '');
+  if(answer === null) return false;
+  return setLocalIssuer(answer);
+}
+
+// Pro uložení výdeje: když není kdo podepsat, jednou se zeptáme.
+function resolveIssuer(){
+  let cur = currentIssuer();
+  if(cur) return cur;
+  promptIssuer();
+  cur = currentIssuer();
+  return cur || {uid: '', name: '', initials: ''};
+}
+
+function refreshIssuerUI(){
+  const el = document.getElementById('issuerName');
+  if(!el) return;
+  const iss = currentIssuer();
+  if(iss && (iss.name || iss.initials)){
+    el.innerHTML = '<span class="issuer-badge">' + escapeHtml(iss.initials || initialsOf(iss.name)) + '</span> ' +
+      escapeHtml(iss.name || '') +
+      (iss.local ? ' <span class="sig-hint">uloženo v tomto zařízení</span>' : '');
+  } else {
+    el.innerHTML = '<span class="sig-hint">— zatím nenastaveno —</span>';
+  }
+}
+
+// Buňka do tabulky výdejů: jen iniciály (celé jméno v bublině).
+function issuerCellHtml(issue){
+  if(!issue) return '<span class="sig-hint">—</span>';
+  const ini = String(issue.issuedByInitials || '').trim() || initialsOf(issue.issuedByName);
+  const nm = String(issue.issuedByName || '').trim();
+  if(!ini && !nm) return '<span class="sig-hint">—</span>';
+  return '<span class="issuer" title="' + escapeHtml(nm || ini) + '">' + escapeHtml(ini || nm) + '</span>';
+}
+
 /* ---------- Přihlášení administrátora ---------- */
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin';
@@ -2123,8 +2314,21 @@ function setAdminSession(on){
 
 // Vpravo nahoře v hlavičce ukázat, že je správce přihlášený, a nabídnout odhlášení.
 function updateAdminUI(){
+  // Odznak v hlavičce: ukáže, kdo je přihlášený (správce i běžný uživatel),
+  // aby se dalo tlačítkem „Odhlásit“ vyměnit účet i na sdíleném tabletu.
+  const s = userSession();
   const badge = document.getElementById('adminBadge');
-  if(badge) badge.classList.toggle('hidden', !isAdmin());
+  const who = document.getElementById('adminWho');
+  if(who){
+    if(isAdmin()){
+      who.textContent = '👤 ' + (s && s.name ? s.name + (s.initials ? ' (' + s.initials + ')' : '') + ' · správce' : 'přihlášen jako admin');
+    }else if(s && (s.name || s.email)){
+      who.textContent = '👤 ' + (s.name || s.email) + (s.initials ? ' (' + s.initials + ')' : '') + ' · uživatel';
+    }else{
+      who.textContent = '👤 přihlášen';
+    }
+  }
+  if(badge) badge.classList.toggle('hidden', !(isAdmin() || !!s));
   updateOrdersVisibility();
   updateItemsVisibility();
   // Přihlášení/odhlášení hned překreslí seznam zaměstnanců — tlačítka
@@ -2156,11 +2360,17 @@ function updateItemsVisibility(){
 }
 
 function logoutAdmin(){
-  const was = isAdmin();
+  const wasAdmin = isAdmin();
+  const hadUser = !!userSession();
   setAdminSession(false);
+  // Odhlášení zruší i jméno/iniciály v tomto zařízení — kdo bude vydávat
+  // příště, se musí přihlásit (nebo si je znovu nastavit tlačítkem „✍ Změnit“).
+  // Přihlášení ke cloudu (Firebase) zůstává, aby jím aplikace dál synchronizovala;
+  // účet se z tohoto zařízení „odhlásí“ jen pro podepisování a práva.
+  clearUserSession();
   showDataLogin();
   showItemsLogin();
-  toast(was ? 'Odhlášeno.' : 'Není co odhlašovat.');
+  toast((wasAdmin || hadUser) ? 'Odhlášeno.' : 'Není co odhlašovat.');
 }
 
 // Ochrana citlivých akcí (např. mazání zaměstnance) heslem správce.
@@ -2198,15 +2408,18 @@ function showDataLogin(){
 function tryDataLogin(){
   const u = document.getElementById('dataUser').value.trim();
   const p = document.getElementById('dataPass').value;
-  if(u === ADMIN_USER && p === ADMIN_PASS){
+  // Starší místní přihlášení (admin/admin) — funguje dál, aby se stará zařízení
+  // nezamkla. Nově se ale přihlašuje firemním e-mailem a heslem (Firebase), aby
+  // se do knížky podepsal konkrétní člověk iniciálami.
+  if(ALLOW_LOCAL_ADMIN && u === ADMIN_USER && p === ADMIN_PASS){
     setAdminSession(true);
     document.getElementById('dataUser').value = '';
     document.getElementById('dataPass').value = '';
     unlockData();
     toast('Přihlášeno.');
-  } else {
-    document.getElementById('dataLoginError').textContent = 'Nesprávné přihlašovací údaje.';
+    return;
   }
+  tryDataLoginCloud(u, p);
 }
 
 function unlockItems(){
@@ -3394,6 +3607,10 @@ function saveIssue(){
   if(items.length === 0){ toast('Přidejte alespoň jednu položku.'); return; }
   const signature = getSignatureData();
   const cfg = cloudConfig();
+  // Kdo výdej vydal — do knížky se tiskne jen iniciály (L.D.), celé jméno
+  // zůstává v záznamu. Když v zařízení nikdo nastavený není, aplikace se na
+  // jméno jednou zeptá (a zapamatuje si ho jen v tomto zařízení).
+  const issuer = resolveIssuer();
   const issue = touchRec({
     id: uid(),
     employeeId: employee.id,
@@ -3402,6 +3619,11 @@ function saveIssue(){
     date: date,
     items: items,
     note: '',
+    // Kolonka „Vydal“ v kartě zaměstnance, v tisku i v CSV.
+    issuedByUid: issuer.uid || '',
+    issuedByName: issuer.name || '',
+    issuedByInitials: issuer.initials || initialsOf(issuer.name),
+    issuedAt: Date.now(),
     signature: signature,
     hasSignature: !!signature,
     // Podpis zůstává v zařízení jen do nahrání do cloudu; pak se uvolní
@@ -4590,12 +4812,13 @@ function renderEmployeeIssues(id, issues){
         (it.size ? '<div class="sig-hint">vel. ' + escapeHtml(it.size) + '</div>' : '') + '</td>' +
         '<td class="nowrap">' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
       if(idx === 0){
-        rows += '<td' + span + '>' + sigCell + '</td>';
+        rows += '<td class="vydal"' + span + ' title="Kdo výdej vydal">' + issuerCellHtml(issue) + '</td>' +
+          '<td' + span + '>' + sigCell + '</td>';
       }
       rows += '</tr>';
     });
   });
-  box.innerHTML = '<table class="issue-table"><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>' +
+  box.innerHTML = '<table class="issue-table"><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th class="vydal">Vydal</th><th>Podpis</th></tr></thead><tbody>' +
     rows + '</tbody></table>' +
     '<div class="sig-hint">Seřazeno od nejnovějšího. Podpisy jsou uložené v cloudu — klepnutím na ✔ se podpis načte a zvětší (v zařízení se neukládá). ' +
     'Výdej bez podpisu lze dodatečně podepsat tlačítkem „✍ Doplnit podpis“.' +
@@ -4799,8 +5022,9 @@ function exportCSV(id){
   if(!e) return;
   const issues = db.issues.filter(function(i){ return i.employeeId === id; }).sort(function(a, b){ return a.createdAt - b.createdAt; });
   if(issues.length === 0){ toast('Žádné záznamy k exportu.'); return; }
-  const lines = ['Datum;Předmět;Velikost;Množství;Jednotka;Podepsáno;Poznámka'];
+  const lines = ['Datum;Předmět;Velikost;Množství;Jednotka;Vydal;Podepsáno;Poznámka'];
   for(const issue of issues){
+    const vydal = String(issue.issuedByInitials || '').trim() || initialsOf(issue.issuedByName);
     for(const it of issue.items){
       lines.push([
         issue.date,
@@ -4808,6 +5032,7 @@ function exportCSV(id){
         it.size || '',
         it.qty,
         it.unit || '',
+        vydal,
         issue.hasSignature ? 'ano' : 'ne',
         issue.note || ''
       ].map(csvCell).join(';'));
@@ -4828,6 +5053,13 @@ function doPrint(){
     // (dialog Androidu umí i „Uložit jako PDF“).
     try{
       window.OOPPAndroid.printPage('Evidence OOPP');
+      return;
+    }catch(err){}
+  }
+  if(isIOSShell() && typeof window.OOPPiOS.printPage === 'function'){
+    // WKWebView tiskne přes UIPrintInteractionController (umí i „Uložit do PDF“).
+    try{
+      window.OOPPiOS.printPage('Evidence OOPP');
       return;
     }catch(err){}
   }
@@ -4940,7 +5172,7 @@ async function printEmployeeHistory(id){
   if(issues.length === 0){
     html += '<p>Žádné záznamy.</p>';
   } else {
-    html += '<table><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Podpis</th></tr></thead><tbody>';
+    html += '<table><thead><tr><th>Datum</th><th>Co</th><th>Kolik</th><th>Vydal</th><th>Podpis</th></tr></thead><tbody>';
     for(const issue of issues){
       const items = (issue.items && issue.items.length) ? issue.items : [{name: '—', qty: '', unit: '', size: ''}];
       items.forEach(function(it, idx){
@@ -4949,6 +5181,8 @@ async function printEmployeeHistory(id){
         html += '<td>' + escapeHtml(it.name) + (it.size ? ' (vel. ' + escapeHtml(it.size) + ')' : '') + '</td>' +
           '<td>' + escapeHtml(String(it.qty == null ? '' : it.qty)) + ' ' + escapeHtml(it.unit || '') + '</td>';
         if(idx === 0){
+          html += '<td rowspan="' + items.length + '" style="white-space:nowrap">' +
+            escapeHtml(String(issue.issuedByInitials || '').trim() || initialsOf(issue.issuedByName) || '—') + '</td>';
           html += '<td rowspan="' + items.length + '">' +
             (sigForPrint(issue) ? '<img src="' + sigForPrint(issue) + '" style="width:110px;height:auto">'
               : (issue.hasSignature ? 'v cloudu' : '—')) + '</td>';
@@ -5277,6 +5511,26 @@ function base64ToBytes(b64){
   return out;
 }
 
+// Je canvas po vykreslení stránky celý bílý? Safari (iOS) umí SVG s foreignObject
+// vykreslit naprázdno. Vzorek se zmenší na 64×90 px — prázdná stránka zůstane
+// čistě bílá, skutečná má vždy text, linky nebo podpis.
+function canvasLooksBlank(canvas){
+  try{
+    const small = document.createElement('canvas');
+    small.width = 64;
+    small.height = 90;
+    const c = small.getContext('2d');
+    c.fillStyle = '#fff';
+    c.fillRect(0, 0, small.width, small.height);
+    c.drawImage(canvas, 0, 0, small.width, small.height);
+    const data = c.getImageData(0, 0, small.width, small.height).data;
+    for(let i = 0; i < data.length; i += 4){
+      if(data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) return false;
+    }
+    return true;
+  }catch(e){ return false; }    // když pixely číst nelze, stránku necháme projít
+}
+
 // Vykreslí jednu stránku knížky do JPEG (vrací i velikost obrázku pro PDF).
 function rasterizeBookletPage(pageEl){
   return new Promise(function(resolve, reject){
@@ -5302,6 +5556,8 @@ function rasterizeBookletPage(pageEl){
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Prázdné PDF je horší než žádné — obsluha by ho poslala zákazníkovi.
+        if(canvasLooksBlank(canvas)) throw new Error('stránka se v tomto prohlížeči nevykreslila');
         resolve({
           bytes: base64ToBytes(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]),
           width: canvas.width,
@@ -5447,6 +5703,12 @@ function openExternal(url){
       return;
     }
   }catch(e){}
+  try{
+    if(isIOSShell() && window.OOPPiOS && typeof window.OOPPiOS.openUrl === 'function'){
+      window.OOPPiOS.openUrl(url);       // např. sms:, mailto:, https://wa.me/…
+      return;
+    }
+  }catch(e){}
   let win = null;
   try{ win = window.open(url, '_blank'); }catch(e){ win = null; }
   if(!win){ try{ window.location.href = url; }catch(e){} }
@@ -5485,6 +5747,9 @@ function bookletShareText(e, issues){
 function shareCanSendFile(file){
   if(!file) return false;
   if(isAndroidShell() && window.OOPPAndroid && typeof window.OOPPAndroid.shareFile === 'function'){
+    return true;
+  }
+  if(isIOSShell() && window.OOPPiOS && typeof window.OOPPiOS.shareFile === 'function'){
     return true;
   }
   if(navigator.canShare && typeof navigator.share === 'function'){
@@ -5547,7 +5812,7 @@ async function prepareShareFile(id){
       state.textContent = shareCanSendFile(file)
         ? 'Knížka je hotová (' + pdf.pageCount + ' str.). Vybraná aplikace dostane PDF i s podpisy.'
         : 'Knížka je hotová (' + pdf.pageCount + ' str.). Toto zařízení neumí přiložit soubor samo — ' +
-          'PDF se uloží do Stahování a přílohu přidáte v aplikaci (📎).';
+          'PDF se uloží do ' + exportFolderName() + ' a přílohu přidáte v aplikaci (📎).';
     }
     setShareButtonsEnabled(true);
   }catch(err){
@@ -5596,6 +5861,16 @@ async function shareBookletSend(kind){
         return;
       }catch(err){}
     }
+    if(isIOSShell() && window.OOPPiOS && typeof window.OOPPiOS.shareFile === 'function'){
+      try{
+        closeShareSheet();
+        blobToBase64(file, function(b64){
+          try{ window.OOPPiOS.shareFile(name, b64, 'application/pdf'); }
+          catch(err){ toast('Sdílení se nepodařilo — PDF uložte přes „Sdílet → Uložit do Souborů“.'); }
+        });
+        return;
+      }catch(err){}
+    }
     try{
       await navigator.share({files: [file], title: subject, text: text});
       closeShareSheet();
@@ -5610,18 +5885,18 @@ async function shareBookletSend(kind){
   if(kind === 'wa'){
     openExternal('https://wa.me/?text=' + encodeURIComponent(text));
     closeShareSheet();
-    toast('PDF uloženo do Stahování — ve WhatsApp ho přiložte tlačítkem 📎.', 6000);
+    toast('PDF uloženo do ' + exportFolderName() + ' — ve WhatsApp ho přiložte tlačítkem 📎.', 6000);
     return;
   }
   if(kind === 'mail'){
     openExternal('mailto:?subject=' + encodeURIComponent(subject) +
       '&body=' + encodeURIComponent(text));
     closeShareSheet();
-    toast('PDF uloženo do Stahování — v e-mailu ho přiložte tlačítkem 📎.', 6000);
+    toast('PDF uloženo do ' + exportFolderName() + ' — v e-mailu ho přiložte tlačítkem 📎.', 6000);
     return;
   }
   closeShareSheet();
-  toast('PDF uloženo do Stahování.', 4000);
+  toast('PDF uloženo do ' + exportFolderName() + '.', 4000);
 }
 
 
@@ -5630,7 +5905,8 @@ function supportsFS(){
   // V APK na Androidu nemá výběr složky smysl: WebView s vybranou složkou na
   // SD kartě neumí spolehlivě pracovat a data v zařízení drží aplikace sama.
   // Společná data mezi telefony řeší cloud, zálohu JSON tlačítko „Stáhnout zálohu“.
-  if(isAndroidShell()) return false;
+  // Na iOS (Safari ani WKWebView) File System Access API vůbec není.
+  if(isAndroidShell() || isIOSShell()) return false;
   return ('showDirectoryPicker' in window);
 }
 
@@ -6461,8 +6737,13 @@ async function cloudQuickLogin(){
       }
     }catch(e){}
     const user = await fbEnsureAuth();
+    // Profil rozhoduje o jménech a iniciálech (kolonka Vydal) i o právech správce.
+    let prof = null;
+    try{ prof = await afterAuthUser(user); }catch(e){ prof = null; }
+    if(prof && prof.role === 'admin') setAdminSession(true);
     cloudSetStatus('Přihlášeno do Firebase jako ' + (user && user.email ? user.email : email) + '.', 'ok');
     toast('Cloud připojen.');
+    if(prof && prof.missing) toast('Přihlášeno, ale účet zatím nemá profil — výdeje se podepíší e-mailem, práva nastaví správce.', 8000);
     closeCloudQuick();
     updateCloudBanner();
     renderCloudUI();
@@ -6475,6 +6756,493 @@ async function cloudQuickLogin(){
   }
 }
 
+/* ---------- Uživatelé: profil ve Firestore + pozvánky e-mailem ----------
+   Účet (e-mail + heslo) vede Firebase Authentication, profil (jméno, iniciály,
+   práva) je dokument v kolekci oopp_users, jehož ID je e-mail malými písmeny —
+   stejné ID používá i pravidlo ve Firestore, takže přístup mají jen pozvaní.
+   Správce hesla nikdy nevidí: nový účet se založí s náhodným heslem, které se
+   nikam neukládá ani nezobrazuje, a uživatel si heslo zvolí přes odkaz, který
+   mu Firebase pošle e-mailem. Zapomenuté heslo se obnoví stejným odkazem. */
+function fbApiKey(){
+  const cfg = cloudConfig();
+  return cfg.key || CLOUD_PRESET.key || '';
+}
+
+// Volání Firebase Auth REST API. Přihlášení správce to neovlivní, protože se
+// volá přes fetch (ne přes SDK aplikace) — token nového účtu se zahodí.
+async function fbRest(path, body){
+  const key = fbApiKey();
+  if(!key) throw new Error('V nastavení cloudu chybí Web API klíč.');
+  const res = await fetch('https://identitytoolkit.googleapis.com/v1/' + path + '?key=' + encodeURIComponent(key), {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {})
+  });
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok){
+    const msg = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + res.status);
+    const err = new Error(msg);
+    err.code = msg;
+    throw err;
+  }
+  return data || {};
+}
+
+function fbCreateAuthAccount(email, password){
+  return fbRest('accounts:signUp', {email: userKeyFor(email), password: password, returnSecureToken: true});
+}
+
+function fbSendPasswordReset(email){
+  return fbRest('accounts:sendOobCode', {requestType: 'PASSWORD_RESET', email: userKeyFor(email)});
+}
+
+// Náhodné heslo k založení účtu. Nikde se neukládá ani nezobrazuje — slouží
+// jen k tomu, aby účet vzniknul; skutečné heslo si uživatel zvolí sám.
+function randomPassword(){
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  let out = '';
+  try{
+    const buf = new Uint32Array(28);
+    (window.crypto || window.msCrypto).getRandomValues(buf);
+    for(let i = 0; i < buf.length; i++) out += abc.charAt(buf[i] % abc.length);
+  }catch(e){
+    for(let i = 0; i < 28; i++) out += abc.charAt(Math.floor(Math.random() * abc.length));
+  }
+  return out + 'Aa7!';
+}
+
+function userKeyFor(email){
+  return String(email == null ? '' : email).trim().toLowerCase();
+}
+
+function usersCacheGet(){
+  try{
+    const raw = localStorage.getItem(USERS_CACHE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+
+function usersCacheSet(list){
+  try{ localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(list || [])); }catch(e){}
+}
+
+async function fetchUserProfile(email){
+  const snap = await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(email)).get();
+  return (snap && snap.exists) ? Object.assign({id: snap.id}, snap.data()) : null;
+}
+
+let profileSyncAt = 0;
+
+// Po přihlášení (i tichém z uložených údajů) dotáhne profil: jméno, iniciály
+// a práva. Bez internetu zůstane v zařízení to, co se načetlo naposledy.
+async function afterAuthUser(user){
+  if(!user || !user.email) return userSession();
+  const email = userKeyFor(user.email);
+  const prev = userSession();
+  if(prev && prev.email === email && (Date.now() - profileSyncAt) < 60000) return prev;
+  let prof = null;
+  try{ prof = await fetchUserProfile(email); }catch(e){ prof = null; }
+  profileSyncAt = Date.now();
+  if(prof && prof.active === false){
+    clearUserSession();
+    toast('Přihlášený účet byl správcem zablokován.');
+    try{ await fbSignOutQuiet(); }catch(e){}
+    return null;
+  }
+  const same = !!(prev && prev.email === email);
+  if(!prof){
+    // Účet existuje, ale zatím nemá profil (např. založený dřív v konzoli).
+    setUserSession({uid: user.uid || '', email: email,
+      name: same ? (prev.name || '') : '',
+      initials: same ? (prev.initials || '') : '',
+      role: same ? (prev.role || '') : '',
+      missing: true, at: Date.now()});
+    return userSession();
+  }
+  const name = String(prof.name || '').trim();
+  setUserSession({
+    uid: prof.uid || user.uid || '',
+    email: email,
+    name: name,
+    initials: String(prof.initials || '').trim() || initialsOf(name),
+    role: prof.role === 'admin' ? 'admin' : 'user',
+    at: Date.now()
+  });
+  return userSession();
+}
+
+// Po spuštění: obnovit profil z minule (jméno, iniciály, práva) a tichý přístup
+// k datům z uložených údajů. Bez internetu zůstane to, co je v zařízení.
+async function restoreUserSession(){
+  const s = userSession();
+  refreshIssuerUI();
+  renderUsersUI();
+  if(!s) return;
+  const cfg = cloudConfig();
+  if(cfg.provider !== 'firebase' || !cfg.url || !cfg.key) return;
+  if(typeof firebase === 'undefined') return;
+  let user = null;
+  try{
+    const auth = firebase.auth(fb());
+    user = auth.currentUser;
+    if(!user && cfg.firebaseEmail && cfg.firebasePass) user = await fbEnsureAuth();
+  }catch(e){ user = null; }
+  if(!user || !user.email) return;
+  try{ await afterAuthUser(user); }catch(e){}
+  if(isAdmin()) return;
+  const cur = userSession();
+  if(cur && cur.role === 'admin'){
+    try{ setAdminSession(true); unlockData(); }catch(e){}
+  }
+}
+
+// Seznam uživatelů z Firestore do zařízení (aby fungoval i offline).
+let usersLoadAt = 0;
+let usersLoading = false;
+async function loadUsersFromCloud(announce){
+  const cfg = cloudConfig();
+  if(!cfg.key || cfg.provider !== 'firebase'){
+    if(announce) toast('Seznam uživatelů je jen u Firebase.');
+    renderUsersUI();
+    return false;
+  }
+  if(usersLoading) return false;
+  usersLoading = true;
+  usersLoadAt = Date.now();
+  try{
+    await fbEnsureAuth();
+    const snap = await fbFs().collection(USERS_COLLECTION).get();
+    const rows = [];
+    snap.forEach(function(doc){ rows.push(Object.assign({id: doc.id}, doc.data())); });
+    rows.sort(function(a, b){
+      return String(a.name || a.email || '').localeCompare(String(b.name || b.email || ''), 'cs', {sensitivity: 'base'});
+    });
+    usersCacheSet(rows);
+    renderUsersUI();
+    if(announce) toast('Načteno ' + rows.length + ' ' + czPlural(rows.length, 'uživatel', 'uživatelé', 'uživatelů') + '.');
+    return true;
+  }catch(e){
+    renderUsersUI();
+    if(announce) toast('Seznam se nepodařilo načíst: ' + friendlyAuthError(e), 7000);
+    return false;
+  }finally{
+    usersLoading = false;
+  }
+}
+
+// Srozumitelné hlášky k chybám Firebase (SDK má kódy auth/…, REST velkými písmeny).
+function friendlyAuthError(e){
+  const c = String((e && (e.code || e.message)) || '');
+  if(c.indexOf('EMAIL_NOT_FOUND') >= 0) return 'Tento e-mail v aplikaci není — nejdřív ho přidejte.';
+  if(c.indexOf('INVALID_PASSWORD') >= 0 || c.indexOf('INVALID_LOGIN_CREDENTIALS') >= 0) return 'Nesprávné heslo.';
+  if(c.indexOf('EMAIL_EXISTS') >= 0) return 'Účet s tímto e-mailem už existuje — pošlete mu „Nové heslo“.';
+  if(c.indexOf('INVALID_EMAIL') >= 0 || c.indexOf('invalid-email') >= 0) return 'Neplatný e-mail.';
+  if(c.indexOf('TOO_MANY_ATTEMPTS') >= 0) return 'Příliš mnoho pokusů — zkuste to za chvíli.';
+  if(c.indexOf('WEAK_PASSWORD') >= 0) return 'Slabé heslo (aspoň 6 znaků).';
+  if(c.indexOf('OPERATION_NOT_ALLOWED') >= 0) return 'Přihlašování e-mailem není ve Firebase zapnuté (Authentication → Email/Password → Enable).';
+  if(c.indexOf('PERMISSION_DENIED') >= 0 || c.indexOf('insufficient permissions') >= 0) return 'Do Firestore nemá účet přístup — upravte pravidla podle UZIVATELE.md.';
+  if(c.indexOf('network-request-failed') >= 0) return 'Chybí připojení k internetu.';
+  return c || 'neznámá chyba';
+}
+
+async function fbSignOutQuiet(){
+  try{
+    if(typeof firebase !== 'undefined') await firebase.auth(fb()).signOut();
+  }catch(e){}
+}
+
+// Přihlášení účtem aplikace (e-mail + heslo). Údaje zůstanou v zařízení, aby
+// se tablet přihlásil sám i po restartu; tlačítko „Odhlásit“ je vymaže.
+async function signInAppAccount(email, pass){
+  const cfg = cloudConfig();
+  if(cfg.provider !== 'firebase' || !cfg.url || !cfg.key){
+    throw new Error('V aplikaci chybí nastavení projektu (Project ID / Web API klíč) — doplňte ho v Data → ☁ Cloud.');
+  }
+  const mail = userKeyFor(email);
+  cfg.firebaseEmail = mail;
+  cfg.firebasePass = pass;
+  cfg.auto = true;
+  saveCloudConfig(cfg);
+  const cardEmail = document.getElementById('cloudEmail');
+  const cardPass = document.getElementById('cloudPass');
+  if(cardEmail) cardEmail.value = mail;
+  if(cardPass) cardPass.value = pass;
+  try{
+    if(typeof firebase !== 'undefined'){
+      const auth = firebase.auth(fb());
+      const cur = auth.currentUser;
+      if(cur && userKeyFor(cur.email) !== mail) await auth.signOut();
+    }
+  }catch(e){}
+  return fbEnsureAuth();
+}
+
+// Přihlášení v kartě „🔒 Přihlášení k datům“: firemní e-mail a heslo.
+// Správci se hned odemknou Data, ostatním se jen nastaví iniciály do „Vydal“.
+async function tryDataLoginCloud(u, p){
+  const errEl = document.getElementById('dataLoginError');
+  if(!u || !p){ if(errEl) errEl.textContent = 'Zadejte e-mail i heslo.'; return; }
+  if(errEl) errEl.textContent = 'Přihlašuji…';
+  try{
+    const user = await signInAppAccount(u, p);
+    await afterAuthUser(user);
+    const s = userSession();
+    const passEl = document.getElementById('dataPass');
+    if(passEl) passEl.value = '';
+    if(s && s.role === 'admin'){
+      setAdminSession(true);
+      unlockData();
+      toast('Přihlášeno jako správce.');
+      if(!cloudBusy) cloudSync('auto');
+    } else {
+      updateAdminUI();
+      if(errEl) errEl.textContent = 'Přihlášeno jako ' + ((s && (s.name || s.email)) ? (s.name || s.email) : u) +
+        ' — účet nemá práva správce, takže Data zůstávají zamčená. Výdeje se podepisují iniciálami ' +
+        ((s && s.initials) ? s.initials : '—') + '.';
+      toast('Přihlášeno.');
+    }
+    try{ renderCloudUI(); updateCloudBanner(); }catch(e){}
+  }catch(e){
+    if(errEl) errEl.textContent = 'Přihlášení se nezdařilo: ' + friendlyAuthError(e);
+  }
+}
+
+// Přidání uživatele: založí účet s náhodným heslem (nikdo ho neuvidí), uloží
+// profil a pošle e-mail s odkazem, kde si dotyčný zvolí vlastní heslo.
+async function addAppUser(){
+  if(!isAdmin()){ toast('Přidávat uživatele může jen správce.'); return; }
+  const nameEl = document.getElementById('newUserName');
+  const emailEl = document.getElementById('newUserEmail');
+  const roleEl = document.getElementById('newUserRole');
+  const btn = document.getElementById('btnAddUser');
+  const name = ((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
+  const email = userKeyFor(emailEl && emailEl.value);
+  const role = (roleEl && roleEl.value === 'admin') ? 'admin' : 'user';
+  if(name.length < 3 || name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení — z něj se dělají iniciály do kolonky Vydal.'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Zadejte platný e-mail.'); return; }
+  const exists = usersCacheGet().some(function(u){ return userKeyFor(u.email || u.id) === email; });
+  if(exists){ toast('Uživatel s tímto e-mailem už je v seznamu — pošlete mu tlačítkem „✉ Nové heslo“.'); return; }
+  const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Zakládám…'; }
+  try{
+    let created = null;
+    try{
+      created = await fbCreateAuthAccount(email, randomPassword());
+    }catch(e){
+      // Účet už ve Firebase existuje (třeba po dřívějším odebrání přístupu) —
+      // profil se jen obnoví a heslo se vyřeší odkazem v e-mailu.
+      if(String((e && (e.code || e.message)) || '').indexOf('EMAIL_EXISTS') < 0) throw e;
+    }
+    const doc = {
+      name: name, email: email, initials: initialsOf(name),
+      role: role, active: true, createdAt: Date.now(),
+      invitedBy: (userSession() || {}).email || '',
+      invitedAt: new Date().toISOString()
+    };
+    if(created && created.localId) doc.uid = created.localId;
+    await fbFs().collection(USERS_COLLECTION).doc(email).set(doc, {merge: true});
+    await fbSendPasswordReset(email);
+    if(nameEl) nameEl.value = '';
+    if(emailEl) emailEl.value = '';
+    await loadUsersFromCloud(false);
+    toast('Pozvánka odeslána na ' + email + '. Heslo si uživatel zvolí sám/a (e-mail může chvíli trvat).', 8000);
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = label; }
+  }
+}
+
+// Obnovení hesla: jediná cesta, jak heslo změnit. Přijde e-mail s odkazem,
+// kde si uživatel zvolí nové — správce ho nikdy nevidí.
+async function resetAppUserPassword(email){
+  const mail = userKeyFor(email);
+  if(!mail){ toast('Chybí e-mail.'); return; }
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const who = (u && u.name) ? (u.name + ' (' + mail + ')') : mail;
+  if(!confirm('Poslat na ' + who + ' e-mail s odkazem na nové heslo?\n\nHeslo si dotyčný zvolí sám, vy ho neuvidíte.')) return;
+  try{
+    await fbSendPasswordReset(mail);
+    toast('E-mail s odkazem na nové heslo odeslán na ' + mail + '.', 8000);
+    await loadUsersFromCloud(false);
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
+  }
+}
+
+// Odebrání přístupu = smazání profilu. Účet ve Firebase Authentication zůstává
+// (bez profilu se ale k datům nedostane); úplné smazání jde jen v konzoli.
+async function removeAppUser(email){
+  if(!isAdmin()){ toast('Odebírat přístup může jen správce.'); return; }
+  const mail = userKeyFor(email);
+  if(!mail) return;
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const who = (u && u.name) ? (u.name + ' (' + mail + ')') : mail;
+  if(!confirm('Odebrat přístup uživateli ' + who + '?\n\nPřestane se dostat k datům v cloudu. Účet ve Firebase zůstane — úplně ho smažete v konzoli (Authentication → Users).\nPokud si přístup bude chtít vrátit, stačí ho znovu přidat.')) return;
+  try{
+    await fbFs().collection(USERS_COLLECTION).doc(mail).delete();
+    const s = userSession();
+    if(s && userKeyFor(s.email) === mail){ clearUserSession(); await fbSignOutQuiet(); }
+    await loadUsersFromCloud(false);
+    toast('Přístup odebrán.');
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 8000);
+  }
+}
+
+// První nastavení: přihlášený účet si založí profil správce. Používá se jen
+// tehdy, když v cloudu ještě žádný profil není (jinak práva přiděluje správce).
+async function createSelfAdminProfile(){
+  const s = userSession();
+  if(!s || !s.email){ toast('Nejdřív se přihlaste e-mailem a heslem.'); return; }
+  const known = usersCacheGet();
+  if(known.length && !isAdmin()){ toast('Profily uživatelů už existují — práva správce přidělí stávající správce.'); return; }
+  const name = String(prompt('Vaše jméno a příjmení (z něj budou iniciály v kolonce Vydal):', s.name || '') || '').trim().replace(/\s+/g, ' ');
+  if(!name) return;
+  if(name.indexOf(' ') < 0){ toast('Zadejte jméno i příjmení.'); return; }
+  if(!confirm('Založit profil správce pro ' + s.email + '?')) return;
+  try{
+    await fbEnsureAuth();
+    await fbFs().collection(USERS_COLLECTION).doc(userKeyFor(s.email)).set({
+      uid: s.uid || '', name: name, email: userKeyFor(s.email), initials: initialsOf(name),
+      role: 'admin', active: true, createdAt: Date.now()
+    }, {merge: true});
+    profileSyncAt = 0;
+    await loadUsersFromCloud(false);
+    await afterAuthUser({uid: s.uid, email: s.email});
+    // Profil správce = práva správce i v tomto zařízení (jinak by Data zůstala zamčená).
+    setAdminSession(true);
+    unlockData();
+    toast('Profil správce založen — od teď se počítá s právy správce.');
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 9000);
+  }
+}
+
+function copyCurrentUserId(){
+  const s = userSession();
+  if(!s || !s.email){ toast('Není přihlášený žádný účet.'); return; }
+  copyTextToClipboard(userKeyFor(s.email), 'E-mail účtu (ID profilu) zkopírován.');
+}
+
+// Vykreslení karty „👤 Uživatelé a přístup“: kdo je přihlášený, seznam profilů
+// a tlačítka pro nové heslo / odebrání přístupu.
+function renderUsersUI(){
+  const listEl = document.getElementById('userList');
+  if(!listEl) return;                          // karta je jen v záložce Data
+  const curEl = document.getElementById('usersCurrent');
+  const hintEl = document.getElementById('usersHint');
+  const noteEl = document.getElementById('usersSummaryNote');
+  const adminBox = document.getElementById('usersAdminBox');
+  const guestHint = document.getElementById('usersGuestHint');
+  const s = userSession();
+  const admin = isAdmin();
+  if(adminBox) adminBox.classList.toggle('hidden', !admin);
+  if(guestHint) guestHint.classList.toggle('hidden', admin);
+  if(noteEl){
+    noteEl.textContent = (s && (s.name || s.email))
+      ? ((s.initials ? s.initials + ' · ' : '') + (s.role === 'admin' ? 'správce' : 'uživatel'))
+      : 'nepřihlášeno';
+  }
+  if(hintEl){
+    hintEl.innerHTML = 'Hesla jsou jen ve Firebase — aplikace je nikdy nezobrazí ani neuloží. ' +
+      'Když heslo zapomenete, pošlete odkaz tlačítkem „✉ Nové heslo“; uživatel si tam zvolí nové sám.';
+  }
+  const users = usersCacheGet();
+  // Box v přihlašovací kartě: přihlášený účet bez profilu si může založit první
+  // profil správce (jen když v cloudu ještě žádný profil není).
+  const loginBox = document.getElementById('loginProfileBox');
+  if(loginBox){
+    if(s && s.email && s.missing && !users.length){
+      loginBox.innerHTML = '<div class="sig-hint">Přihlášený účet <strong>' + escapeHtml(s.email) +
+        '</strong> zatím nemá profil, takže nemá práva správce a výdeje by se podepisovaly e-mailem.</div>' +
+        '<div class="row" style="margin-top:8px"><button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button></div>';
+      loginBox.classList.remove('hidden');
+    } else {
+      loginBox.innerHTML = '';
+      loginBox.classList.add('hidden');
+    }
+  }
+  const showBootstrap = !!(s && s.email && s.missing && (admin || users.length === 0));
+  if(curEl){
+    let html = '';
+    if(s && (s.name || s.email)){
+      html += '<div class="user-me">' +
+        '<div><strong>Přihlášen:</strong> ' + escapeHtml(s.name || s.email) +
+          (s.initials ? ' <span class="role-chip">' + escapeHtml(s.initials) + '</span>' : '') +
+          (s.role === 'admin' ? ' <span class="role-chip admin">správce</span>' : ' <span class="role-chip">uživatel</span>') +
+          (s.missing ? ' <span class="role-chip off">bez profilu</span>' : '') + '</div>' +
+        '<div class="sig-hint">' + escapeHtml(s.email) + '</div>' +
+        (s.missing ? '<div class="sig-hint">Účet je přihlášený, ale nemá profil v kolekci <strong>oopp_users</strong> — ' +
+          'výdeje se zatím podepisují e-mailem.</div>' : '') +
+        (showBootstrap ? '<div class="row" style="margin-top:8px">' +
+          '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' +
+          '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
+          '</div>' : '') +
+        '</div>';
+    } else {
+      html += '<div class="user-me"><strong>Nepřihlášeno.</strong> ' +
+        '<span class="sig-hint">Přihlaste se e-mailem a heslem v kartě „🔒 Přihlášení k datům“ — ' +
+        'jméno a iniciály se pak u výdejů vyplní samy.</span></div>';
+    }
+    curEl.innerHTML = html;
+  }
+  if(!admin){ listEl.innerHTML = ''; return; }
+  if(!users.length){
+    listEl.innerHTML = '<div class="empty">V cloudu zatím žádný profil není. Přidejte prvního uživatele formulářem výše.</div>';
+  } else {
+    let rows = '';
+    users.forEach(function(u){
+      const email = userKeyFor(u.email || u.id);
+      const mine = !!(s && userKeyFor(s.email) === email);
+      const role = u.role === 'admin' ? 'admin' : 'user';
+      rows += '<tr>' +
+        '<td><span class="user-name">' + escapeHtml(u.name || '—') + '</span>' +
+          (u.initials ? '<div class="sig-hint">' + escapeHtml(u.initials) + '</div>' : '') + '</td>' +
+        '<td>' + escapeHtml(email) + (mine ? ' <span class="role-chip">já</span>' : '') + '</td>' +
+        '<td><span class="role-chip ' + role + '">' + (role === 'admin' ? 'správce' : 'uživatel') + '</span>' +
+          (u.active === false ? ' <span class="role-chip off">blokováno</span>' : '') + '</td>' +
+        '<td><div class="row" style="gap:6px">' +
+          '<button class="btn outline small" data-user-reset="' + escapeHtml(email) + '" title="Pošle e-mail s odkazem na nové heslo">✉ Nové heslo</button>' +
+          (mine ? '' : '<button class="btn danger small" data-user-del="' + escapeHtml(email) + '" title="Odebere přístup k datům">🚫 Odebrat</button>') +
+        '</div></td></tr>';
+    });
+    listEl.innerHTML = '<table class="user-table"><thead><tr><th>Jméno</th><th>E-mail</th><th>Práva</th><th></th></tr></thead><tbody>' +
+      rows + '</tbody></table>' +
+      '<div class="sig-hint">Odebraný uživatel se k datům nedostane. Účet ve Firebase Authentication smažete v konzoli (Users → ⋮ → Delete).</div>';
+  }
+  // Seznam se sám dotáhne z cloudu, ale nejvýš jednou za 5 minut.
+  if(!usersLoading && (Date.now() - usersLoadAt) > 300000) loadUsersFromCloud(false);
+}
+
+// Zkopírování textu do schránky (stejná záložní cesta jako u sdílecího odkazu).
+function copyTextToClipboard(text, okMsg){
+  const value = String(text == null ? '' : text);
+  const fallback = function(){
+    let ok = false;
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    }catch(e){ ok = false; }
+    toast(ok ? (okMsg || 'Zkopírováno.') : 'Kopírování není dostupné — text vypíšu: ' + value, ok ? undefined : 7000);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(value).then(function(){
+      toast(okMsg || 'Zkopírováno.');
+    }).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+// (konec sekce Uživatelé — profil, pozvánky a obnova hesla)
 function fbFs(){
   return firebase.firestore(fb());
 }
@@ -7288,7 +8056,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v59';
+const APP_VERSION = 'v61';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -7312,6 +8080,30 @@ function isAndroidShell(){
   return !!(window.OOPPAndroid && typeof window.OOPPAndroid.saveFile === 'function');
 }
 
+// Běží appka v nativním obalu pro iOS (projekt ios/, WKWebView)? Obal vkládá
+// most OOPPiOS se stejnými funkcemi jako OOPPAndroid — tisk, uložení souboru,
+// sdílení, otevření odkazu. Do té doby (appka v Safari / na ploše) se používá
+// standardní cesta prohlížeče: window.print(), Share sheet, navigator.share.
+function isIOSShell(){
+  return !!(window.OOPPiOS && typeof window.OOPPiOS.saveFile === 'function');
+}
+
+// iPhone / iPad pozná i bez nativního obalu (iPadOS se v Safari hlásí jako Mac,
+// proto se přidává kontrola dotykových bodů).
+function isIOSDevice(){
+  try{
+    const ua = (navigator && navigator.userAgent) || '';
+    if(/iPad|iPhone|iPod/.test(ua)) return true;
+    return /Macintosh/.test(ua) && !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+  }catch(e){ return false; }
+}
+
+// Kam se exporty ukládají: Android má složku „Stahování“, iOS předává soubor
+// dialogu „Sdílet → Uložit do Souborů“, takže se v hláškách píše „Soubory“.
+function exportFolderName(){
+  return (isIOSDevice() || isIOSShell()) ? 'Soubory' : 'Stahování';
+}
+
 function installButtons(){
   return ['btnInstall', 'btnInstall2'].map(function(id){
     return document.getElementById(id);
@@ -7323,18 +8115,26 @@ function refreshInstallUI(){
   const canPrompt = !!installPromptEvent;
   const desktop = isDesktopShell();
   const android = isAndroidShell();
+  const iosShell = isIOSShell();
+  const ios = isIOSDevice() || iosShell;
   const card = document.getElementById('installCard');
   if(card) card.classList.toggle('hidden', desktop);
   installButtons().forEach(function(btn){
-    btn.classList.toggle('hidden', standalone || !canPrompt || desktop || android);
+    btn.classList.toggle('hidden', standalone || !canPrompt || desktop || android || iosShell);
   });
   if(desktop) return;
   const hint = document.getElementById('installHint');
   if(!hint) return;
   if(android){
     hint.innerHTML = 'Aplikace je nainstalovaná jako <strong>APK</strong> — novou verzi si načítá z webu sama, přeinstalace není potřeba. Exporty (PDF, CSV, záloha) se ukládají do složky <strong>Stahování</strong> v zařízení.';
+  } else if(iosShell){
+    hint.innerHTML = 'Aplikace je nainstalovaná jako <strong>iOS aplikace</strong> — aktualizuje se z webu sama. Tisk jde přes tiskárnu iPhonu (dialog umí i <strong>Uložit jako PDF</strong>), exporty (PDF, CSV, záloha) přes <strong>Sdílet → Uložit do Souborů</strong>.';
   } else if(standalone){
-    hint.textContent = 'Aplikace je nainstalovaná — spouští se z plochy zařízení a funguje i bez internetu.';
+    hint.textContent = ios
+      ? 'Aplikace je nainstalovaná na ploše — spouští se bez adresního řádku a funguje i bez internetu. Exporty ukládejte přes „Sdílet → Uložit do Souborů“, tisk přes „Tisk“ (jde i „Uložit jako PDF“).'
+      : 'Aplikace je nainstalovaná — spouští se z plochy zařízení a funguje i bez internetu.';
+  } else if(ios){
+    hint.innerHTML = 'Na <strong>iPhonu / iPadu</strong> se aplikace instaluje jen v <strong>Safari</strong>: tlačítko <strong>Sdílet ⬆ → „Přidat na plochu“</strong>. V Chrome nebo Firefoxu na iOS tato volba není — otevřete adresu v Safari.';
   } else if(pageProtocol() === 'file:'){
     hint.textContent = 'Aplikaci otevíráte přímo ze souboru na disku. Instalace je možná až po otevření přes webovou adresu (http/https).';
   } else if(canPrompt){
@@ -7557,6 +8357,35 @@ function openShareUrl(){
   }
   const win = window.open(SHARE_APK_URL, '_blank', 'noopener');
   if(!win) location.href = SHARE_APK_URL;
+}
+
+// Adresa aplikace bez parametrů — na iPhonu/iPadu se neinstaluje APK, ale
+// otevře se tato adresa v Safari a dá se „Přidat na plochu“.
+function appPageUrl(){
+  try{
+    const u = new URL(location.href);
+    u.hash = '';
+    u.search = '';
+    return u.href;
+  }catch(e){ return ''; }
+}
+
+// Návod pro iOS: rozbalí se přímo pod QR kódem (funguje i offline).
+function showIosHelp(){
+  const box = document.getElementById('iosHelp');
+  if(!box) return;
+  const urlEl = document.getElementById('iosHelpUrl');
+  if(urlEl) urlEl.textContent = appPageUrl() || 'této stránky';
+  box.classList.toggle('hidden');
+  if(!box.classList.contains('hidden')){
+    toast('Na iPhonu / iPadu otevřete adresu v Safari a dejte Sdílet ⬆ → „Přidat na plochu“.', 9000);
+  }
+}
+
+function copyAppUrl(){
+  const url = appPageUrl();
+  if(!url){ toast('Adresu aplikace nejde zjistit — otevřete ji prosím přímo v Safari.'); return; }
+  copyTextToClipboard(url, 'Adresa aplikace zkopírována — na iPhonu ji otevřete v Safari.');
 }
 
 /* ---------- Rozklikávací karty v záložce Data ----------
@@ -7821,6 +8650,10 @@ document.addEventListener('DOMContentLoaded', function(){
   if(btnCopyShare) btnCopyShare.addEventListener('click', copyShareUrl);
   const btnOpenShare = document.getElementById('btnOpenShare');
   if(btnOpenShare) btnOpenShare.addEventListener('click', openShareUrl);
+  const btnIosHelp = document.getElementById('btnIosHelp');
+  if(btnIosHelp) btnIosHelp.addEventListener('click', showIosHelp);
+  const btnCopyAppUrl = document.getElementById('btnCopyAppUrl');
+  if(btnCopyAppUrl) btnCopyAppUrl.addEventListener('click', copyAppUrl);
 
   // V desktopovém okně (OOPP.exe) jsou soubory lokální, service worker není potřeba.
   if('serviceWorker' in navigator && !isDesktopShell() && (pageProtocol() === 'http:' || pageProtocol() === 'https:')){
@@ -7998,6 +8831,23 @@ document.addEventListener('DOMContentLoaded', function(){
     if(e.key === 'Enter') tryItemsLogin();
   });
   // přehled spotřeby v záložce Data (jen pro čtení) — filtr období a hledání
+  // Uživatelé, role a „kdo výdej vydal“ (kolonka Vydal)
+  const btnAddUser = document.getElementById('btnAddUser');
+  if(btnAddUser) btnAddUser.addEventListener('click', addAppUser);
+  const btnReloadUsers = document.getElementById('btnReloadUsers');
+  if(btnReloadUsers) btnReloadUsers.addEventListener('click', function(){ loadUsersFromCloud(true); });
+  const btnSetIssuer = document.getElementById('btnSetIssuer');
+  if(btnSetIssuer) btnSetIssuer.addEventListener('click', function(){ if(promptIssuer()) refreshIssuerUI(); });
+  const newUserPass = document.getElementById('newUserEmail');
+  if(newUserPass) newUserPass.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addAppUser(); }
+  });
+  refreshIssuerUI();
+  renderUsersUI();
+  // Tiché obnovení přihlášení (jméno, iniciály, práva) po startu — až se
+  // Firebase SDK stihne načíst z úložiště zařízení.
+  setTimeout(function(){ restoreUserSession(); }, 1500);
+
   document.getElementById('consPeriod').addEventListener('change', renderConsumption);
   document.getElementById('consFilter').addEventListener('input', renderConsumption);
 
@@ -8038,6 +8888,15 @@ document.addEventListener('DOMContentLoaded', function(){
     if(resendOrderBtn){ resendOrder(resendOrderBtn.dataset.sendorder); return; }
     const delOrderBtn = e.target.closest('button[data-delorder]');
     if(delOrderBtn){ deleteOrder(delOrderBtn.dataset.delorder); return; }
+    // Uživatelé (Data → 👤 Uživatelé a přístup): tlačítka jsou v překreslovaném seznamu
+    const userResetBtn = e.target.closest('button[data-user-reset]');
+    if(userResetBtn){ resetAppUserPassword(userResetBtn.dataset.userReset); return; }
+    const userDelBtn = e.target.closest('button[data-user-del]');
+    if(userDelBtn){ removeAppUser(userDelBtn.dataset.userDel); return; }
+    const bootAdminBtn = e.target.closest('button[data-bootstrap-admin]');
+    if(bootAdminBtn){ createSelfAdminProfile(); return; }
+    const copyIdBtn = e.target.closest('button[data-copy-id]');
+    if(copyIdBtn){ copyCurrentUserId(); return; }
   });
 
   initDatePicker();

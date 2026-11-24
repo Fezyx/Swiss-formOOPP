@@ -37,6 +37,26 @@ Záloha / přenos dat
   Až má být číselník dostupný všem, stačí v kódu přepnout ITEMS_ADMIN_ONLY
   na false (stejně jako ORDERS_ADMIN_ONLY u objednávek).
 
+Uživatelé a hesla (vlastní účet pro každého)
+- Každý pracovník má vlastní e-mail a heslo. Účty zakládá správce v záložce
+  Data → karta „👤 Uživatelé a přístup“: napíše jméno a příjmení, e-mail
+  a práva (uživatel / správce) a klikne „＋ Přidat uživatele“.
+- Uživateli přijde e-mail s odkazem, kde si SÁM zvolí heslo. Správce hesla
+  nikdy nevidí ani je nemůže zjistit — zapomenuté heslo řeší tlačítkem
+  „✉ Nové heslo“, které pošle odkaz znovu.
+- „🚫 Odebrat“ přístup odebere (účet ve Firebase zůstane; úplně se maže
+  v konzoli Firebase). Podrobný návod: soubor UZIVATELE.md.
+- Kolonka „Vydal“ v tabulce výdejů: po přihlášení se bere z účtu (jméno
+  a příjmení → iniciály, např. Lukáš Dvořák → L.D.). Bez přihlášení se dá
+  nastavit tlačítkem „✍ Změnit“ u řádku „✍ Vydává:“ v záložce Zaměstnanci
+  a platí jen pro toto zařízení. Když není nic, aplikace se na jméno zeptá
+  při ukládání výdeje.
+- Staré přihlášení admin/admin funguje dál, ale práva správce v cloudu
+  určuje profil účtu (Data → „👤 Uživatelé a přístup“).
+- Kdo je právě přihlášený, ukazuje odznak vpravo nahoře v hlavičce
+  („👤 jméno (iniciály)“) s tlačítkem „Odhlásit“. Na sdíleném tabletu se
+  před výdejem přihlaste svým účtem a po skončení klikněte „Odhlásit“.
+
 Přehled spotřeby předmětů (záložka Data)
 - Karta „📊 Spotřeba předmětů" je hned nahoře v záložce Data a je vidět
   I BEZ PŘIHLÁŠENÍ — pro nepřihlášené je jen ke čtení, nic se v ní nedá
