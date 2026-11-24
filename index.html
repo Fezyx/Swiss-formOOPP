@@ -7627,11 +7627,11 @@ async function setAppUserRole(email, role){
   }
 }
 
-// Pozn.: dřív tu byla funkce createSelfAdminProfile(), která si sama založila
-// profil s role: admin. Od v72 to nejde — pravidla ve Firestore dovolí nováčkovi
-// založit si vlastní profil jen s role: 'user'. Správcem se stane jen ten, komu
-// to přidělí stávající správce (⭐ Udělat správcem), nebo první správce
-// založený v konzoli Firebase (viz FIREBASE.md).
+// Pozn.: dřív tu byla funkce, která si sama založila profil s role: admin.
+// Od v72 to nejde — pravidla ve Firestore dovolí nováčkovi založit si vlastní
+// profil jen s role: 'user'. Správcem se stane jen ten, komu to přidělí
+// stávající správce (⭐ Udělat správcem), nebo první správce založený
+// v konzoli Firebase (viz FIREBASE.md).
 
 function copyCurrentUserId(){
   const s = userSession();
