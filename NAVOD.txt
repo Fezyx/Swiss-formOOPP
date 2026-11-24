@@ -40,12 +40,14 @@ Záloha / přenos dat
 Uživatelé a hesla (vlastní účet pro každého)
 - Každý pracovník má vlastní PŘIHLAŠOVACÍ JMÉNO (nick, např. novak) a heslo.
   Nick zakládá správce v záložce Data → karta „👤 Uživatelé a přístup“:
-  napíše nick, případně jméno a příjmení, práva (uživatel / správce) a klikne
-  „＋ Přidat uživatele“. E-maily se nepoužívají, nic se nikam neposílá.
+  vybere zaměstnance ze seznamu (z něj se vezme jméno a iniciály), napíše
+  nick, případně práva (uživatel / správce) a klikne „＋ Přidat uživatele“.
+  E-maily se nepoužívají, nic se nikam neposílá.
 - Dotyčnému řekněte nick. On v kartě „🔒 Přihlášení k datům“ klikne
-  „🆕 První přihlášení — vytvořit heslo“, napíše nick, vybere se v seznamu
-  zaměstnanců a SÁM si zvolí heslo (aspoň 6 znaků). Tím vznikne jeho účet
-  a hned je přihlášený. Správce heslo nikdy nevidí ani nemůže zjistit.
+  „🆕 První přihlášení — vytvořit heslo“, napíše nick a SÁM si zvolí heslo
+  (aspoň 6 znaků). Nikoho nevybírá — jméno a iniciály má účet od správce,
+  takže se nemůže splést. Tím vznikne jeho účet a hned je přihlášený.
+  Správce heslo nikdy nevidí ani nemůže zjistit.
 - Zapomenuté heslo: správce u nicku klikne „🔑 Smazat heslo“. Staré heslo
   přestane platit a dotyčný si stejným nickem zvolí nové (znovu tlačítkem
   „🆕 První přihlášení“). Jméno ani práva se přitom nemění.

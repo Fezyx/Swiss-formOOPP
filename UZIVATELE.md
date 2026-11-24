@@ -37,15 +37,15 @@ a heslo. Díky tomu je v tabulce výdejů vidět, kdo výdej vydal (kolonka
 2) Přidání uživatele (jen správce)
 ----------------------------------
 Data → karta „👤 Uživatelé a přístup“:
-1. Vyplňte Přihlašovací jméno (např. novak) a práva (uživatel / správce).
-2. Jméno a příjmení je nepovinné — když ho vyplníte, udělají se z něj iniciály
-   (Lukáš Dvořák → L.D.). Když ho necháte prázdné, vybere si dotyčný sám
-   zaměstnance ze seznamu při prvním přihlášení.
+1. Vyberte Zaměstnanec ze seznamu — z něj se vezme jméno a iniciály
+   (Lukáš Dvořák → L.D.). Tím je dané, za koho se dotyčný přihlásí.
+2. Napište Přihlašovací jméno (např. novak) a případně práva
+   (uživatel / správce).
 3. Klikněte „＋ Přidat uživatele“.
 4. Sdělte dotyčnému nick (klidně na papírek). On v aplikaci klikne
-   „🆕 První přihlášení — vytvořit heslo“, napíše nick, vybere se v seznamu
-   zaměstnanců a zvolí si heslo (aspoň 6 znaků). Tím vznikne jeho účet
-   a hned je přihlášený.
+   „🆕 První přihlášení — vytvořit heslo“, napíše nick a zvolí si heslo
+   (aspoň 6 znaků) — nikoho nevybírá, takže se nemůže splést s někým jiným.
+   Tím vznikne jeho účet a hned je přihlášený.
 5. Hotovo: v tabulce výdejů se podepisuje svými iniciálami.
 
 Co se stane na pozadí: aplikace založí dokument oopp_logins/novak (nick,

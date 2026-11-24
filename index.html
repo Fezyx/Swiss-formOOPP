@@ -723,16 +723,15 @@ tr.clickable:hover{background:#eef3fa}
             <input type="password" id="dataPass" placeholder="heslo" autocomplete="current-password">
             <div class="row" style="margin-top:12px">
               <button class="btn" id="btnDataLogin">Přihlásit</button>
-              <button class="btn secondary" id="btnDataNewPass" title="Pro první přihlášení: zvolíte si heslo a vyberete se v seznamu zaměstnanců">🆕 První přihlášení — vytvořit heslo</button>
+              <button class="btn secondary" id="btnDataNewPass" title="Pro první přihlášení: zadáte nick od správce a zvolíte si heslo">🆕 První přihlášení — vytvořit heslo</button>
             </div>
             <div class="sig-hint" id="dataLoginError" style="color:#dc2626;margin-top:8px"></div>
             <div id="dataNewPassBox" class="hidden" style="margin-top:12px;padding:12px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff">
               <strong>První přihlášení</strong>
-              <div class="sig-hint" style="margin-top:4px">Zadejte přihlašovací jméno od správce, vyberte se v seznamu zaměstnanců a zvolte si heslo. Heslo nikdo jiný neuvidí — ani správce; ten ho umí jen smazat.</div>
+              <div class="sig-hint" style="margin-top:4px">Zadejte přihlašovací jméno od správce a zvolte si heslo. Jméno a iniciály má účet už od správce, takže se tu nevybírá, za koho se přihlašujete. Heslo nikdo jiný neuvidí — ani správce; ten ho umí jen smazat.</div>
               <label>Přihlašovací jméno</label>
               <input type="text" id="npNick" placeholder="např. novak" autocomplete="off" spellcheck="false">
-              <label>Vyberte se v seznamu zaměstnanců</label>
-              <select id="npEmployee"></select>
+              <!-- Jen pro starší nicky založené bez jména: doplní se ručně. -->
               <input type="text" id="npName" class="hidden" placeholder="jméno a příjmení" autocomplete="off" style="margin-top:8px">
               <label>Nové heslo (aspoň 6 znaků)</label>
               <input type="password" id="npPass" autocomplete="new-password">
@@ -762,9 +761,9 @@ tr.clickable:hover{background:#eef3fa}
               <div id="usersAdminBox" class="hidden" style="margin-top:16px">
                 <label>Přihlašovací jméno (nick)</label>
                 <input type="text" id="newUserNick" placeholder="např. novak" autocomplete="off" spellcheck="false">
-                <label>Jméno a příjmení (nepovinné)</label>
-                <input type="text" id="newUserName" placeholder="např. Lukáš Dvořák" autocomplete="off">
-                <div class="sig-hint" style="margin-top:4px">Když jméno nevyplníte, vybere si ho dotyčný sám ze seznamu zaměstnanců při prvním přihlášení (a tím se i podepíše iniciálami).</div>
+                <label>Zaměstnanec</label>
+                <select id="newUserEmployee"></select>
+                <div class="sig-hint" style="margin-top:4px">Vyberte konkrétního zaměstnance — jeho jméno a iniciály se uloží k účtu. Dotyčný se pak při prvním přihlášení jen přihlásí nickem a zvolí heslo, takže si nemůže vybrat někoho jiného.</div>
                 <label>Práva</label>
                 <select id="newUserRole">
                   <option value="user">Uživatel — výdeje, zaměstnanci, tisk</option>
@@ -2571,7 +2570,7 @@ function showDataLogin(){
   document.getElementById('dataUser').value = '';
   document.getElementById('dataPass').value = '';
   document.getElementById('dataLoginError').textContent = '';
-  try{ fillNewPassEmployees(); hideNewPassBox(); }catch(e){}
+  try{ resetNewPassBox(); hideNewPassBox(); }catch(e){}
 }
 
 function tryDataLogin(){
@@ -7253,16 +7252,16 @@ async function tryDataLoginCloud(u, p){
 async function addAppUser(){
   if(!isAdmin()){ toast('Přidávat uživatele může jen správce.'); return; }
   const nickEl = document.getElementById('newUserNick');
-  const nameEl = document.getElementById('newUserName');
+  const empEl = document.getElementById('newUserEmployee');
   const roleEl = document.getElementById('newUserRole');
   const btn = document.getElementById('btnAddUser');
   const nick = normNick(nickEl && nickEl.value);
-  const name = String((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
+  const empId = (empEl && empEl.value) || '';
+  const emp = empId ? (db.employees || []).find(function(e){ return e.id === empId; }) : null;
+  const name = emp ? String(emp.name || '').trim().replace(/\s+/g, ' ') : '';
   const role = (roleEl && roleEl.value === 'admin') ? 'admin' : 'user';
   if(nick.length < 3){ toast('Zadejte přihlašovací jméno — aspoň 3 znaky, bez diakritiky (např. novak).'); return; }
-  if(name && (name.length < 3 || name.indexOf(' ') < 0)){
-    toast('Jméno napište celé (jméno i příjmení) — nebo ho nechte prázdné; dotyčný si ho vybere sám ze seznamu zaměstnanců.'); return;
-  }
+  if(!emp || !name){ toast('Vyberte zaměstnance ze seznamu — z něj se vezme jméno i iniciály do kolonky „Vydal“.'); return; }
   const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Zakládám…'; }
   try{
@@ -7282,10 +7281,21 @@ async function addAppUser(){
       toast('Tenhle nick patří vašemu účtu — pro sebe ho nezakládejte, zvolte jiný.', 9000);
       return;
     }
+    // Jeden zaměstnanec = jeden účet. Když už ho má, nový nick nevznikne.
+    const dupe = usersCacheGet().find(function(u){
+      if(!u || u.active === false) return false;
+      if(u.employeeId && u.employeeId === emp.id) return true;
+      return !u.employeeId && String(u.name || '').trim().toLowerCase() === name.toLowerCase();
+    });
+    if(dupe){
+      const dupeNick = dupe.login || nickFromEmail(dupe.email || dupe.id);
+      toast('Tomuto zaměstnanci už účet existuje (nick „' + dupeNick + '“). Nový nick není potřeba — když nezná heslo, smažte mu ho tlačítkem „🔑 Smazat heslo“.', 14000);
+      return;
+    }
     const now = Date.now();
     const me = userSession() || {};
     await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
-      nick: nick, v: v, role: role, active: true, name: name || '',
+      nick: nick, v: v, role: role, active: true, name: name, employeeId: emp.id,
       createdBy: (entry && entry.createdBy) || me.email || '',
       createdAt: (entry && entry.createdAt) || now,
       updatedAt: now
@@ -7293,11 +7303,12 @@ async function addAppUser(){
     await fbFs().collection(USERS_COLLECTION).doc(email).set({
       email: email, login: nick, v: v, name: name,
       initials: name ? initialsOf(name) : '',
+      employeeId: emp.id,
       role: role, active: true, passSetAt: 0,
       createdAt: now, createdBy: me.email || ''
     }, {merge: true});
     if(nickEl) nickEl.value = '';
-    if(nameEl) nameEl.value = '';
+    if(empEl) empEl.value = '';
     await loadUsersFromCloud(false);
     toast('Přihlašovací jméno „' + nick + '“ je založené. Dotyčný se přihlásí v Data → 🔒 Přihlášení k datům tlačítkem „🆕 První přihlášení — vytvořit heslo“ a zvolí si heslo.', 16000);
   }catch(e){
@@ -7351,11 +7362,12 @@ async function clearAppUserPassword(email){
 }
 
 // První přihlášení (a taky nové heslo po tom, co ho správce smazal): člověk
-// napíše přihlašovací jméno, vybere se v seznamu zaměstnanců a zvolí si heslo.
-// Tím vznikne jeho účet ve Firebase (novak@oopp.local) i profil; heslo zná jen on.
+// napíše přihlašovací jméno a zvolí si heslo. Jméno a iniciály má účet už od
+// správce (ten při zakládání nicku vybírá zaměstnance), takže se tu nikdo
+// nemůže vydávat za někoho jiného. Tím vznikne jeho účet ve Firebase
+// (novak@oopp.local) i profil; heslo zná jen on.
 async function createOwnPassword(){
   const nickEl = document.getElementById('npNick');
-  const empEl = document.getElementById('npEmployee');
   const nameEl = document.getElementById('npName');
   const passEl = document.getElementById('npPass');
   const pass2El = document.getElementById('npPass2');
@@ -7365,15 +7377,11 @@ async function createOwnPassword(){
   const nick = normNick(nickEl && nickEl.value);
   const pass = (passEl && passEl.value) || '';
   const pass2 = (pass2El && pass2El.value) || '';
+  let name = '';
   say('');
   if(nick.length < 3){ say('Zadejte přihlašovací jméno od správce (aspoň 3 znaky).'); return; }
   if(pass.length < 6){ say('Heslo musí mít aspoň 6 znaků.'); return; }
   if(pass !== pass2){ say('Hesla se neshodují — napište je znovu.'); return; }
-  const empId = (empEl && empEl.value) || '';
-  const emp = (empId && empId !== '__other') ? db.employees.find(function(e){ return e.id === empId; }) : null;
-  const name = emp ? String(emp.name || '').trim().replace(/\s+/g, ' ')
-    : String((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
-  if(!name || name.indexOf(' ') < 0){ say('Vyberte se v seznamu zaměstnanců, nebo napište jméno i příjmení.'); return; }
   const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Vytvářím…'; }
   try{
@@ -7383,6 +7391,17 @@ async function createOwnPassword(){
       return;
     }
     if(entry.active === false){ say('Tomuto přihlašovacímu jménu správce odebral přístup.'); return; }
+    // Jméno a iniciály k účtu zapsal správce (výběrem zaměstnance).
+    name = String(entry.name || '').trim().replace(/\s+/g, ' ');
+    if(!name){
+      // Starší nick bez jména: dotyčný ho doplní ručně (jinak by výdej neměl iniciály).
+      name = String((nameEl && nameEl.value) || '').trim().replace(/\s+/g, ' ');
+      if(!name || name.indexOf(' ') < 0){
+        if(nameEl) nameEl.classList.remove('hidden');
+        say('Účet zatím nemá u sebe jméno — napište jméno i příjmení, nebo ať vás správce doplní v seznamu uživatelů („✏ Jméno“).');
+        return;
+      }
+    }
     const email = loginEmailOf(nick, entry.v);
     const role = (entry.role === 'admin') ? 'admin' : 'user';
     try{
@@ -7399,9 +7418,18 @@ async function createOwnPassword(){
     // přihlásí sám, stejně jako dřív u e-mailu).
     const user = await signInAppAccount(email, pass);
     const now = Date.now();
+    // Kdyby správce jméno mezitím upravil („✏ Jméno“), platí jméno z profilu.
+    let finalName = name;
+    let prof = null;
+    try{
+      prof = await fetchUserProfile(email);
+      const pn = prof ? String(prof.name || '').trim().replace(/\s+/g, ' ') : '';
+      if(pn) finalName = pn;
+    }catch(e){}
     await fbFs().collection(USERS_COLLECTION).doc(email).set({
       email: email, login: nick, v: Math.max(1, parseInt(entry.v, 10) || 1),
-      name: name, initials: initialsOf(name),
+      name: finalName, initials: initialsOf(finalName),
+      employeeId: (prof && prof.employeeId) || entry.employeeId || '',
       role: role, active: true, passSetAt: now, profileCompletedAt: now
     }, {merge: true});
     profileSyncAt = 0;
@@ -7415,7 +7443,7 @@ async function createOwnPassword(){
     if(role === 'admin'){ setAdminSession(true); unlockData(); }
     else { updateAdminUI(); }
     try{ renderUsersUI(); }catch(e){}
-    toast('Heslo vytvořeno — jste přihlášen(a) jako ' + ((s && s.name) || name) +
+    toast('Heslo vytvořeno — jste přihlášen(a) jako ' + ((s && s.name) || finalName) +
       (s && s.initials ? ' (' + s.initials + ')' : '') + '. Výdeje se od teď podepisují těmito iniciálami.', 14000);
   }catch(e){
     say('Nepodařilo se: ' + friendlyAuthError(e));
@@ -7424,24 +7452,18 @@ async function createOwnPassword(){
   }
 }
 
-// Nabídka zaměstnanců do „První přihlášení“ — ze seznamu v tomto zařízení.
-function fillNewPassEmployees(){
-  const sel = document.getElementById('npEmployee');
-  if(!sel) return;
-  const list = (db.employees || []).slice().sort(function(a, b){
-    return String(a.name || '').localeCompare(String(b.name || ''), 'cs', {sensitivity: 'base'});
-  });
-  let html = '<option value="">— vyberte se v seznamu —</option>';
-  list.forEach(function(e){
-    html += '<option value="' + escapeHtml(e.id) + '">' + escapeHtml(e.name || '') +
-      (e.personalNumber ? ' (' + escapeHtml(e.personalNumber) + ')' : '') + '</option>';
-  });
-  html += '<option value="__other">— nejsem v seznamu (napíšu jméno) —</option>';
-  sel.innerHTML = html;
+// „První přihlášení“ už výběr zaměstnance neobsahuje — jméno a iniciály má
+// účet od správce. Reset jen schová ruční doplnění jména (pro starší nicky).
+function resetNewPassBox(){
+  const nameEl = document.getElementById('npName');
+  if(nameEl){
+    nameEl.value = '';
+    nameEl.classList.add('hidden');
+  }
 }
 
 function showNewPassBox(){
-  fillNewPassEmployees();
+  resetNewPassBox();
   const box = document.getElementById('dataNewPassBox');
   if(box) box.classList.remove('hidden');
   const nickEl = document.getElementById('npNick');
@@ -7565,6 +7587,30 @@ function copyCurrentUserId(){
 
 // Vykreslení karty „👤 Uživatelé a přístup“: kdo je přihlášený, seznam profilů
 // a tlačítka pro nové heslo / odebrání přístupu.
+// Nabídka zaměstnanců do formuláře „Přidat uživatele“: správce vybere
+// konkrétního člověka, takže se jméno a iniciály uloží k účtu a při prvním
+// přihlášení se nedá splést s někým jiným. Kdo už účet má, v nabídce není.
+function fillNewUserEmployees(){
+  const sel = document.getElementById('newUserEmployee');
+  if(!sel) return;
+  const prev = sel.value || '';
+  const users = usersCacheGet();
+  const list = (db.employees || []).slice().sort(function(a, b){
+    return String(a.name || '').localeCompare(String(b.name || ''), 'cs', {sensitivity: 'base'});
+  });
+  let html = '<option value="">— vyberte zaměstnance —</option>';
+  list.forEach(function(e){
+    const taken = users.some(function(u){
+      return u && u.active !== false && u.employeeId && u.employeeId === e.id;
+    });
+    if(taken) return;
+    html += '<option value="' + escapeHtml(e.id) + '">' + escapeHtml(e.name || '') +
+      (e.personalNumber ? ' (' + escapeHtml(e.personalNumber) + ')' : '') + '</option>';
+  });
+  sel.innerHTML = html;
+  if(prev) sel.value = prev;
+}
+
 function renderUsersUI(){
   const listEl = document.getElementById('userList');
   if(!listEl) return;                          // karta je jen v záložce Data
@@ -7576,6 +7622,7 @@ function renderUsersUI(){
   const s = userSession();
   const admin = isAdmin();
   if(adminBox) adminBox.classList.toggle('hidden', !admin);
+  if(admin){ try{ fillNewUserEmployees(); }catch(e){} }
   if(guestHint) guestHint.classList.toggle('hidden', admin);
   if(noteEl){
     noteEl.textContent = (s && (s.name || s.email))
@@ -7591,9 +7638,10 @@ function renderUsersUI(){
   const inviteHintEl = document.getElementById('usersInviteHint');
   if(inviteHintEl){
     inviteHintEl.innerHTML =
-      'Zadáte <strong>přihlašovací jméno</strong> (třeba <em>novak</em>) a dotyčný se jím přihlásí v kartě ' +
-      '„🔒 Přihlášení k datům“ tlačítkem <strong>🆕 První přihlášení — vytvořit heslo</strong>: vybere se ' +
-      'v seznamu zaměstnanců a zvolí si heslo. To heslo nikdo jiný nezná — ani vy; v seznamu je proto jen ' +
+      'Vyberte <strong>zaměstnance</strong> ze seznamu (jeho jméno a iniciály se uloží k účtu) a napište ' +
+      '<strong>přihlašovací jméno</strong> (třeba <em>novak</em>). Dotyčný se jím přihlásí v kartě ' +
+      '„🔒 Přihlášení k datům“ tlačítkem <strong>🆕 První přihlášení — vytvořit heslo</strong> a zvolí si heslo — ' +
+      'nikoho už nevybírá, takže se nemůže splést. To heslo nikdo jiný nezná — ani vy; v seznamu je proto jen ' +
       'stav <em>heslo nastaveno / nenastaveno</em>.';
   }
   const users = usersCacheGet();
@@ -8520,7 +8568,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v68';
+const APP_VERSION = 'v69';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -9311,9 +9359,10 @@ document.addEventListener('DOMContentLoaded', function(){
   if(newUserNickEl) newUserNickEl.addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); addAppUser(); }
   });
-  const newUserNameEl = document.getElementById('newUserName');
-  if(newUserNameEl) newUserNameEl.addEventListener('keydown', function(e){
-    if(e.key === 'Enter'){ e.preventDefault(); addAppUser(); }
+  const newUserEmpEl = document.getElementById('newUserEmployee');
+  if(newUserEmpEl) newUserEmpEl.addEventListener('change', function(){
+    const n = document.getElementById('newUserNick');
+    if(n && !n.value) setTimeout(function(){ n.focus(); }, 30);
   });
   // První přihlášení — člověk si sám zvolí heslo (e-mail se nikam neposílá).
   const btnNewPass = document.getElementById('btnDataNewPass');
@@ -9334,16 +9383,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(npPass2El) npPass2El.addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); createOwnPassword(); }
   });
-  // „Nejsem v seznamu“ → ruční zadání jména a příjmení.
-  const npEmpEl = document.getElementById('npEmployee');
-  if(npEmpEl) npEmpEl.addEventListener('change', function(){
-    const other = npEmpEl.value === '__other';
-    const npNameEl = document.getElementById('npName');
-    if(npNameEl){
-      npNameEl.classList.toggle('hidden', !other);
-      if(other) setTimeout(function(){ npNameEl.focus(); }, 30);
-    }
-  });
+  // Jméno se u „Prvního přihlášení“ nevybírá — je na účtu od správce.
   refreshIssuerUI();
   renderUsersUI();
   // Tiché obnovení přihlášení (jméno, iniciály, práva) po startu — až se
