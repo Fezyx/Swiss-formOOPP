@@ -56,6 +56,10 @@ Uživatelé a hesla (vlastní účet pro každého)
 - „🚫 Odebrat“ přístup odebere (profil se smaže a nick přestane platit; když
   ho znovu přidáte, dotyčný si nastaví nové heslo). Podrobný návod: soubor
   UZIVATELE.md, technické detaily: FIREBASE.md (kapitola 2.1).
+- Bez přihlášení nejde přidat ani upravit zaměstnance a neuloží se předávací
+  protokol. Aplikace to řekne a v hlavičce vedle mráčku ☁ svítí velké
+  „PŘIHLÁSTE SE“ — klepnutím na něj se otevře karta přihlášení.
+
 - Kolonka „Vydal“ v tabulce výdejů: po přihlášení se bere z účtu (jméno
   a příjmení → iniciály, např. Lukáš Dvořák → L.D.) a v záložce Zaměstnanci
   je hned vidět v řádku „✍ Vydává:“. Když profil jméno nemá, aplikace se na

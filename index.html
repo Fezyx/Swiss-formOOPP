@@ -56,6 +56,18 @@ header .sub{font-size:.8rem;opacity:.85;text-align:right}
 .sync-pill .sync-ic{display:block;pointer-events:none}
 .sync-pill.busy .sync-ic{animation:splashSpin .9s linear infinite}
 @media (prefers-reduced-motion: reduce){.sync-pill.busy .sync-ic{animation:none}}
+/* Velká výzva „PŘIHLÁSTE SE“ v hlavičce vedle mráčku — svítí, dokud se
+   v zařízení nikdo nepřihlásí; bez přihlášení nejde přidat zaměstnance
+   ani uložit předávku. */
+.login-cta{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:none;border-radius:999px;background:#f59e0b;color:#1f2937;font:inherit;font-weight:800;font-size:1rem;line-height:1.1;letter-spacing:.3px;white-space:nowrap;cursor:pointer;box-shadow:0 0 0 3px rgba(255,255,255,.45);animation:loginCtaPulse 2.4s ease-in-out infinite}
+.login-cta:hover{background:#fbbf24}
+.login-cta:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@keyframes loginCtaPulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(255,255,255,.45)}
+  50%{box-shadow:0 0 0 6px rgba(255,255,255,.18),0 0 14px rgba(245,158,11,.9)}
+}
+@media (prefers-reduced-motion: reduce){.login-cta{animation:none;box-shadow:0 0 0 3px rgba(255,255,255,.55)}}
+@media (max-width:560px){.login-cta{font-size:.82rem;padding:6px 10px}}
 .btn.light{background:#fff;color:#3663ae}
 nav{display:flex;background:#fff;box-shadow:0 1px 3px rgba(30,55,96,.10);flex:0 0 auto;z-index:10}
 nav button{flex:1;padding:13px 4px;background:none;border:none;font-size:.88rem;cursor:pointer;color:#48586e;border-bottom:3px solid transparent}
@@ -391,6 +403,7 @@ tr.clickable:hover{background:#eef3fa}
       <div class="sub">osobní ochranné pracovní prostředky</div>
       <div class="head-actions">
         <button type="button" class="sync-pill idle hidden" id="syncPill" aria-live="polite" title="Cloud připojen — synchronizace je automatická" aria-label="Cloud připojen, synchronizace je automatická"><span class="sync-ic" aria-hidden="true">☁</span></button>
+        <button type="button" class="login-cta hidden" id="loginCta" title="Přihlaste se přihlašovacím jménem a heslem">PŘIHLÁSTE SE</button>
         <div class="admin-badge hidden" id="adminBadge">
           <span class="admin-badge-who" id="adminWho">👤 přihlášen jako admin</span>
           <button class="btn light small" id="btnLogout" title="Odhlásit účet v tomto zařízení">Odhlásit</button>
@@ -2429,6 +2442,42 @@ function setAdminSession(on){
 }
 
 // Vpravo nahoře v hlavičce ukázat, že je správce přihlášený, a nabídnout odhlášení.
+// Je v tomto zařízení někdo přihlášený? (i účet bez profilu, i starší místní
+// správce) — bez přihlášení se nepřidávají zaměstnanci ani předávky.
+function isLoggedIn(){
+  const s = userSession();
+  return !!(isAdmin() || (s && (s.email || s.uid)));
+}
+
+// Velká výzva „PŘIHLÁSTE SE“ vedle mráčku: svítí, dokud se nikdo nepřihlásí.
+function renderAuthCta(){
+  const el = document.getElementById('loginCta');
+  if(!el) return;
+  el.classList.toggle('hidden', isLoggedIn());
+}
+
+// Klepnutí na výzvu: otevře záložku Data a přihlašovací kartu.
+function openLoginFromHeader(){
+  try{ showTab('data'); }catch(e){}
+  try{ showDataLogin(); }catch(e){}
+  const box = document.getElementById('dataLogin');
+  if(box){
+    const acc = box.closest('details');
+    if(acc) acc.open = true;
+  }
+  const u = document.getElementById('dataUser');
+  if(u){ try{ u.focus(); }catch(e){} }
+}
+
+// Akce jen pro přihlášeného: upozorní (toast + velká výzva v hlavičce)
+// a otevře přihlášení. Vrací false, aby se nic neuložilo.
+function requireLogin(what){
+  if(isLoggedIn()) return true;
+  toast('Nejdřív se přihlaste — ' + (what || 'tato akce') + ' jde jen přihlášenému. Otevírám přihlášení.', 9000);
+  openLoginFromHeader();
+  return false;
+}
+
 function updateAdminUI(){
   // Odznak v hlavičce: ukáže, kdo je přihlášený (správce i běžný uživatel),
   // aby se dalo tlačítkem „Odhlásit“ vyměnit účet i na sdíleném tabletu.
@@ -2447,6 +2496,7 @@ function updateAdminUI(){
     }
   }
   if(badge) badge.classList.toggle('hidden', !(isAdmin() || !!s));
+  renderAuthCta();
   updateOrdersVisibility();
   updateItemsVisibility();
   // Přihlášení/odhlášení hned překreslí seznam zaměstnanců — tlačítka
@@ -2773,6 +2823,7 @@ function syncFuncChangeDate(){
 }
 
 function addEmployee(){
+  if(!requireLogin('přidání nebo úprava zaměstnance')) return;
   const name = document.getElementById('empName').value.trim();
   const personalNumber = document.getElementById('empPersonalNumber').value.trim();
   const fn = functionById(document.getElementById('empFunction').value);
@@ -4104,6 +4155,7 @@ function protoPhotoBadge(p){
 }
 
 function saveProtocol(){
+  if(!requireLogin('uložení předávacího protokolu')) return;
   const fromId = protocolHidden('from').value;
   const toId = protocolHidden('to').value;
   if(!fromId){ toast('Vyberte předávajícího.'); return; }
@@ -6989,6 +7041,22 @@ let profileSyncAt = 0;
 
 // Po přihlášení (i tichém z uložených údajů) dotáhne profil: jméno, iniciály
 // a práva. Bez internetu zůstane v zařízení to, co se načetlo naposledy.
+// Práva pro přihlášený účet. Když profil pole role nemá (starší nebo ručně
+// založený dokument), vezme se role z oopp_logins — správce tak po přihlášení
+// nezůstane omylem bez práv.
+async function resolveSessionRole(prof, email){
+  if(prof && prof.role === 'admin') return 'admin';
+  if(prof && prof.role === 'user') return 'user';
+  try{
+    const nick = nickFromEmail(email);
+    if(nick && nick !== email){
+      const entry = await loginEntryGet(nick);
+      if(entry && entry.role === 'admin') return 'admin';
+    }
+  }catch(e){}
+  return 'user';
+}
+
 async function afterAuthUser(user){
   if(!user || !user.email) return userSession();
   const email = userKeyFor(user.email);
@@ -7030,7 +7098,7 @@ async function afterAuthUser(user){
     email: email,
     name: name,
     initials: String(prof.initials || '').trim() || initialsOf(name),
-    role: prof.role === 'admin' ? 'admin' : 'user',
+    role: await resolveSessionRole(prof, email),
     at: Date.now()
   });
   return userSession();
@@ -7207,6 +7275,13 @@ async function addAppUser(){
     // verze zůstane zvednuté, takže starý účet ve Firebase dál neplatí.
     const v = entry ? Math.max(1, parseInt(entry.v, 10) || 1) : 1;
     const email = loginEmailOf(nick, v);
+    // Pojistka: nick, který patří právě přihlášenému účtu, by přepsal jeho
+    // vlastní profil (a mohl mu vzít práva správce) — takový nick nejde založit.
+    const meNow = userSession();
+    if(meNow && meNow.email && userKeyFor(meNow.email) === userKeyFor(email)){
+      toast('Tenhle nick patří vašemu účtu — pro sebe ho nezakládejte, zvolte jiný.', 9000);
+      return;
+    }
     const now = Date.now();
     const me = userSession() || {};
     await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
@@ -8445,7 +8520,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v67';
+const APP_VERSION = 'v68';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -9032,6 +9107,8 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   refreshInstallUI();
+  const loginCtaEl = document.getElementById('loginCta');
+  if(loginCtaEl) loginCtaEl.addEventListener('click', openLoginFromHeader);
   renderAppVersion();
   // Sdílecí QR kód (odkaz ke stažení APK) — kreslí se hned, funguje i offline.
   renderShareQr();

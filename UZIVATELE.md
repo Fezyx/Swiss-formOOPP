@@ -30,6 +30,9 @@ a heslo. Díky tomu je v tabulce výdejů vidět, kdo výdej vydal (kolonka
   klikněte „Odhlásit“ — další výdej se pak podepíše tím, kdo se přihlásí.
 - Staré místní přihlášení admin/admin funguje dál (pro starší zařízení),
   ale NEDÁVÁ práva správce v cloudu — cloudová práva určuje profil.
+- Bez přihlášení se nepřidávají ani neupravují zaměstnanci a neukládají se
+  předávací protokoly. V hlavičce vedle mráčku ☁ přitom svítí velké
+  „PŘIHLÁSTE SE“; klepnutím se otevře přihlašovací karta.
 
 2) Přidání uživatele (jen správce)
 ----------------------------------
