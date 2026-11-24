@@ -30,6 +30,8 @@ a heslo. Díky tomu je v tabulce výdejů vidět, kdo výdej vydal (kolonka
   klikněte „Odhlásit“ — další výdej se pak podepíše tím, kdo se přihlásí.
 - Staré místní přihlášení admin/admin funguje dál (pro starší zařízení),
   ale NEDÁVÁ práva správce v cloudu — cloudová práva určuje profil.
+  Odemkne ale Data a seznam uživatelů, takže jím lze chybějící práva udělit
+  („⭐ Udělat správcem“). To je záchranná cesta, když se práva ztratí.
 - Bez přihlášení se nepřidávají ani neupravují zaměstnanci a neukládají se
   předávací protokoly. V hlavičce vedle mráčku ☁ přitom svítí velké
   „PŘIHLÁSTE SE“; klepnutím se otevře přihlašovací karta.
@@ -84,6 +86,25 @@ kdybyste ho chtěli, jde to v konzoli Firebase (Authentication → Users →
 ⋮ → Delete). Vlastní profil odebrat nelze (tlačítko se u sebe neukazuje) —
 jinak byste si zamkli dveře.
 
+4b) Změna práv — „⭐ Udělat správcem“ / „👤 Odebrat správce“
+------------------------------------------------------------
+V seznamu uživatelů má každý řádek (kromě toho vlastního) tlačítko, kterým
+se práva mění přímo v aplikaci — konzole Firebase není potřeba:
+
+- „⭐ Udělat správcem“ — dotyčný uvidí záložky Data (celou), Předměty,
+  Objednávky i seznam uživatelů a bude moci přidávat další účty.
+- „👤 Odebrat správce“ — účet a podepisování výdejů mu zůstanou, ale Data,
+  Předměty, Objednávky a seznam uživatelů se mu zamknou.
+- U sebe tlačítko není: vlastní práva správce si nikdo neodebere, aby si
+  nezamkl dveře. Odebrat je může jen jiný správce.
+- Změna se zapíše do profilu (oopp_users → role) i k nicku (oopp_logins →
+  role) a projeví se po nejbližším přihlášení (u vlastního účtu hned).
+
+Práva aplikace pozná takto: rozhoduje role v profilu (oopp_users/…), a když
+tam chybí, role u nicku (oopp_logins/…). Do oopp_logins smí zapisovat jen
+správce, takže „admin“ tam nastavil skutečný správce — díky tomu nezůstane
+správce po přihlášení omylem bez práv.
+
 5) Kolonka „Vydal“ (iniciály)
 -----------------------------
 - Přihlášený uživatel: do výdeje se uloží jeho iniciály z profilu a hned po
@@ -135,8 +156,28 @@ Bez pravidel pro oopp_logins se nick nepřihlásí (permission-denied).
 - „Tomuto přihlašovacímu jménu správce odebral přístup“ — nick má odebraný
   přístup (🚫 Odebrat). Správce ho znovu přidá stejným nickem.
 - „Přihlášený účet zatím nemá profil“ — e-mail existuje, ale chybí dokument
-  v oopp_users (typicky první správce). Klikněte „✚ Založit profil správce“,
-  pokud je cloud prázdný, nebo požádejte správce o přidání.
+  v oopp_users (typicky první správce). V přihlašovací kartě se objeví rámeček
+  s tlačítkem „✚ Založit profil správce“ (když je cloud prázdný nebo jste
+  správce) a s tlačítkem „📋 Kopírovat ID profilu“ — jinak požádejte správce
+  o přidání.
+- „Jsem přihlášený jako správce, ale nemám práva“ — poznáte to podle odznaku
+  vpravo nahoře („· uživatel“ místo „· správce“) a podle hlášky v přihlašovací
+  kartě. Nejčastěji je to tak, že účet má nick s právy uživatele, nebo profil
+  nemá roli. Postup opravy:
+  1. Odhlaste se a přihlaste se nickem, který práva správce mít má.
+  2. Když ani tak práva nejsou: přihlaste se místním admin/admin, otevřete
+     Data → „👤 Uživatelé a přístup“ a u svého řádku klikněte
+     „⭐ Udělat správcem“.
+  3. Když se nedaří ani to (nebo v seznamu řádek chybí), opravte to v konzoli
+     Firebase: Firestore → oopp_users → dokument s ID rovným vaší vnitřní
+     adrese (např. novak@oopp.local, po smazání hesla novak.v2@oopp.local,
+     u vlastního e-mailu malými písmeny) → přidejte/upravte
+     role = admin, active = true, name, initials. Stejně nastavte
+     oopp_logins → novak → role = admin. Pak se znovu přihlaste.
+     Přesné ID profilu vám aplikace napíše do hlášky po přihlášení a dá se
+     zkopírovat tlačítkem „📋 Kopírovat ID profilu“.
+  4. Role v profilu jde měnit jen správcem (pravidla ve Firestore) — sám si
+     ji uživatel přepsat nemůže.
 - „Missing or insufficient permissions“ — chybí pravidla z FIREBASE.md
   (hlavně veřejné čtení oopp_logins), nebo účet nemá profil.
 - Data se nesynchronizují — v kartě „☁ Cloud“ klikněte „🔑 Přihlásit“

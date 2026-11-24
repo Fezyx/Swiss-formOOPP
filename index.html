@@ -7038,24 +7038,24 @@ async function fetchUserProfile(email){
 
 let profileSyncAt = 0;
 
-// Po přihlášení (i tichém z uložených údajů) dotáhne profil: jméno, iniciály
-// a práva. Bez internetu zůstane v zařízení to, co se načetlo naposledy.
-// Práva pro přihlášený účet. Když profil pole role nemá (starší nebo ručně
-// založený dokument), vezme se role z oopp_logins — správce tak po přihlášení
-// nezůstane omylem bez práv.
+// Práva pro přihlášený účet. Do oopp_logins smí zapisovat JEN správce
+// (pravidla ve Firestore), takže když je u nicku role „admin“, nastavil ji
+// skutečný správce — a platí i tehdy, když profil roli nemá nebo ji má
+// zastaralou. Tím správce po přihlášení nezůstane omylem bez práv.
 async function resolveSessionRole(prof, email){
-  if(prof && prof.role === 'admin') return 'admin';
-  if(prof && prof.role === 'user') return 'user';
   try{
     const nick = nickFromEmail(email);
     if(nick && nick !== email){
       const entry = await loginEntryGet(nick);
-      if(entry && entry.role === 'admin') return 'admin';
+      if(entry && entry.active !== false && entry.role === 'admin') return 'admin';
     }
   }catch(e){}
+  if(prof && (prof.role === 'admin' || prof.role === 'user')) return prof.role;
   return 'user';
 }
 
+// Po přihlášení (i tichém z uložených údajů) dotáhne profil: jméno, iniciály
+// a práva. Bez internetu zůstane v zařízení to, co se načetlo naposledy.
 async function afterAuthUser(user){
   if(!user || !user.email) return userSession();
   const email = userKeyFor(user.email);
@@ -7237,7 +7237,10 @@ async function tryDataLoginCloud(u, p){
       updateAdminUI();
       if(errEl) errEl.textContent = 'Přihlášeno jako ' + ((s && (s.name || s.email)) ? (s.name || nickFromEmail(s.email)) : who) +
         ' — účet nemá práva správce, takže Data zůstávají zamčená. Výdeje se podepisují iniciálami ' +
-        ((s && s.initials) ? s.initials : '—') + '.';
+        ((s && s.initials) ? s.initials : '—') + '. ' +
+        'Práva správce se zapínají u profilu: ve Firestore v kolekci oopp_users otevřete dokument „' +
+        ((s && s.email) || '') + '“ a nastavte role = admin (stejně tak oopp_logins → ' +
+        (nickFromEmail((s && s.email) || '') || 'nick') + ').';
       toast('Přihlášeno.');
     }
     try{ renderCloudUI(); updateCloudBanner(); renderUsersUI(); }catch(e){}
@@ -7550,6 +7553,57 @@ async function removeAppUser(email){
   }
 }
 
+// Změna práv (jen správce): přepíše roli v profilu i u nicku. Slouží k tomu,
+// aby se práva dala udělit/odebrat přímo v aplikaci — bez konzole Firebase.
+async function setAppUserRole(email, role){
+  if(!isAdmin()){ toast('Práva může měnit jen správce.'); return; }
+  const mail = userKeyFor(email);
+  if(!mail) return;
+  const next = role === 'admin' ? 'admin' : 'user';
+  const s = userSession();
+  const me = !!(s && userKeyFor(s.email) === mail);
+  if(me && next !== 'admin'){
+    toast('Svá vlastní práva správce odebrat nemůžete — udělal by to jiný správce. Jinak byste si zamkl(a) dveře.', 12000);
+    return;
+  }
+  const u = usersCacheGet().find(function(x){ return userKeyFor(x.email || x.id) === mail; });
+  const nick = normNick((u && u.login) || nickFromEmail(mail));
+  const who = (u && u.name) ? (u.name + (nick ? ' (' + nick + ')' : '')) : (nick || mail);
+  const q = (next === 'admin')
+    ? 'Dát práva správce uživateli ' + who + '?\n\nUvidí záložky Předměty a Objednávky, ceník i seznam uživatelů — zkrátka všechno.'
+    : 'Odebrat práva správce uživateli ' + who + '?\n\nZůstane mu účet a podepisování výdejů, ale zamknou se mu Data, Předměty, Objednávky a seznam uživatelů.';
+  if(!confirm(q)) return;
+  try{
+    await fbEnsureAuth();
+    const now = Date.now();
+    await fbFs().collection(USERS_COLLECTION).doc(mail).set({
+      role: next, roleUpdatedAt: now
+    }, {merge: true});
+    // Nick drží práva taky — podle nich se pozná správce i před přihlášením
+    // a platí i tehdy, když v profilu role chybí.
+    if(nick && nick !== mail){
+      try{
+        await fbFs().collection(LOGINS_COLLECTION).doc(nick).set({
+          role: next, updatedAt: now
+        }, {merge: true});
+      }catch(e){}
+    }
+    if(me){
+      // Vlastní účet: práva se projeví hned, bez odhlášení.
+      profileSyncAt = 0;
+      await afterAuthUser({uid: s.uid, email: s.email});
+      if(next === 'admin'){ setAdminSession(true); unlockData(); }
+      refreshIssuerUI();
+    }
+    await loadUsersFromCloud(false);
+    toast((next === 'admin')
+      ? 'Práva správce přidána — ' + who + '.'
+      : 'Práva správce odebrána — ' + who + '.', 12000);
+  }catch(e){
+    toast('Nepodařilo se: ' + friendlyAuthError(e), 10000);
+  }
+}
+
 // První nastavení: přihlášený účet si založí profil správce. Používá se jen
 // tehdy, když v cloudu ještě žádný profil není (jinak práva přiděluje správce).
 async function createSelfAdminProfile(){
@@ -7649,17 +7703,26 @@ function renderUsersUI(){
   // profil správce (jen když v cloudu ještě žádný profil není).
   const loginBox = document.getElementById('loginProfileBox');
   if(loginBox){
-    if(s && s.email && s.missing && !users.length){
-      loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(nickFromEmail(s.email)) +
-        '</strong> je přihlášený, ale zatím nemá profil — nemá práva správce a výdej by se nepodepsal iniciály.</div>' +
-        '<div class="row" style="margin-top:8px"><button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button></div>';
+    if(s && s.email && s.missing){
+      const myNick = nickFromEmail(s.email) || '';
+      const myId = userKeyFor(s.email);
+      // Profil správce smí založit sám jen ten, kdo je přihlášený správcem
+      // (nebo když v cloudu ještě žádný profil není) — jinak práva přiděluje
+      // správce, aby si je nikdo nedal sám.
+      const canBootstrap = !!(admin || !users.length);
+      loginBox.innerHTML = '<div class="sig-hint">Účet <strong>' + escapeHtml(myNick) +
+        '</strong> je přihlášený, ale v cloudu nemá profil v kolekci <strong>oopp_users</strong>, takže nemá práva správce a výdej by se nepodepsal iniciály.' +
+        (canBootstrap ? '' : ' Požádejte správce, ať vás přidá v kartě „👤 Uživatelé a přístup“ (tlačítko ⭐ Udělat správcem). Máte-li přístup do konzole Firebase, jde to i tam: Firestore → oopp_users → dokument <strong>' +
+          escapeHtml(myId) + '</strong> s položkami <strong>role: admin</strong>, <strong>active: true</strong>, <strong>name</strong> a <strong>initials</strong>.') +
+        '</div><div class="row" style="margin-top:8px">' +
+        (canBootstrap ? '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' : '') +
+        '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button></div>';
       loginBox.classList.remove('hidden');
     } else {
       loginBox.innerHTML = '';
       loginBox.classList.add('hidden');
     }
   }
-  const showBootstrap = !!(s && s.email && s.missing && (admin || users.length === 0));
   if(curEl){
     let html = '';
     if(s && (s.name || s.email)){
@@ -7670,9 +7733,8 @@ function renderUsersUI(){
           (s.missing ? ' <span class="role-chip off">bez profilu</span>' : '') + '</div>' +
         '<div class="sig-hint">' + escapeHtml(nickFromEmail(s.email)) + '</div>' +
         (s.missing ? '<div class="sig-hint">Účet je přihlášený, ale nemá profil v kolekci <strong>oopp_users</strong> — ' +
-          'k datům se nedostane a výdej neuloží. Požádejte správce o přidání.</div>' : '') +
-        (showBootstrap ? '<div class="row" style="margin-top:8px">' +
-          '<button class="btn small" data-bootstrap-admin="1">✚ Založit profil správce</button>' +
+          'k datům se nedostane a výdej neuloží. Požádejte správce o přidání (nebo si profil založte v přihlašovací kartě výše).</div>' : '') +
+        (s.missing ? '<div class="row" style="margin-top:8px">' +
           '<button class="btn outline small" data-copy-id="1">📋 Kopírovat ID profilu</button>' +
           '</div>' : '') +
         '</div>';
@@ -7705,6 +7767,7 @@ function renderUsersUI(){
         '<td><span class="role-chip ' + role + '">' + (role === 'admin' ? 'správce' : 'uživatel') + '</span>' +
           (u.active === false ? ' <span class="role-chip off">blokováno</span>' : '') + '</td>' +
         '<td><div class="row" style="gap:6px">' +
+          (mine ? '' : '<button class="btn outline small" data-user-role="' + escapeHtml(email) + '" data-role-to="' + (role === 'admin' ? 'user' : 'admin') + '" title="' + (role === 'admin' ? 'Odebrat práva správce — účet zůstane, jen se zamknou Data, Předměty a Objednávky' : 'Dát práva správce — uvidí i Data, Předměty, Objednávky a seznam uživatelů') + '">' + (role === 'admin' ? '👤 Odebrat správce' : '⭐ Udělat správcem') + '</button>') +
           '<button class="btn outline small" data-user-name="' + escapeHtml(email) + '" title="Změnit jméno a iniciály do kolonky Vydal">✏ Jméno</button>' +
           '<button class="btn outline small" data-user-clear="' + escapeHtml(email) + '" title="Smaže heslo — dotyčný si stejným jménem zvolí nové">🔑 Smazat heslo</button>' +
           (mine ? '' : '<button class="btn danger small" data-user-del="' + escapeHtml(email) + '" title="Odebere přístup k datům">🚫 Odebrat</button>') +
@@ -8568,7 +8631,7 @@ function renderAll(){
 // Verze aplikace. Při každé změně kódu zvyšte tady i CACHE v souboru sw.js
 // (na stejné číslo) — zařízení si pak stáhne novou verzi a starou offline
 // paměť zahodí.
-const APP_VERSION = 'v69';
+const APP_VERSION = 'v70';
 let installPromptEvent = null;
 
 function isAppStandalone(){
@@ -9431,6 +9494,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const delOrderBtn = e.target.closest('button[data-delorder]');
     if(delOrderBtn){ deleteOrder(delOrderBtn.dataset.delorder); return; }
     // Uživatelé (Data → 👤 Uživatelé a přístup): tlačítka jsou v překreslovaném seznamu
+    const userRoleBtn = e.target.closest('button[data-user-role]');
+    if(userRoleBtn){ setAppUserRole(userRoleBtn.dataset.userRole, userRoleBtn.dataset.roleTo); return; }
     const userClearBtn = e.target.closest('button[data-user-clear]');
     if(userClearBtn){ clearAppUserPassword(userClearBtn.dataset.userClear); return; }
     const userResetBtn = e.target.closest('button[data-user-reset]');
